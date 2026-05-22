@@ -10,6 +10,7 @@ public enum OverlayZOrder
 {
     Normal,
     TopMost,
+    FollowTarget,
 }
 
 public enum PresentMode
@@ -40,40 +41,58 @@ public enum HiddenRenderPolicy
     Continue,
 }
 
-public enum RenderExceptionPolicy
+public enum TargetMinimizedPolicy
 {
-    StopOverlay,
-    IgnoreAndContinue,
-    FailFast,
+    HideOverlay,
+    PauseRendering,
 }
 
-public sealed record FrameRateLimit
+public enum MatchMode
 {
-    public static FrameRateLimit DisplayDefault { get; } = new((int?)null);
+    Exact,
+    Contains,
+    StartsWith,
+    EndsWith,
+}
+
+public enum RenderExceptionPolicy
+{
+    StopOverlay = 0,
+    Continue = 1,
+    IgnoreAndContinue = Continue,
+    FailFast = 2,
+    PauseOverlay = 3,
+}
+
+public readonly record struct FrameRateLimit
+{
+    public static FrameRateLimit DisplayDefault { get; } = new(null);
     public static FrameRateLimit Unlimited { get; } = new(0);
 
-    private FrameRateLimit(int? framesPerSecond)
+    private FrameRateLimit(double? framesPerSecond)
     {
         FramesPerSecond = framesPerSecond;
     }
 
-    public int? FramesPerSecond { get; }
+    public double? FramesPerSecond { get; }
 
-    public static FrameRateLimit Fixed(int framesPerSecond)
+    public static FrameRateLimit Fixed(double framesPerSecond)
     {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(framesPerSecond);
-        return new FrameRateLimit(framesPerSecond);
+        return double.IsFinite(framesPerSecond) && framesPerSecond > 0d
+            ? new FrameRateLimit(framesPerSecond)
+            : throw new ArgumentOutOfRangeException(nameof(framesPerSecond), "Frame rate must be finite and greater than zero.");
     }
 
-    internal TimeSpan ToFrameInterval()
+    internal TimeSpan ToFrameInterval(double displayDefaultFramesPerSecond = 60d)
     {
-        if (FramesPerSecond == 0)
+        return FramesPerSecond switch
         {
-            return TimeSpan.Zero;
-        }
-
-        int fps = FramesPerSecond ?? 60;
-        return TimeSpan.FromSeconds(1d / fps);
+            0 => TimeSpan.Zero,
+            double framesPerSecond => TimeSpan.FromSeconds(1d / framesPerSecond),
+            _ when double.IsFinite(displayDefaultFramesPerSecond) && displayDefaultFramesPerSecond > 0d
+                => TimeSpan.FromSeconds(1d / displayDefaultFramesPerSecond),
+            _ => throw new ArgumentOutOfRangeException(nameof(displayDefaultFramesPerSecond), "Display default frame rate must be finite and greater than zero."),
+        };
     }
 }
 
@@ -95,9 +114,145 @@ public sealed record WindowClassOptions
     public bool ShowInTaskbar { get; init; }
 }
 
+public enum TargetBoundsMode
+{
+    Window,
+    ClientArea,
+    Custom,
+}
+
 public sealed record OverlayTarget
 {
     public WindowHandle Hwnd { get; init; }
+
+    public TargetBoundsMode BoundsMode { get; init; } = TargetBoundsMode.Window;
+
+    public bool Reacquire { get; init; }
+
+    internal TargetDiscoveryKind DiscoveryKind { get; init; } = TargetDiscoveryKind.Hwnd;
+
+    internal string? DiscoveryValue { get; init; }
+
+    internal int? DiscoveryProcessId { get; init; }
+
+    internal MatchMode MatchMode { get; init; } = MatchMode.Exact;
+
+    internal IWindowTargetProvider? Provider { get; init; }
+
+    internal Func<WindowHandle, WindowBounds?>? CustomBoundsResolver { get; init; }
+
+    public OverlayTarget WithBoundsMode(TargetBoundsMode boundsMode) => this with { BoundsMode = boundsMode };
+
+    public OverlayTarget WithCustomBounds(Func<WindowHandle, WindowBounds?> resolver)
+    {
+        ArgumentNullException.ThrowIfNull(resolver);
+        return this with { BoundsMode = TargetBoundsMode.Custom, CustomBoundsResolver = resolver };
+    }
+
+    public OverlayTarget WithReacquire(bool reacquire) => this with { Reacquire = reacquire };
+}
+
+internal enum TargetDiscoveryKind
+{
+    Hwnd,
+    ProcessId,
+    ProcessName,
+    WindowTitle,
+    WindowClassName,
+    ForegroundWindow,
+    CustomProvider,
+}
+
+public interface IWindowTargetProvider
+{
+    bool TryResolve(out WindowHandle hwnd);
+}
+
+public static class WindowTarget
+{
+    public static OverlayTarget FromHwnd(WindowHandle hwnd)
+    {
+        return !hwnd.IsNull
+            ? new OverlayTarget { Hwnd = hwnd }
+            : throw new ArgumentException("Target HWND cannot be null.", nameof(hwnd));
+    }
+
+    public static OverlayTarget ByProcessName(string processName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(processName);
+        return new OverlayTarget
+        {
+            DiscoveryKind = TargetDiscoveryKind.ProcessName,
+            DiscoveryValue = processName,
+            Reacquire = true,
+        };
+    }
+
+    public static OverlayTarget ByProcessId(int processId)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(processId);
+        return new OverlayTarget
+        {
+            DiscoveryKind = TargetDiscoveryKind.ProcessId,
+            DiscoveryProcessId = processId,
+            Reacquire = true,
+        };
+    }
+
+    public static OverlayTarget ByTitle(string title, MatchMode mode = MatchMode.Contains)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(title);
+        return new OverlayTarget
+        {
+            DiscoveryKind = TargetDiscoveryKind.WindowTitle,
+            DiscoveryValue = title,
+            MatchMode = mode,
+            Reacquire = true,
+        };
+    }
+
+    public static OverlayTarget ByWindowTitle(string title)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(title);
+        return new OverlayTarget
+        {
+            DiscoveryKind = TargetDiscoveryKind.WindowTitle,
+            DiscoveryValue = title,
+            MatchMode = MatchMode.Exact,
+            Reacquire = true,
+        };
+    }
+
+    public static OverlayTarget ByClassName(string className)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(className);
+        return new OverlayTarget
+        {
+            DiscoveryKind = TargetDiscoveryKind.WindowClassName,
+            DiscoveryValue = className,
+            Reacquire = true,
+        };
+    }
+
+    public static OverlayTarget ForegroundWindow()
+        => new()
+        {
+            DiscoveryKind = TargetDiscoveryKind.ForegroundWindow,
+            Reacquire = true,
+        };
+
+    public static OverlayTarget Foreground() => ForegroundWindow();
+
+    public static OverlayTarget FromProvider(IWindowTargetProvider provider)
+    {
+        ArgumentNullException.ThrowIfNull(provider);
+        return new OverlayTarget
+        {
+            DiscoveryKind = TargetDiscoveryKind.CustomProvider,
+            Provider = provider,
+            Reacquire = true,
+        };
+    }
 }
 
 public sealed record OverlayWindowOptions
@@ -120,6 +275,8 @@ public sealed record OverlayWindowOptions
 
     public OverlayTarget? Target { get; init; }
 
+    public TimeSpan TargetTrackingInterval { get; init; } = TimeSpan.FromMilliseconds(33);
+
     public DpiMode DpiMode { get; init; } = DpiMode.PerMonitorV2;
 
     public TransparencyMode TransparencyMode { get; init; } = TransparencyMode.Auto;
@@ -128,7 +285,13 @@ public sealed record OverlayWindowOptions
 
     public HiddenRenderPolicy HiddenRenderPolicy { get; init; } = HiddenRenderPolicy.Pause;
 
+    public TargetMinimizedPolicy TargetMinimizedPolicy { get; init; } = TargetMinimizedPolicy.HideOverlay;
+
     public RenderExceptionPolicy ExceptionPolicy { get; init; } = RenderExceptionPolicy.StopOverlay;
 
     public bool EnableBlurBehind { get; init; }
+
+    public bool RejectResourceCreationDuringRender { get; init; }
+
+    public int ExcessiveTextLayoutCreationThreshold { get; init; } = 64;
 }

@@ -7,6 +7,7 @@ public sealed class NativeHResultException : Exception
     {
         Operation = operation;
         HResult = hresult;
+        Win32NativeDiagnostics.RecordHResultFailure(operation, hresult);
     }
 
     public string Operation { get; }

@@ -6,9 +6,15 @@ namespace ModernOverlay.Win32;
 public sealed class NativeWin32Exception : Win32Exception
 {
     public NativeWin32Exception(string operation)
-        : base(Marshal.GetLastPInvokeError())
+        : this(operation, Marshal.GetLastPInvokeError())
+    {
+    }
+
+    private NativeWin32Exception(string operation, int error)
+        : base(error)
     {
         Operation = operation;
+        Win32NativeDiagnostics.RecordWin32Failure(operation, error);
     }
 
     public string Operation { get; }

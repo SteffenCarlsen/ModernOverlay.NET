@@ -1,4 +1,7 @@
 using ModernOverlay;
+using ModernOverlay.Direct2D;
+
+Direct2DOverlayBackend.Register();
 
 await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
 {

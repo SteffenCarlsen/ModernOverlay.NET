@@ -14,4 +14,8 @@
     <PackageReference Include="Vortice.Win32" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\ModernOverlay\ModernOverlay.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -2,6 +2,26 @@ namespace ModernOverlay;
 
 public readonly record struct FrameStats(
     long FrameCount,
+    double CurrentFramesPerSecond,
+    double AverageFramesPerSecond,
     TimeSpan LastFrameDuration,
+    TimeSpan MovingAverageFrameDuration,
+    TimeSpan WorstFrameDuration,
     DateTimeOffset LastFrameUtc,
-    int RenderThreadId);
+    int RenderThreadId,
+    TimeSpan TargetFrameInterval,
+    TimeSpan ActualFrameInterval,
+    TimeSpan RenderDuration,
+    TimeSpan PresentDuration,
+    int CommandCount,
+    int PrimitiveCount,
+    int TransientTextLayoutCount,
+    int NativeResourceCount,
+    long SkippedFrameCount,
+    long DroppedFrameCount,
+    long TargetTrackingUpdateCount,
+    long BackendGeneration,
+    WindowHandle TargetHwnd,
+    DpiScale DpiScale,
+    WindowBounds WindowBounds,
+    WindowBounds? TargetBounds);

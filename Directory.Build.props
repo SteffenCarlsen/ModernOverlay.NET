@@ -12,6 +12,10 @@
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
     <RepositoryUrl>https://github.com/local/ModernOverlay</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/local/ModernOverlay</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>windows;overlay;direct2d;win32;vortice;net11-preview</PackageTags>
+    <PackageReleaseNotes>Preview package: targets net11.0-windows on a .NET 11 preview SDK. APIs, packaging, and backend registration may change before GA or a net10.0-windows fallback.</PackageReleaseNotes>
     <Authors>ModernOverlay contributors</Authors>
     <Company>ModernOverlay</Company>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

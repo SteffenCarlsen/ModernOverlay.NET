@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ModernOverlay.Diagnostics\ModernOverlay.Diagnostics.csproj" />
     <ProjectReference Include="..\ModernOverlay.Win32\ModernOverlay.Win32.csproj" />
   </ItemGroup>
 

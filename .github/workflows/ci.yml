@@ -2,53 +2,64 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_windows_integration_tests:
+        description: Run tests marked WindowsIntegration
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
 
 jobs:
-  build-test:
-    name: Windows .NET 11 preview
+  build-and-test:
+    name: Windows .NET 11 Preview
     runs-on: windows-latest
 
-    steps:
-      - uses: actions/checkout@v4
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
 
-      - name: Setup .NET 11 preview
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET from global.json
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 11.0.x
-          include-prerelease: true
+          global-json-file: global.json
+
+      - name: Prepare artifacts
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force -Path artifacts
 
       - name: Restore
-        run: dotnet restore ModernOverlay.sln -bl:${{ github.workspace }}\restore.binlog
+        shell: pwsh
+        run: dotnet restore ModernOverlay.sln -bl:artifacts\restore.binlog
 
       - name: Build
-        run: dotnet build ModernOverlay.sln --configuration Release --no-restore -bl:${{ github.workspace }}\build.binlog
+        shell: pwsh
+        run: dotnet build ModernOverlay.sln --configuration Release --no-restore -m:1 -bl:artifacts\build.binlog
 
-      - name: Test
-        run: dotnet test ModernOverlay.sln --configuration Release --no-build --logger trx -bl:${{ github.workspace }}\test.binlog
+      - name: Test non-integration
+        shell: pwsh
+        run: dotnet test ModernOverlay.sln --configuration Release --no-build --filter "TestCategory!=WindowsIntegration" --logger trx --results-directory artifacts\TestResults -bl:artifacts\test-unit.binlog
 
-      - name: Upload build logs
-        if: always()
+      - name: Test Windows integration
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_windows_integration_tests == 'true' }}
+        shell: pwsh
+        run: dotnet test ModernOverlay.sln --configuration Release --no-build --filter "TestCategory=WindowsIntegration" --logger trx --results-directory artifacts\TestResults -bl:artifacts\test-windows-integration.binlog
+
+      - name: Upload diagnostics
         uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: msbuild-binlogs
+          name: ci-diagnostics
           path: |
-            *.binlog
-            **/*.trx
-
-  net10-contingency:
-    name: Windows .NET 10 SDK presence
-    runs-on: windows-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup .NET 10
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.0.x
-
-      - name: Report SDK
-        run: dotnet --info
+            artifacts/**/*.binlog
+            artifacts/TestResults/**/*.trx

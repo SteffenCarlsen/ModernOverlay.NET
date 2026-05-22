@@ -2,6 +2,8 @@ namespace ModernOverlay.Win32;
 
 public static class WindowStyles
 {
+    public const int GwlStyle = -16;
+
     public const int GwlExStyle = -20;
 
     public const uint WsPopup = 0x80000000;

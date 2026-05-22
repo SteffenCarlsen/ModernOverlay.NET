@@ -27,5 +27,7 @@ Date: 2026-05-22
 
 ## Smoke Status
 
-- `net11.0-windows`: `dotnet build ModernOverlay.sln --configuration Release --no-restore` succeeded locally. `dotnet test ModernOverlay.sln --configuration Release --no-build --logger trx` passed 9 tests.
+- `net11.0-windows`: `dotnet build ModernOverlay.sln --configuration Release --no-restore -m:1 -bl:{{}}` succeeded locally with 0 warnings and 0 errors. `dotnet test ModernOverlay.sln --configuration Release --no-build --logger trx -bl:{{}}` passed 67 tests.
+- Packaging: `dotnet pack ModernOverlay.sln --configuration Release --no-build -m:1 -bl:{{}}` created all four packable packages with README metadata after running outside the sandbox. The sandboxed pack attempt was blocked by denied writes to `obj/Release/*.nuspec`.
+- CI: `.github/workflows/ci.yml` restores and builds on `windows-latest` using the SDK pinned by `global.json`, runs `TestCategory!=WindowsIntegration` by default, preserves binlog/TRX artifacts, and allows the desktop-sensitive `WindowsIntegration` suite through manual dispatch.
 - `net10.0-windows`: not enabled in the project files. It remains a contingency path per ADR 0001.

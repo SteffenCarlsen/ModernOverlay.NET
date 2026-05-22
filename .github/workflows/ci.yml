@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-test:
+    name: Windows .NET 11 preview
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 11 preview
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+          include-prerelease: true
+
+      - name: Restore
+        run: dotnet restore ModernOverlay.sln -bl:${{ github.workspace }}\restore.binlog
+
+      - name: Build
+        run: dotnet build ModernOverlay.sln --configuration Release --no-restore -bl:${{ github.workspace }}\build.binlog
+
+      - name: Test
+        run: dotnet test ModernOverlay.sln --configuration Release --no-build --logger trx -bl:${{ github.workspace }}\test.binlog
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: msbuild-binlogs
+          path: |
+            *.binlog
+            **/*.trx
+
+  net10-contingency:
+    name: Windows .NET 10 SDK presence
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Report SDK
+        run: dotnet --info

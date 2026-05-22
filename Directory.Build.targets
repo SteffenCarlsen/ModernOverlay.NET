@@ -1,0 +1,7 @@
+<Project>
+  <Target Name="RejectSharpDxPackageReferences" BeforeTargets="CollectPackageReferences">
+    <Error
+      Condition="$([System.String]::Copy('%(PackageReference.Identity)').StartsWith('SharpDX', System.StringComparison.OrdinalIgnoreCase))"
+      Text="SharpDX package references are forbidden by the modernization spec: %(PackageReference.Identity)." />
+  </Target>
+</Project>

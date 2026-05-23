@@ -79,7 +79,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Define UI property invalidation categories: layout, arrange, render, input-region, focus/state, and resource.
 - [x] Implement internal property-set helper APIs so controls do not repeat handwritten invalidation logic in every setter.
 - [ ] Define which properties are inherited through the UI tree, limited initially to theme and enabled/visibility-style state where needed.
-- [ ] Ensure visual-state changes invalidate render and update input/focus state consistently.
+- [x] Ensure visual-state changes invalidate render and update input/focus state consistently.
+  - `UiElement.VisualState` exposes normal, hover, pressed, disabled, and focused state; pointer, focus, enabled, and visibility updates already invalidate render/input/focus state through the root.
 - [x] Ensure property changes during protected phases are render-safe and schedule deferred consequences when needed.
 - [x] Define UI tree thread affinity and reject or marshal cross-thread mutation through an explicit root-owned API.
 - [ ] Add tests proving property setters trigger the correct invalidation category and do not over-invalidate unrelated phases.
@@ -183,7 +184,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add default clipping around each element.
 - [x] Add render layers: normal, floating, popup, adorner.
 - [x] Add deterministic sort by layer, z-index, and insertion order.
-- [ ] Add default focus visuals and hover/pressed visuals.
+- [x] Add default focus visuals and hover/pressed visuals.
+  - Interactive controls resolve default hover, pressed, and focus brushes through shared style helpers.
 - [ ] Add opacity support if it can be implemented without expensive per-control offscreen composition.
 - [ ] Add tests using a fake draw command sink to verify render order and clipping calls.
 
@@ -193,9 +195,11 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add resource descriptors for common brushes and fonts.
 - [x] Realize theme resources through `OverlayResourceManager` outside the render callback.
 - [x] Add default theme with neutral colors and readable typography.
-- [ ] Add style properties for background, foreground, border, accent, disabled, hover, pressed, focus, popup, and window chrome.
+- [x] Add style properties for background, foreground, border, accent, disabled, hover, pressed, focus, popup, and window chrome.
+  - `UiElement` exposes caller-owned brush overrides for `Background`, `Foreground`, `BorderBrush`, `AccentBrush`, `DisabledBrush`, `HoverBackground`, `PressedBackground`, `FocusBrush`, `PopupBackground`, and `WindowChromeBackground`.
 - [x] Decide whether 1.1 ships a built-in theme: ship a built-in theme with customization hooks.
-- [ ] Decide whether controls expose direct style properties, style classes, or both.
+- [x] Decide whether controls expose direct style properties, style classes, or both.
+  - 1.1 uses direct style properties first; style classes are deferred until the object model and samples prove a real need.
 - [x] Define runtime theme-swap semantics.
   - `OverlayUiRoot.ApplyTheme` replaces root-owned theme resources and invalidates measure/arrange/render/resource state.
 - [x] Define eager versus lazy resource realization for theme resources.
@@ -300,12 +304,14 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 
 ## 17. Control Base Classes
 
-- [ ] Implement `Control` or `UiControl` as the base class for interactive controls.
-- [ ] Add common visual states: normal, hover, pressed, disabled, focused.
+- [x] Implement `Control` or `UiControl` as the base class for interactive controls.
+  - `UiControl` is the base for the main non-panel interactive controls.
+- [x] Add common visual states: normal, hover, pressed, disabled, focused.
+  - `UiVisualState` and `UiElement.VisualState` define the common state vocabulary.
 - [ ] Add content/alignment support where needed.
-- [ ] Add `ContentControl` for controls with one child/content object.
-- [ ] Add `HeaderedContentControl` if windows/group boxes/tabs need it.
-- [ ] Add `RangeBase` for slider/progress/number controls.
+- [x] Add `ContentControl` for controls with one child/content object.
+- [x] Add `HeaderedContentControl` if windows/group boxes/tabs need it.
+- [x] Add `RangeBase` for slider/progress/number controls.
 - [ ] Add `Selector` for list/combo/radio groups.
 - [ ] Add tests for common visual states, command state, and inherited behavior.
 

@@ -223,8 +223,8 @@ public class Popup : UiPanel, IUiPopup
             return;
         }
 
-        context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Surface);
-        context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Border);
+        context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, ResolvePopupBackground(context));
+        context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, ResolveBorderBrush(context));
         base.RenderCore(context);
     }
 }
@@ -246,7 +246,7 @@ public sealed class UiMenuItem
     public bool IsEnabled { get; set; } = true;
 }
 
-public class Menu : UiElement
+public class Menu : UiControl
 {
     private int hotIndex = -1;
 
@@ -270,10 +270,10 @@ public class Menu : UiElement
     protected override void RenderCore(UiRenderContext context)
     {
         bool enabled = IsEffectivelyEnabled;
-        context.Draw.Fill.Rectangle(Bounds, enabled ? context.Theme.Surface : context.Theme.Disabled);
+        context.Draw.Fill.Rectangle(Bounds, enabled ? ResolveBackground(context) : ResolveDisabledBrush(context));
         if (IsFocused && enabled)
         {
-            context.Draw.Draw.Rectangle(Bounds, context.Theme.Accent);
+            context.Draw.Draw.Rectangle(Bounds, ResolveFocusBrush(context));
         }
 
         float x = ContentBounds.X;
@@ -284,10 +284,10 @@ public class Menu : UiElement
             RectF itemRect = new(x, ContentBounds.Y, width, ContentBounds.Height);
             if (index == hotIndex)
             {
-                context.Draw.Fill.RoundedRectangle(itemRect, 3f, 3f, context.Theme.SurfaceHover);
+                context.Draw.Fill.RoundedRectangle(itemRect, 3f, 3f, HoverBackground ?? context.Theme.SurfaceHover);
             }
 
-            context.Draw.Draw.Text(item.Text, context.Theme.Font, enabled && item.IsEnabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(itemRect.X + 8f, itemRect.Y + 3f));
+            context.Draw.Draw.Text(item.Text, context.Theme.Font, enabled && item.IsEnabled ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(itemRect.X + 8f, itemRect.Y + 3f));
             x += width;
         }
     }
@@ -524,11 +524,11 @@ public sealed class ContextMenu : Menu, IUiPopup
         }
 
         bool enabled = IsEffectivelyEnabled;
-        context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, enabled ? context.Theme.Surface : context.Theme.Disabled);
-        context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Border);
+        context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, enabled ? ResolvePopupBackground(context) : ResolveDisabledBrush(context));
+        context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, ResolveBorderBrush(context));
         if (IsFocused && enabled)
         {
-            context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Accent, 2f);
+            context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, ResolveFocusBrush(context), 2f);
         }
 
         RectF content = ContentBounds;
@@ -538,10 +538,10 @@ public sealed class ContextMenu : Menu, IUiPopup
             RectF row = new(content.X, content.Y + index * ItemHeight, content.Width, ItemHeight);
             if (index == hotIndex)
             {
-                context.Draw.Fill.Rectangle(row, context.Theme.SurfaceHover);
+                context.Draw.Fill.Rectangle(row, HoverBackground ?? context.Theme.SurfaceHover);
             }
 
-            context.Draw.Draw.Text(item.Text, context.Theme.Font, enabled && item.IsEnabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(row.X + 8f, row.Y + 5f));
+            context.Draw.Draw.Text(item.Text, context.Theme.Font, enabled && item.IsEnabled ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(row.X + 8f, row.Y + 5f));
         }
     }
 
@@ -675,7 +675,7 @@ public sealed class ContextMenu : Menu, IUiPopup
     }
 }
 
-public sealed class ToolTip : UiElement, IUiPopup
+public sealed class ToolTip : UiControl, IUiPopup
 {
     private string text = string.Empty;
     private bool isOpen;
@@ -849,9 +849,9 @@ public sealed class ToolTip : UiElement, IUiPopup
         }
 
         bool enabled = IsEffectivelyEnabled;
-        context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, enabled ? context.Theme.SurfaceHover : context.Theme.Disabled);
-        context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Border);
-        context.Draw.Draw.Text(Text, context.Theme.Font, enabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(ContentBounds.X, ContentBounds.Y));
+        context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, enabled ? HoverBackground ?? ResolvePopupBackground(context) : ResolveDisabledBrush(context));
+        context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, ResolveBorderBrush(context));
+        context.Draw.Draw.Text(Text, context.Theme.Font, enabled ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(ContentBounds.X, ContentBounds.Y));
     }
 
     protected override void OnAttached()

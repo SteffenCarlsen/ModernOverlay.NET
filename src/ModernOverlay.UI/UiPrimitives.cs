@@ -73,6 +73,15 @@ public enum UiTextTrimming
     CharacterEllipsis,
 }
 
+public enum UiVisualState
+{
+    Normal,
+    Hover,
+    Pressed,
+    Disabled,
+    Focused,
+}
+
 public enum UiLayer
 {
     Content = 0,

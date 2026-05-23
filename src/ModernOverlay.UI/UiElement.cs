@@ -22,6 +22,16 @@ public abstract class UiElement
     private float maxHeight = float.PositiveInfinity;
     private UiHorizontalAlignment horizontalAlignment = UiHorizontalAlignment.Stretch;
     private UiVerticalAlignment verticalAlignment = UiVerticalAlignment.Stretch;
+    private BrushHandle? background;
+    private BrushHandle? foreground;
+    private BrushHandle? borderBrush;
+    private BrushHandle? accentBrush;
+    private BrushHandle? disabledBrush;
+    private BrushHandle? hoverBackground;
+    private BrushHandle? pressedBackground;
+    private BrushHandle? focusBrush;
+    private BrushHandle? popupBackground;
+    private BrushHandle? windowChromeBackground;
 
     internal int InsertionOrder { get; set; }
 
@@ -187,6 +197,66 @@ public abstract class UiElement
         set => SetProperty(ref verticalAlignment, value, UiInvalidation.Arrange);
     }
 
+    public BrushHandle? Background
+    {
+        get => background;
+        set => SetProperty(ref background, value, UiInvalidation.Render | UiInvalidation.Resource);
+    }
+
+    public BrushHandle? Foreground
+    {
+        get => foreground;
+        set => SetProperty(ref foreground, value, UiInvalidation.Render | UiInvalidation.Resource);
+    }
+
+    public BrushHandle? BorderBrush
+    {
+        get => borderBrush;
+        set => SetProperty(ref borderBrush, value, UiInvalidation.Render | UiInvalidation.Resource);
+    }
+
+    public BrushHandle? AccentBrush
+    {
+        get => accentBrush;
+        set => SetProperty(ref accentBrush, value, UiInvalidation.Render | UiInvalidation.Resource);
+    }
+
+    public BrushHandle? DisabledBrush
+    {
+        get => disabledBrush;
+        set => SetProperty(ref disabledBrush, value, UiInvalidation.Render | UiInvalidation.Resource);
+    }
+
+    public BrushHandle? HoverBackground
+    {
+        get => hoverBackground;
+        set => SetProperty(ref hoverBackground, value, UiInvalidation.Render | UiInvalidation.Resource);
+    }
+
+    public BrushHandle? PressedBackground
+    {
+        get => pressedBackground;
+        set => SetProperty(ref pressedBackground, value, UiInvalidation.Render | UiInvalidation.Resource);
+    }
+
+    public BrushHandle? FocusBrush
+    {
+        get => focusBrush;
+        set => SetProperty(ref focusBrush, value, UiInvalidation.Render | UiInvalidation.Resource);
+    }
+
+    public BrushHandle? PopupBackground
+    {
+        get => popupBackground;
+        set => SetProperty(ref popupBackground, value, UiInvalidation.Render | UiInvalidation.Resource);
+    }
+
+    public BrushHandle? WindowChromeBackground
+    {
+        get => windowChromeBackground;
+        set => SetProperty(ref windowChromeBackground, value, UiInvalidation.Render | UiInvalidation.Resource);
+    }
+
     public bool IsMouseOver { get; internal set; }
 
     public bool IsPressed { get; internal set; }
@@ -196,6 +266,15 @@ public abstract class UiElement
     public bool IsKeyboardFocusWithin => Root?.IsKeyboardFocusWithin(this) == true;
 
     public bool IsPointerCaptured => Root?.CapturedElement == this;
+
+    public UiVisualState VisualState
+        => !IsEffectivelyEnabled
+            ? UiVisualState.Disabled
+            : IsPressed || IsPointerCaptured
+                ? UiVisualState.Pressed
+                : IsMouseOver
+                    ? UiVisualState.Hover
+                    : IsFocused ? UiVisualState.Focused : UiVisualState.Normal;
 
     public SizeF DesiredSize { get; private set; }
 
@@ -425,6 +504,44 @@ public abstract class UiElement
 
     protected virtual bool ResolveInputRegion(PointF point)
         => InputRegion?.Invoke(this, point) ?? HitTestCore(point);
+
+    protected BrushHandle ResolveBackground(UiRenderContext context)
+        => VisualState switch
+        {
+            UiVisualState.Disabled => DisabledBrush ?? context.Theme.Disabled,
+            UiVisualState.Pressed => PressedBackground ?? Background ?? context.Theme.SurfacePressed,
+            UiVisualState.Hover => HoverBackground ?? Background ?? context.Theme.SurfaceHover,
+            _ => Background ?? context.Theme.Surface,
+        };
+
+    protected BrushHandle ResolveForeground(UiRenderContext context)
+        => IsEffectivelyEnabled
+            ? Foreground ?? context.Theme.Foreground
+            : DisabledBrush ?? context.Theme.Disabled;
+
+    protected BrushHandle ResolveBorderBrush(UiRenderContext context)
+        => BorderBrush ?? context.Theme.Border;
+
+    protected BrushHandle ResolveAccentBrush(UiRenderContext context)
+        => IsEffectivelyEnabled
+            ? AccentBrush ?? context.Theme.Accent
+            : DisabledBrush ?? context.Theme.Disabled;
+
+    protected BrushHandle ResolveDisabledBrush(UiRenderContext context)
+        => DisabledBrush ?? context.Theme.Disabled;
+
+    protected BrushHandle ResolveFocusBrush(UiRenderContext context)
+        => FocusBrush ?? AccentBrush ?? context.Theme.Accent;
+
+    protected BrushHandle ResolvePopupBackground(UiRenderContext context)
+        => IsEffectivelyEnabled
+            ? PopupBackground ?? Background ?? context.Theme.Surface
+            : DisabledBrush ?? context.Theme.Disabled;
+
+    protected BrushHandle ResolveWindowChromeBackground(UiRenderContext context)
+        => IsEffectivelyEnabled
+            ? WindowChromeBackground ?? HoverBackground ?? context.Theme.SurfaceHover
+            : DisabledBrush ?? context.Theme.Disabled;
 
     protected virtual void OnPointerMoved(UiPointerEventArgs args)
     {

@@ -182,10 +182,10 @@ public sealed class GroupBox : UiPanel
     protected override void RenderCore(UiRenderContext context)
     {
         bool enabled = IsEffectivelyEnabled;
-        context.Draw.Draw.RoundedRectangle(Bounds, 5f, 5f, enabled ? context.Theme.Border : context.Theme.Disabled);
+        context.Draw.Draw.RoundedRectangle(Bounds, 5f, 5f, enabled ? ResolveBorderBrush(context) : ResolveDisabledBrush(context));
         if (Header.Length > 0)
         {
-            context.Draw.Draw.Text(Header, context.Theme.Font, enabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(Bounds.X + 10f, Bounds.Y + 4f));
+            context.Draw.Draw.Text(Header, context.Theme.Font, enabled ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(Bounds.X + 10f, Bounds.Y + 4f));
         }
 
         base.RenderCore(context);
@@ -407,7 +407,7 @@ public sealed class TabControl : UiPanel
     }
 }
 
-public sealed class SegmentedControl : UiElement
+public sealed class SegmentedControl : UiControl
 {
     private int selectedIndex = -1;
 
@@ -455,9 +455,9 @@ public sealed class SegmentedControl : UiElement
         for (int index = 0; index < Items.Count; index++)
         {
             RectF segment = new(Bounds.X + index * segmentWidth, Bounds.Y, segmentWidth, Bounds.Height);
-            context.Draw.Fill.Rectangle(segment, !enabled ? context.Theme.Disabled : index == SelectedIndex ? context.Theme.Accent : context.Theme.Surface);
-            context.Draw.Draw.Rectangle(segment, context.Theme.Border);
-            context.Draw.Draw.Text(Items[index], context.Theme.Font, enabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(segment.X + 8f, segment.Y + 7f));
+            context.Draw.Fill.Rectangle(segment, !enabled ? ResolveDisabledBrush(context) : index == SelectedIndex ? ResolveAccentBrush(context) : ResolveBackground(context));
+            context.Draw.Draw.Rectangle(segment, ResolveBorderBrush(context));
+            context.Draw.Draw.Text(Items[index], context.Theme.Font, enabled ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(segment.X + 8f, segment.Y + 7f));
         }
     }
 
@@ -578,8 +578,8 @@ public sealed class ColorPicker : UiPanel
     {
         RectF swatch = new(ContentBounds.X, ContentBounds.Y, ContentBounds.Width, 26f);
         bool enabled = IsEffectivelyEnabled;
-        context.Draw.Fill.RoundedRectangle(swatch, 4f, 4f, enabled ? swatchBrush ?? context.Theme.Accent : context.Theme.Disabled);
-        context.Draw.Draw.RoundedRectangle(swatch, 4f, 4f, context.Theme.Border);
+        context.Draw.Fill.RoundedRectangle(swatch, 4f, 4f, enabled ? swatchBrush ?? ResolveAccentBrush(context) : ResolveDisabledBrush(context));
+        context.Draw.Draw.RoundedRectangle(swatch, 4f, 4f, ResolveBorderBrush(context));
         base.RenderCore(context);
     }
 

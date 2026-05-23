@@ -238,13 +238,13 @@ public sealed class UiWindow : UiPanel
     protected override void RenderCore(UiRenderContext context)
     {
         bool enabled = IsEffectivelyEnabled;
-        context.Draw.Fill.RoundedRectangle(Bounds, 6f, 6f, enabled ? context.Theme.Surface : context.Theme.Disabled);
-        context.Draw.Draw.RoundedRectangle(Bounds, 6f, 6f, IsFocused && enabled ? context.Theme.Accent : context.Theme.Border);
+        context.Draw.Fill.RoundedRectangle(Bounds, 6f, 6f, enabled ? ResolveBackground(context) : ResolveDisabledBrush(context));
+        context.Draw.Draw.RoundedRectangle(Bounds, 6f, 6f, IsFocused && enabled ? ResolveFocusBrush(context) : ResolveBorderBrush(context));
         RectF header = HeaderBounds;
-        context.Draw.Fill.RoundedRectangle(header, 6f, 6f, enabled ? context.Theme.SurfaceHover : context.Theme.Disabled);
+        context.Draw.Fill.RoundedRectangle(header, 6f, 6f, ResolveWindowChromeBackground(context));
         if (Title.Length > 0)
         {
-            context.Draw.Draw.Text(Title, context.Theme.Font, enabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(header.X + 10f, header.Y + 7f));
+            context.Draw.Draw.Text(Title, context.Theme.Font, enabled ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(header.X + 10f, header.Y + 7f));
         }
 
         DrawChromeButton(context, MinimizeButtonBounds, "-");
@@ -256,8 +256,8 @@ public sealed class UiWindow : UiPanel
             if (CanResize)
             {
                 RectF grip = ResizeGripBounds;
-                context.Draw.Draw.Line(new PointF(grip.X, grip.Y + grip.Height), new PointF(grip.X + grip.Width, grip.Y), context.Theme.Border);
-                context.Draw.Draw.Line(new PointF(grip.X + 5f, grip.Y + grip.Height), new PointF(grip.X + grip.Width, grip.Y + 5f), context.Theme.Border);
+                context.Draw.Draw.Line(new PointF(grip.X, grip.Y + grip.Height), new PointF(grip.X + grip.Width, grip.Y), ResolveBorderBrush(context));
+                context.Draw.Draw.Line(new PointF(grip.X + 5f, grip.Y + grip.Height), new PointF(grip.X + grip.Width, grip.Y + 5f), ResolveBorderBrush(context));
             }
         }
     }
@@ -372,10 +372,10 @@ public sealed class UiWindow : UiPanel
 
     private RectF ResizeGripBounds => new(Bounds.X + Bounds.Width - 16f, Bounds.Y + Bounds.Height - 16f, 12f, 12f);
 
-    private static void DrawChromeButton(UiRenderContext context, RectF bounds, string text)
+    private void DrawChromeButton(UiRenderContext context, RectF bounds, string text)
     {
-        context.Draw.Draw.RoundedRectangle(bounds, 4f, 4f, context.Theme.Border);
-        context.Draw.Draw.Text(text, context.Theme.Font, context.Theme.Foreground, new PointF(bounds.X + 5f, bounds.Y));
+        context.Draw.Draw.RoundedRectangle(bounds, 4f, 4f, ResolveBorderBrush(context));
+        context.Draw.Draw.Text(text, context.Theme.Font, ResolveForeground(context), new PointF(bounds.X + 5f, bounds.Y));
     }
 
     private void Minimize()

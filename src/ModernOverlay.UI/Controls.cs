@@ -308,12 +308,12 @@ public class Button : UiElement
         }
 
         context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, background);
-        context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, IsFocused ? context.Theme.Accent : context.Theme.Border);
+        context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, IsFocused && IsEffectivelyEnabled ? context.Theme.Accent : context.Theme.Border);
 
         if (Text.Length > 0)
         {
             RectF content = ContentBounds;
-            context.Draw.Draw.Text(Text, context.Theme.Font, context.Theme.Foreground, new PointF(content.X, content.Y));
+            context.Draw.Draw.Text(Text, context.Theme.Font, CanExecute() ? context.Theme.Foreground : context.Theme.Disabled, new PointF(content.X, content.Y));
         }
     }
 
@@ -413,10 +413,11 @@ public sealed class CheckBox : ToggleButton
     protected override void RenderCore(UiRenderContext context)
     {
         RectF box = new(Bounds.X + 6f, Bounds.Y + (Bounds.Height - 14f) / 2f, 14f, 14f);
-        context.Draw.Draw.Rectangle(box, IsFocused ? context.Theme.Accent : context.Theme.Border);
+        BrushHandle stateBrush = IsEffectivelyEnabled ? context.Theme.Accent : context.Theme.Disabled;
+        context.Draw.Draw.Rectangle(box, IsFocused && IsEffectivelyEnabled ? context.Theme.Accent : context.Theme.Border);
         if (IsChecked)
         {
-            context.Draw.Fill.Rectangle(UiGeometry.Deflate(box, new Thickness(3f)), context.Theme.Accent);
+            context.Draw.Fill.Rectangle(UiGeometry.Deflate(box, new Thickness(3f)), stateBrush);
         }
 
         if (Text.Length > 0)
@@ -458,10 +459,11 @@ public sealed class RadioButton : ToggleButton
     protected override void RenderCore(UiRenderContext context)
     {
         PointF center = new(Bounds.X + 13f, Bounds.Y + Bounds.Height / 2f);
-        context.Draw.Draw.Circle(center, 7f, IsFocused ? context.Theme.Accent : context.Theme.Border);
+        BrushHandle stateBrush = IsEffectivelyEnabled ? context.Theme.Accent : context.Theme.Disabled;
+        context.Draw.Draw.Circle(center, 7f, IsFocused && IsEffectivelyEnabled ? context.Theme.Accent : context.Theme.Border);
         if (IsChecked)
         {
-            context.Draw.Fill.Circle(center, 4f, context.Theme.Accent);
+            context.Draw.Fill.Circle(center, 4f, stateBrush);
         }
 
         if (Text.Length > 0)
@@ -589,12 +591,13 @@ public sealed class ProgressBar : RangeBase
 
     protected override void RenderCore(UiRenderContext context)
     {
-        context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Surface);
+        bool enabled = IsEffectivelyEnabled;
+        context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, enabled ? context.Theme.Surface : context.Theme.Disabled);
         float ratio = ValueRatio;
         if (ratio > 0f)
         {
             RectF fill = Bounds with { Width = Bounds.Width * ratio };
-            context.Draw.Fill.RoundedRectangle(fill, 4f, 4f, context.Theme.Accent);
+            context.Draw.Fill.RoundedRectangle(fill, 4f, 4f, enabled ? context.Theme.Accent : context.Theme.Border);
         }
 
         context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Border);
@@ -630,20 +633,21 @@ public sealed class Slider : RangeBase
         RectF track = Orientation == UiOrientation.Horizontal
             ? new RectF(Bounds.X, Bounds.Y + Bounds.Height / 2f - 2f, Bounds.Width, 4f)
             : new RectF(Bounds.X + Bounds.Width / 2f - 2f, Bounds.Y, 4f, Bounds.Height);
-        if (IsFocused)
+        bool enabled = IsEffectivelyEnabled;
+        if (IsFocused && enabled)
         {
             context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Accent);
         }
 
-        context.Draw.Fill.RoundedRectangle(track, 2f, 2f, context.Theme.Surface);
+        context.Draw.Fill.RoundedRectangle(track, 2f, 2f, enabled ? context.Theme.Surface : context.Theme.Disabled);
         context.Draw.Draw.RoundedRectangle(track, 2f, 2f, context.Theme.Border);
 
         float ratio = ValueRatio;
         PointF center = Orientation == UiOrientation.Horizontal
             ? new PointF(Bounds.X + Bounds.Width * ratio, Bounds.Y + Bounds.Height / 2f)
             : new PointF(Bounds.X + Bounds.Width / 2f, Bounds.Y + Bounds.Height * (1f - ratio));
-        context.Draw.Fill.Circle(center, 7f, IsPointerCaptured ? context.Theme.SurfacePressed : context.Theme.Accent);
-        context.Draw.Draw.Circle(center, 7f, IsFocused ? context.Theme.Foreground : context.Theme.Border);
+        context.Draw.Fill.Circle(center, 7f, !enabled ? context.Theme.Disabled : IsPointerCaptured ? context.Theme.SurfacePressed : context.Theme.Accent);
+        context.Draw.Draw.Circle(center, 7f, IsFocused && enabled ? context.Theme.Foreground : context.Theme.Border);
     }
 
     protected override void OnPointerPressed(UiPointerEventArgs args)
@@ -839,8 +843,9 @@ public sealed class TextBox : UiElement
 
     protected override void RenderCore(UiRenderContext context)
     {
-        BrushHandle border = IsFocused ? context.Theme.Accent : context.Theme.Border;
-        context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Surface);
+        bool enabled = IsEffectivelyEnabled;
+        BrushHandle border = IsFocused && enabled ? context.Theme.Accent : context.Theme.Border;
+        context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, enabled ? context.Theme.Surface : context.Theme.Disabled);
         context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, border);
 
         RectF content = ContentBounds;
@@ -862,14 +867,14 @@ public sealed class TextBox : UiElement
         }
 
         string displayText = Text.Length == 0 ? Placeholder : Text;
-        BrushHandle textBrush = Text.Length == 0 ? context.Theme.MutedForeground : context.Theme.Foreground;
+        BrushHandle textBrush = !enabled ? context.Theme.Disabled : Text.Length == 0 ? context.Theme.MutedForeground : context.Theme.Foreground;
         if (displayText.Length > 0)
         {
             float offset = Text.Length == 0 ? 0f : horizontalOffset;
-            context.Draw.Draw.Text(displayText, context.Theme.Font, IsReadOnly ? context.Theme.Disabled : textBrush, new PointF(content.X - offset, content.Y));
+            context.Draw.Draw.Text(displayText, context.Theme.Font, IsReadOnly || !enabled ? context.Theme.Disabled : textBrush, new PointF(content.X - offset, content.Y));
         }
 
-        if (IsFocused && !IsReadOnly && (Root?.IsCaretVisible ?? true))
+        if (enabled && IsFocused && !IsReadOnly && (Root?.IsCaretVisible ?? true))
         {
             float caretX = content.X + CaretIndex * charWidth - horizontalOffset;
             context.Draw.Draw.Line(new PointF(caretX, content.Y), new PointF(caretX, content.Y + fontSize * 1.3f), context.Theme.Accent);
@@ -1152,8 +1157,9 @@ public sealed class ListBox : UiElement
 
     protected override void RenderCore(UiRenderContext context)
     {
-        context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Surface);
-        context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, IsFocused ? context.Theme.Accent : context.Theme.Border);
+        bool enabled = IsEffectivelyEnabled;
+        context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, enabled ? context.Theme.Surface : context.Theme.Disabled);
+        context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, IsFocused && enabled ? context.Theme.Accent : context.Theme.Border);
         RectF content = ContentBounds;
         int visibleCount = Math.Min(Items.Count, (int)MathF.Floor(content.Height / ItemHeight));
         for (int index = 0; index < visibleCount; index++)
@@ -1161,10 +1167,10 @@ public sealed class ListBox : UiElement
             RectF row = new(content.X, content.Y + index * ItemHeight, content.Width, ItemHeight);
             if (index == SelectedIndex)
             {
-                context.Draw.Fill.Rectangle(row, context.Theme.Accent);
+                context.Draw.Fill.Rectangle(row, enabled ? context.Theme.Accent : context.Theme.Border);
             }
 
-            context.Draw.Draw.Text(Items[index], context.Theme.Font, context.Theme.Foreground, new PointF(row.X + 6f, row.Y + 4f));
+            context.Draw.Draw.Text(Items[index], context.Theme.Font, enabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(row.X + 6f, row.Y + 4f));
         }
     }
 
@@ -1312,20 +1318,22 @@ public sealed class ComboBox : UiElement, IUiPopup
 
     protected override void RenderCore(UiRenderContext context)
     {
-        context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Surface);
-        context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, IsFocused ? context.Theme.Accent : context.Theme.Border);
+        bool enabled = IsEffectivelyEnabled;
+        context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, enabled ? context.Theme.Surface : context.Theme.Disabled);
+        context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, IsFocused && enabled ? context.Theme.Accent : context.Theme.Border);
         string display = SelectedItem ?? Placeholder;
         if (display.Length > 0)
         {
-            BrushHandle brush = SelectedItem is null ? context.Theme.MutedForeground : context.Theme.Foreground;
+            BrushHandle brush = !enabled ? context.Theme.Disabled : SelectedItem is null ? context.Theme.MutedForeground : context.Theme.Foreground;
             context.Draw.Draw.Text(display, context.Theme.Font, brush, new PointF(ContentBounds.X, ContentBounds.Y));
         }
 
         PointF arrowA = new(Bounds.X + Bounds.Width - 20f, Bounds.Y + 12f);
         PointF arrowB = new(Bounds.X + Bounds.Width - 14f, Bounds.Y + 18f);
         PointF arrowC = new(Bounds.X + Bounds.Width - 8f, Bounds.Y + 12f);
-        context.Draw.Draw.Line(arrowA, arrowB, context.Theme.Foreground);
-        context.Draw.Draw.Line(arrowB, arrowC, context.Theme.Foreground);
+        BrushHandle arrowBrush = enabled ? context.Theme.Foreground : context.Theme.Disabled;
+        context.Draw.Draw.Line(arrowA, arrowB, arrowBrush);
+        context.Draw.Draw.Line(arrowB, arrowC, arrowBrush);
 
         if (IsDropDownOpen)
         {
@@ -1405,7 +1413,8 @@ public sealed class ComboBox : UiElement, IUiPopup
     private void RenderDropDown(UiRenderContext context)
     {
         RectF dropdown = DropDownBounds;
-        context.Draw.Fill.RoundedRectangle(dropdown, 4f, 4f, context.Theme.Surface);
+        bool enabled = IsEffectivelyEnabled;
+        context.Draw.Fill.RoundedRectangle(dropdown, 4f, 4f, enabled ? context.Theme.Surface : context.Theme.Disabled);
         context.Draw.Draw.RoundedRectangle(dropdown, 4f, 4f, context.Theme.Border);
         int visibleCount = Math.Min(Items.Count, (int)MathF.Floor(dropdown.Height / itemHeight));
         for (int index = 0; index < visibleCount; index++)
@@ -1413,10 +1422,10 @@ public sealed class ComboBox : UiElement, IUiPopup
             RectF row = new(dropdown.X, dropdown.Y + index * itemHeight, dropdown.Width, itemHeight);
             if (index == SelectedIndex)
             {
-                context.Draw.Fill.Rectangle(row, context.Theme.Accent);
+                context.Draw.Fill.Rectangle(row, enabled ? context.Theme.Accent : context.Theme.Border);
             }
 
-            context.Draw.Draw.Text(Items[index], context.Theme.Font, context.Theme.Foreground, new PointF(row.X + 8f, row.Y + 4f));
+            context.Draw.Draw.Text(Items[index], context.Theme.Font, enabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(row.X + 8f, row.Y + 4f));
         }
     }
 }

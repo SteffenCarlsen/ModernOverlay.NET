@@ -181,10 +181,11 @@ public sealed class GroupBox : UiPanel
 
     protected override void RenderCore(UiRenderContext context)
     {
-        context.Draw.Draw.RoundedRectangle(Bounds, 5f, 5f, context.Theme.Border);
+        bool enabled = IsEffectivelyEnabled;
+        context.Draw.Draw.RoundedRectangle(Bounds, 5f, 5f, enabled ? context.Theme.Border : context.Theme.Disabled);
         if (Header.Length > 0)
         {
-            context.Draw.Draw.Text(Header, context.Theme.Font, context.Theme.Foreground, new PointF(Bounds.X + 10f, Bounds.Y + 4f));
+            context.Draw.Draw.Text(Header, context.Theme.Font, enabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(Bounds.X + 10f, Bounds.Y + 4f));
         }
 
         base.RenderCore(context);
@@ -269,7 +270,8 @@ public sealed class TabControl : UiPanel
 
     protected override void RenderCore(UiRenderContext context)
     {
-        if (IsFocused)
+        bool enabled = IsEffectivelyEnabled;
+        if (IsFocused && enabled)
         {
             context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Accent);
         }
@@ -280,9 +282,10 @@ public sealed class TabControl : UiPanel
             TabItem item = Items[index];
             float width = item.Header.Length * context.Theme.Theme.FontSize * 0.62f + 24f;
             RectF tab = new(x, Bounds.Y, width, HeaderHeight);
-            context.Draw.Fill.RoundedRectangle(tab, 4f, 4f, index == SelectedIndex ? context.Theme.SurfaceHover : context.Theme.Surface);
-            context.Draw.Draw.RoundedRectangle(tab, 4f, 4f, index == SelectedIndex ? context.Theme.Accent : context.Theme.Border);
-            context.Draw.Draw.Text(item.Header, context.Theme.Font, item.IsEnabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(tab.X + 10f, tab.Y + 7f));
+            bool itemEnabled = enabled && item.IsEnabled;
+            context.Draw.Fill.RoundedRectangle(tab, 4f, 4f, !enabled ? context.Theme.Disabled : index == SelectedIndex ? context.Theme.SurfaceHover : context.Theme.Surface);
+            context.Draw.Draw.RoundedRectangle(tab, 4f, 4f, index == SelectedIndex && itemEnabled ? context.Theme.Accent : context.Theme.Border);
+            context.Draw.Draw.Text(item.Header, context.Theme.Font, itemEnabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(tab.X + 10f, tab.Y + 7f));
             x += width + 2f;
         }
 
@@ -442,7 +445,8 @@ public sealed class SegmentedControl : UiElement
             return;
         }
 
-        if (IsFocused)
+        bool enabled = IsEffectivelyEnabled;
+        if (IsFocused && enabled)
         {
             context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Accent);
         }
@@ -451,9 +455,9 @@ public sealed class SegmentedControl : UiElement
         for (int index = 0; index < Items.Count; index++)
         {
             RectF segment = new(Bounds.X + index * segmentWidth, Bounds.Y, segmentWidth, Bounds.Height);
-            context.Draw.Fill.Rectangle(segment, index == SelectedIndex ? context.Theme.Accent : context.Theme.Surface);
+            context.Draw.Fill.Rectangle(segment, !enabled ? context.Theme.Disabled : index == SelectedIndex ? context.Theme.Accent : context.Theme.Surface);
             context.Draw.Draw.Rectangle(segment, context.Theme.Border);
-            context.Draw.Draw.Text(Items[index], context.Theme.Font, context.Theme.Foreground, new PointF(segment.X + 8f, segment.Y + 7f));
+            context.Draw.Draw.Text(Items[index], context.Theme.Font, enabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(segment.X + 8f, segment.Y + 7f));
         }
     }
 
@@ -573,7 +577,8 @@ public sealed class ColorPicker : UiPanel
     protected override void RenderCore(UiRenderContext context)
     {
         RectF swatch = new(ContentBounds.X, ContentBounds.Y, ContentBounds.Width, 26f);
-        context.Draw.Fill.RoundedRectangle(swatch, 4f, 4f, swatchBrush ?? context.Theme.Accent);
+        bool enabled = IsEffectivelyEnabled;
+        context.Draw.Fill.RoundedRectangle(swatch, 4f, 4f, enabled ? swatchBrush ?? context.Theme.Accent : context.Theme.Disabled);
         context.Draw.Draw.RoundedRectangle(swatch, 4f, 4f, context.Theme.Border);
         base.RenderCore(context);
     }

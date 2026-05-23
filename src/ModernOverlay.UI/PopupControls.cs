@@ -269,8 +269,9 @@ public class Menu : UiElement
 
     protected override void RenderCore(UiRenderContext context)
     {
-        context.Draw.Fill.Rectangle(Bounds, context.Theme.Surface);
-        if (IsFocused)
+        bool enabled = IsEffectivelyEnabled;
+        context.Draw.Fill.Rectangle(Bounds, enabled ? context.Theme.Surface : context.Theme.Disabled);
+        if (IsFocused && enabled)
         {
             context.Draw.Draw.Rectangle(Bounds, context.Theme.Accent);
         }
@@ -286,7 +287,7 @@ public class Menu : UiElement
                 context.Draw.Fill.RoundedRectangle(itemRect, 3f, 3f, context.Theme.SurfaceHover);
             }
 
-            context.Draw.Draw.Text(item.Text, context.Theme.Font, item.IsEnabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(itemRect.X + 8f, itemRect.Y + 3f));
+            context.Draw.Draw.Text(item.Text, context.Theme.Font, enabled && item.IsEnabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(itemRect.X + 8f, itemRect.Y + 3f));
             x += width;
         }
     }
@@ -522,9 +523,10 @@ public sealed class ContextMenu : Menu, IUiPopup
             return;
         }
 
-        context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Surface);
+        bool enabled = IsEffectivelyEnabled;
+        context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, enabled ? context.Theme.Surface : context.Theme.Disabled);
         context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Border);
-        if (IsFocused)
+        if (IsFocused && enabled)
         {
             context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Accent, 2f);
         }
@@ -539,7 +541,7 @@ public sealed class ContextMenu : Menu, IUiPopup
                 context.Draw.Fill.Rectangle(row, context.Theme.SurfaceHover);
             }
 
-            context.Draw.Draw.Text(item.Text, context.Theme.Font, item.IsEnabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(row.X + 8f, row.Y + 5f));
+            context.Draw.Draw.Text(item.Text, context.Theme.Font, enabled && item.IsEnabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(row.X + 8f, row.Y + 5f));
         }
     }
 
@@ -846,9 +848,10 @@ public sealed class ToolTip : UiElement, IUiPopup
             return;
         }
 
-        context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, context.Theme.SurfaceHover);
+        bool enabled = IsEffectivelyEnabled;
+        context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, enabled ? context.Theme.SurfaceHover : context.Theme.Disabled);
         context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Border);
-        context.Draw.Draw.Text(Text, context.Theme.Font, context.Theme.Foreground, new PointF(ContentBounds.X, ContentBounds.Y));
+        context.Draw.Draw.Text(Text, context.Theme.Font, enabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(ContentBounds.X, ContentBounds.Y));
     }
 
     protected override void OnAttached()

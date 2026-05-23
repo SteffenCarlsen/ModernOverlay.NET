@@ -237,13 +237,14 @@ public sealed class UiWindow : UiPanel
 
     protected override void RenderCore(UiRenderContext context)
     {
-        context.Draw.Fill.RoundedRectangle(Bounds, 6f, 6f, context.Theme.Surface);
-        context.Draw.Draw.RoundedRectangle(Bounds, 6f, 6f, IsFocused ? context.Theme.Accent : context.Theme.Border);
+        bool enabled = IsEffectivelyEnabled;
+        context.Draw.Fill.RoundedRectangle(Bounds, 6f, 6f, enabled ? context.Theme.Surface : context.Theme.Disabled);
+        context.Draw.Draw.RoundedRectangle(Bounds, 6f, 6f, IsFocused && enabled ? context.Theme.Accent : context.Theme.Border);
         RectF header = HeaderBounds;
-        context.Draw.Fill.RoundedRectangle(header, 6f, 6f, context.Theme.SurfaceHover);
+        context.Draw.Fill.RoundedRectangle(header, 6f, 6f, enabled ? context.Theme.SurfaceHover : context.Theme.Disabled);
         if (Title.Length > 0)
         {
-            context.Draw.Draw.Text(Title, context.Theme.Font, context.Theme.Foreground, new PointF(header.X + 10f, header.Y + 7f));
+            context.Draw.Draw.Text(Title, context.Theme.Font, enabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(header.X + 10f, header.Y + 7f));
         }
 
         DrawChromeButton(context, MinimizeButtonBounds, "-");

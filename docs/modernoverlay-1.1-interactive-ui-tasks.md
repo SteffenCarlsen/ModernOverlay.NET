@@ -519,7 +519,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - Button, slider, text box, list box, combo box, tab control, segmented control, menu/context menu, and window chrome now have keyboard handling.
 - [x] Add visible focus state.
   - Focusable controls render an accent focus cue.
-- [ ] Add disabled state for all controls.
+- [x] Add disabled state for all controls.
+  - Retained input routing already excludes disabled elements; common controls now render disabled text, borders, selection, range, popup, tab, segmented, color, and window states with theme disabled colors.
 - [ ] Add minimum hit-target guidance.
 - [ ] Add text contrast guidance for default theme.
 - [ ] Decide whether UI Automation support is out of scope for 1.1.

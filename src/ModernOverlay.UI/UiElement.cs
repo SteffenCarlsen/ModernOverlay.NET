@@ -178,6 +178,8 @@ public abstract class UiElement
 
     public bool IsFocused => Root?.FocusedElement == this;
 
+    public bool IsKeyboardFocusWithin => Root?.IsKeyboardFocusWithin(this) == true;
+
     public bool IsPointerCaptured => Root?.CapturedElement == this;
 
     public SizeF DesiredSize { get; private set; }
@@ -437,6 +439,11 @@ public abstract class UiElement
 
         field = value;
         Root?.Invalidate(invalidation);
+        if ((invalidation & UiInvalidation.FocusState) != 0)
+        {
+            Root?.NotifyElementStateChanged(this);
+        }
+
         return true;
     }
 

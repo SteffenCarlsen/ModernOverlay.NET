@@ -5,6 +5,7 @@ internal enum UiPopupDismissReason
     OutsidePointer,
     Escape,
     OwnerDetached,
+    OwnerUnavailable,
     RootDisposed,
 }
 

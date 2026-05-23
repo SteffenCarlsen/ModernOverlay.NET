@@ -115,6 +115,11 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
                 throw new InvalidOperationException("Cannot focus an element attached to another UI root.");
             }
 
+            if (element is not null && (!element.Focusable || element.Visibility != UiVisibility.Visible || !element.IsEffectivelyEnabled))
+            {
+                throw new InvalidOperationException("Only visible, enabled, focusable UI elements can receive focus.");
+            }
+
             FocusedElement = element;
             invalidation |= UiInvalidation.Render | UiInvalidation.FocusState;
         }
@@ -127,6 +132,11 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         if (element.Root != this)
         {
             throw new InvalidOperationException("Cannot capture pointer for an element attached to another UI root.");
+        }
+
+        if (element.Visibility != UiVisibility.Visible || !element.IsEffectivelyEnabled)
+        {
+            throw new InvalidOperationException("Only visible, enabled UI elements can capture the pointer.");
         }
 
         CapturedElement = element;
@@ -150,6 +160,13 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
     public void MoveFocusNext() => MoveFocus(forward: true);
 
     public void MoveFocusPrevious() => MoveFocus(forward: false);
+
+    public bool IsKeyboardFocusWithin(UiElement element)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        VerifyAccess();
+        return IsSameOrDescendant(element, FocusedElement);
+    }
 
     public void Defer(Action operation)
     {
@@ -185,28 +202,74 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
 
     internal void NotifyElementDetached(UiElement element)
     {
-        DismissPopupsOwnedBy(element);
+        DismissPopupsOwnedBy(element, UiPopupDismissReason.OwnerDetached);
 
-        if (FocusedElement == element)
+        if (IsSameOrDescendant(element, FocusedElement))
         {
             FocusedElement = null;
         }
 
-        if (CapturedElement == element)
+        if (IsSameOrDescendant(element, CapturedElement))
         {
             CapturedElement = null;
         }
 
-        if (pressedElement == element)
+        if (IsSameOrDescendant(element, pressedElement))
         {
+            pressedElement!.IsPressed = false;
             pressedElement = null;
         }
 
-        if (hoveredElement == element)
+        if (IsSameOrDescendant(element, hoveredElement))
         {
-            hoveredElement.IsMouseOver = false;
+            hoveredElement?.IsMouseOver = false;
             hoveredElement = null;
         }
+    }
+
+    internal void NotifyElementStateChanged(UiElement element)
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        bool treeUnavailable = IsUnavailableForTreeInput(element);
+        bool elementCannotFocus = !element.Focusable;
+        if (!treeUnavailable && !elementCannotFocus)
+        {
+            return;
+        }
+
+        if (treeUnavailable)
+        {
+            DismissPopupsOwnedBy(element, UiPopupDismissReason.OwnerUnavailable);
+        }
+
+        if ((treeUnavailable && IsSameOrDescendant(element, FocusedElement))
+            || (elementCannotFocus && ReferenceEquals(FocusedElement, element)))
+        {
+            FocusedElement = null;
+        }
+
+        if (treeUnavailable && IsSameOrDescendant(element, CapturedElement))
+        {
+            CapturedElement = null;
+        }
+
+        if (treeUnavailable && IsSameOrDescendant(element, pressedElement))
+        {
+            pressedElement!.IsPressed = false;
+            pressedElement = null;
+        }
+
+        if (treeUnavailable && IsSameOrDescendant(element, hoveredElement))
+        {
+            hoveredElement?.IsMouseOver = false;
+            hoveredElement = null;
+        }
+
+        invalidation |= UiInvalidation.Render | UiInvalidation.InputRegion | UiInvalidation.FocusState;
     }
 
     private void EnsureLayout()
@@ -538,7 +601,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         return true;
     }
 
-    private void DismissPopupsOwnedBy(UiElement element)
+    private void DismissPopupsOwnedBy(UiElement element, UiPopupDismissReason reason)
     {
         IUiPopup[] popups = OpenPopups()
             .Where(popup => IsSameOrDescendant(element, popup.PopupOwner) || IsSameOrDescendant(element, popup.PopupElement))
@@ -552,7 +615,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         {
             foreach (IUiPopup popup in popups)
             {
-                popup.DismissPopup(UiPopupDismissReason.OwnerDetached);
+                popup.DismissPopup(reason);
             }
         }
 
@@ -579,6 +642,9 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
 
         return false;
     }
+
+    private static bool IsUnavailableForTreeInput(UiElement element)
+        => element.Visibility != UiVisibility.Visible || !element.IsEffectivelyEnabled;
 
     private void VerifyAccess()
     {

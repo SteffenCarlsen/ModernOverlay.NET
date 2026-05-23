@@ -65,8 +65,7 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Implement abstract `UiElement`.
 - [x] Add `Parent`, `Root`, `Name`, `Tag`, `IsVisible`, `IsEnabled`, `Opacity`, and `ZIndex`.
 - [x] Add layout properties: `Margin`, `MinWidth`, `MinHeight`, `MaxWidth`, `MaxHeight`, `Width`, `Height`, `HorizontalAlignment`, `VerticalAlignment`.
-- [ ] Add state properties: `IsMouseOver`, `IsPressed`, `IsFocused`, `IsKeyboardFocusWithin`, `IsPointerCaptured`.
-  - `IsMouseOver`, `IsPressed`, `IsFocused`, and `IsPointerCaptured` exist; focus-within still needs full tree-state tracking.
+- [x] Add state properties: `IsMouseOver`, `IsPressed`, `IsFocused`, `IsKeyboardFocusWithin`, `IsPointerCaptured`.
 - [x] Add computed layout state: `DesiredSize`, `Bounds`, and `ContentBounds`.
 - [x] Add invalidation APIs: `InvalidateMeasure`, `InvalidateArrange`, `InvalidateRender`.
 - [x] Add protected virtual lifecycle hooks: `MeasureCore`, `ArrangeCore`, `RenderCore`, `OnAttached`, `OnDetached`.
@@ -93,7 +92,7 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Allow click handlers to remove the clicked element without corrupting event dispatch.
 - [ ] Allow popup close during event bubbling without invalidating the current route.
 - [ ] Schedule a follow-up layout pass when layout is invalidated during arrange.
-- [ ] Release capture predictably when the capture owner is removed, disabled, hidden, or detached.
+- [x] Release capture predictably when the capture owner is removed, disabled, hidden, or detached.
 - [ ] Add tests for removal during click, popup close during bubbling, invalidation during arrange, capture-owner removal, and focus-owner removal.
 
 ## 5. Panel And Child Collection Model
@@ -243,7 +242,7 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add `Focus()`, `Blur()`, `MoveFocusNext()`, and `MoveFocusPrevious()`.
 - [x] Add tab order using tree order plus optional `TabIndex`.
 - [ ] Add escape/enter command conventions for windows and buttons.
-- [ ] Define how focus behaves when a focused element is disabled, hidden, removed, or moved to another root.
+- [x] Define how focus behaves when a focused element is disabled, hidden, removed, or moved to another root.
 - [ ] Add tests for focus set/clear, tab navigation, disabled elements, removed elements, and routed keyboard events.
 
 ## 15. Core Overlay Keyboard/Text Plumbing
@@ -398,8 +397,7 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [ ] Define whether opening a popup steals keyboard focus; default should preserve owner focus.
 - [ ] Define whether popup children can be focusable and how focus moves into them.
 - [ ] Define pointer capture behavior for controls inside popups.
-- [ ] Define dismissal order for outside click, Escape, owner close, owner hide, owner disable, and root disposal.
-  - Outside click, Escape, owner detach, and root disposal are implemented; owner hide/disable policy still needs implementation.
+- [x] Define dismissal order for outside click, Escape, owner close, owner hide, owner disable, and root disposal.
 - [ ] Define nested popup policy for menus/context menus and reject arbitrary nested popups if unsupported in 1.1.
 - [ ] Add tests for focus preservation, focusable popup children, capture inside popup, owner close while popup has capture, and nested popup policy.
 

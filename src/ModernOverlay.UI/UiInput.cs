@@ -2,6 +2,12 @@ namespace ModernOverlay.UI;
 
 public delegate bool UiInputRegionHandler(UiElement element, PointF point);
 
+public enum UiRoutedEventPhase
+{
+    Direct,
+    Bubble,
+}
+
 public sealed class UiPointerEventArgs : EventArgs
 {
     public UiPointerEventArgs(
@@ -38,6 +44,12 @@ public sealed class UiPointerEventArgs : EventArgs
     public int ClickCount { get; }
 
     public bool IsDoubleClick => ClickCount == 2;
+
+    public UiRoutedEventPhase RoutePhase { get; internal set; } = UiRoutedEventPhase.Direct;
+
+    public UiElement? OriginalSource { get; internal set; }
+
+    public UiElement? Source { get; internal set; }
 
     public bool Handled { get; set; }
 }
@@ -76,6 +88,12 @@ public sealed class UiKeyboardEventArgs : EventArgs
 
     public OverlayModifierKeys Modifiers { get; }
 
+    public UiRoutedEventPhase RoutePhase { get; internal set; } = UiRoutedEventPhase.Direct;
+
+    public UiElement? OriginalSource { get; internal set; }
+
+    public UiElement? Source { get; internal set; }
+
     public bool Handled { get; set; }
 }
 
@@ -88,6 +106,12 @@ public sealed class UiTextInputEventArgs : EventArgs
     }
 
     public string Text { get; }
+
+    public UiRoutedEventPhase RoutePhase { get; internal set; } = UiRoutedEventPhase.Direct;
+
+    public UiElement? OriginalSource { get; internal set; }
+
+    public UiElement? Source { get; internal set; }
 
     public bool Handled { get; set; }
 }

@@ -212,8 +212,10 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Define `UiPointerEventArgs`.
 - [x] Define `UiKeyboardEventArgs`.
 - [x] Define `UiTextInputEventArgs`.
-- [ ] Define routed event phases: preview/tunnel, target, bubble, or choose a simpler direct-plus-bubble model.
-- [ ] Add event handled semantics.
+- [x] Define routed event phases: preview/tunnel, target, bubble, or choose a simpler direct-plus-bubble model.
+  - 1.1 uses a direct-plus-bubble model; routed pointer, keyboard, and text input args expose `RoutePhase`, `Source`, and `OriginalSource`.
+- [x] Add event handled semantics.
+  - Routed pointer, keyboard, and text input args stop bubbling when `Handled` is set.
 - [x] Translate `OverlayWindow.PointerMoved` to UI pointer move.
 - [x] Translate `OverlayWindow.PointerPressed` to UI pointer down.
 - [x] Translate `OverlayWindow.PointerReleased` to UI pointer up and click.

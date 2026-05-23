@@ -629,8 +629,11 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
 
     private static void RoutePointer(UiElement target, UiPointerEventArgs args)
     {
+        args.OriginalSource = target;
         for (UiElement? current = target; current is not null && !args.Handled; current = current.Parent)
         {
+            args.Source = current;
+            args.RoutePhase = ReferenceEquals(current, target) ? UiRoutedEventPhase.Direct : UiRoutedEventPhase.Bubble;
             switch (args.Kind)
             {
                 case OverlayPointerEventKind.Moved:
@@ -670,8 +673,11 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
 
     private static void RouteKey(UiElement target, UiKeyboardEventArgs args, bool pressed)
     {
+        args.OriginalSource = target;
         for (UiElement? current = target; current is not null && !args.Handled; current = current.Parent)
         {
+            args.Source = current;
+            args.RoutePhase = ReferenceEquals(current, target) ? UiRoutedEventPhase.Direct : UiRoutedEventPhase.Bubble;
             if (pressed)
             {
                 current.RaiseKeyPressed(args);
@@ -685,8 +691,11 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
 
     private static void RouteTextInput(UiElement target, UiTextInputEventArgs args)
     {
+        args.OriginalSource = target;
         for (UiElement? current = target; current is not null && !args.Handled; current = current.Parent)
         {
+            args.Source = current;
+            args.RoutePhase = ReferenceEquals(current, target) ? UiRoutedEventPhase.Direct : UiRoutedEventPhase.Bubble;
             current.RaiseTextInput(args);
         }
     }

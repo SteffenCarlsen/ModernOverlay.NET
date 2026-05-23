@@ -13,6 +13,14 @@ public static class OverlayUi
         => new(overlay, options ?? new OverlayUiOptions());
 }
 
+public sealed record OverlayUiMetrics(
+    int ElementCount,
+    long LayoutPasses,
+    long RenderPasses,
+    long InputRegionChecks,
+    long RoutedEvents,
+    int ActivePopupCount);
+
 public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
 {
     private readonly OverlayWindow overlay;
@@ -26,6 +34,10 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
     private PointF pressedPosition;
     private bool pressedExceededDragThreshold;
     private float dragThreshold = 4f;
+    private long layoutPasses;
+    private long renderPasses;
+    private long inputRegionChecks;
+    private long routedEvents;
     private List<UiElement> hoveredElements = [];
     private readonly bool registeredInputRegions;
 
@@ -71,6 +83,22 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
 
     public RectF BoundsDips => overlay.BoundsDips;
 
+    public OverlayUiMetrics Metrics
+    {
+        get
+        {
+            VerifyAccess();
+            UiElement[] elements = Root.DescendantsAndSelf().ToArray();
+            return new OverlayUiMetrics(
+                elements.Length,
+                layoutPasses,
+                renderPasses,
+                inputRegionChecks,
+                routedEvents,
+                elements.OfType<IUiPopup>().Count(popup => popup.IsPopupOpen));
+        }
+    }
+
     public float DragThreshold
     {
         get => dragThreshold;
@@ -99,6 +127,8 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         {
             Root.Render(new UiRenderContext(frame, ThemeResources));
         }
+
+        renderPasses++;
     }
 
     public OverlayInputRegionResult ResolveInputRegion(PointF position)
@@ -111,6 +141,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         BindAccess();
         VerifyAccess();
         EnsureLayout();
+        inputRegionChecks++;
         return ResolveInputTarget(position) is not null || HasOpenOutsideDismissPopup()
             ? OverlayInputRegionResult.Interactive
             : OverlayInputRegionResult.PassThrough;
@@ -323,6 +354,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
             Root.Arrange(new RectF(0f, 0f, available.Width, available.Height));
         }
 
+        layoutPasses++;
         lastLayoutBounds = bounds;
         invalidation &= ~(UiInvalidation.Measure | UiInvalidation.Arrange);
     }
@@ -409,6 +441,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         using (EnterPhase(UiRootPhase.EventDispatch))
         {
             RouteTextInput(FocusedElement, uiArgs);
+            routedEvents++;
         }
 
         invalidation |= UiInvalidation.Render;
@@ -462,6 +495,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
             }
 
             RoutePointer(target, args);
+            routedEvents++;
 
             if (kind == OverlayPointerEventKind.Released)
             {
@@ -538,6 +572,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         using (EnterPhase(UiRootPhase.EventDispatch))
         {
             RouteKey(FocusedElement, args, pressed);
+            routedEvents++;
         }
 
         invalidation |= UiInvalidation.Render;

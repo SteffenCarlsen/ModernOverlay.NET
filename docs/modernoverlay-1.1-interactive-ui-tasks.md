@@ -523,7 +523,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 
 ## 29. Diagnostics
 
-- [ ] Add optional UI diagnostics counters: element count, layout passes, render passes, input-region checks, routed events, active popup count.
+- [x] Add optional UI diagnostics counters: element count, layout passes, render passes, input-region checks, routed events, active popup count.
+  - `OverlayUiRoot.Metrics` exposes a snapshot with element count, layout/render pass counts, input-region checks, routed events, and active popup count.
 - [ ] Add logging hooks for layout loops, invalid placement, unhandled exceptions, and resource realization failures.
 - [ ] Decide whether diagnostics use `OverlayEventSource`, `Microsoft.Extensions.Logging`, or both.
 - [ ] Add tests for diagnostics counters where practical.

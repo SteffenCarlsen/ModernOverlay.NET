@@ -1,16 +1,12 @@
 <div align="center">
 
-# ModernOverlay.NET
+<img width="900" alt="ModernOverlay.NET logo" src="assets/modernoverlay-logo.png" />
 
 [![CI](https://img.shields.io/github/actions/workflow/status/SteffenCarlsen/ModernOverlay.NET/ci.yml?branch=main&label=CI&logo=github)](https://github.com/SteffenCarlsen/ModernOverlay.NET/actions/workflows/ci.yml "CI workflow") [![Release](https://img.shields.io/github/actions/workflow/status/SteffenCarlsen/ModernOverlay.NET/release.yml?label=release&logo=github)](https://github.com/SteffenCarlsen/ModernOverlay.NET/actions/workflows/release.yml "Release workflow") [![NuGet](https://img.shields.io/nuget/v/ModernOverlay.NET.svg?logo=nuget&label=NuGet)](https://www.nuget.org/packages/ModernOverlay.NET/ "ModernOverlay.NET on NuGet") [![Downloads](https://img.shields.io/nuget/dt/ModernOverlay.NET.svg)](https://www.nuget.org/packages/ModernOverlay.NET/ "Downloads on NuGet") [![Open issues](https://img.shields.io/github/issues-raw/SteffenCarlsen/ModernOverlay.NET.svg?logo=github)](https://github.com/SteffenCarlsen/ModernOverlay.NET/issues "Open issues on GitHub") [![Closed issues](https://img.shields.io/github/issues-closed-raw/SteffenCarlsen/ModernOverlay.NET.svg)](https://github.com/SteffenCarlsen/ModernOverlay.NET/issues?q=is%3Aissue+is%3Aclosed "Closed issues on GitHub") [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/SteffenCarlsen/ModernOverlay.NET/blob/main/LICENSE "ModernOverlay.NET license")
 
 ![Windows](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows) ![.NET 11 Preview](https://img.shields.io/badge/.NET-11_preview-512BD4?logo=dotnet)
 
 </div>
-
-<p align="center">
-  <img width="900" alt="ModernOverlay.NET logo" src="assets/modernoverlay-logo.png" />
-</p>
 
 ModernOverlay is a Windows-only overlay library for modern .NET. It replaces the useful parts of the [GameOverlay.NET](https://github.com/michel-pi/GameOverlay.Net) library stack with a new Vortice + Direct2D/DirectWrite/WIC + Win32 implementation.
 

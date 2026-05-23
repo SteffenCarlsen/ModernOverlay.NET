@@ -244,7 +244,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add `Focusable` property.
 - [x] Add `Focus()`, `Blur()`, `MoveFocusNext()`, and `MoveFocusPrevious()`.
 - [x] Add tab order using tree order plus optional `TabIndex`.
-- [ ] Add escape/enter command conventions for windows and buttons.
+- [x] Add escape/enter command conventions for windows and buttons.
+  - Buttons invoke only when Enter/Space and `CanExecute` are valid; windows close on Escape and restore from minimized state on Enter.
 - [x] Define how focus behaves when a focused element is disabled, hidden, removed, or moved to another root.
 - [ ] Add tests for focus set/clear, tab navigation, disabled elements, removed elements, and routed keyboard events.
 
@@ -430,6 +431,7 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Implement `Menu`.
 - [x] Implement `ContextMenu`.
 - [ ] Add tests for menu open/close, keyboard navigation, submenu behavior if included, command invocation, and outside-click dismissal.
+  - Menu and context menu keyboard navigation are implemented; tests remain open.
 
 ## 23. Window And Panel Controls
 
@@ -476,6 +478,7 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Implement `TabControl`, `TabItem`, selected index, header layout, and content switching.
 - [x] Implement a lightweight `SegmentedControl` for mode switching.
 - [ ] Add tests for selection, keyboard navigation, disabled tabs, and layout.
+  - Tab keyboard navigation is implemented for arrow, Home, and End keys while skipping disabled tabs; tests remain open.
 
 ## 26. Color Controls
 
@@ -498,8 +501,10 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 
 ## 28. Accessibility And Usability Baseline
 
-- [ ] Add keyboard navigation for all focusable controls.
-- [ ] Add visible focus state.
+- [x] Add keyboard navigation for all focusable controls.
+  - Button, slider, text box, list box, combo box, tab control, segmented control, menu/context menu, and window chrome now have keyboard handling.
+- [x] Add visible focus state.
+  - Focusable controls render an accent focus cue.
 - [ ] Add disabled state for all controls.
 - [ ] Add minimum hit-target guidance.
 - [ ] Add text contrast guidance for default theme.

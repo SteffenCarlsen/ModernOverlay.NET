@@ -315,7 +315,7 @@ public class Button : UiElement
 
     protected override void OnKeyPressed(UiKeyboardEventArgs args)
     {
-        if (args.VirtualKey is UiVirtualKeys.Enter or UiVirtualKeys.Space && CanExecute())
+        if ((args.VirtualKey is UiVirtualKeys.Enter or UiVirtualKeys.Space) && CanExecute())
         {
             InvokeClick(new PointF(Bounds.X, Bounds.Y), OverlayPointerButton.None);
             args.Handled = true;
@@ -600,6 +600,11 @@ public sealed class Slider : RangeBase
         RectF track = Orientation == UiOrientation.Horizontal
             ? new RectF(Bounds.X, Bounds.Y + Bounds.Height / 2f - 2f, Bounds.Width, 4f)
             : new RectF(Bounds.X + Bounds.Width / 2f - 2f, Bounds.Y, 4f, Bounds.Height);
+        if (IsFocused)
+        {
+            context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Accent);
+        }
+
         context.Draw.Fill.RoundedRectangle(track, 2f, 2f, context.Theme.Surface);
         context.Draw.Draw.RoundedRectangle(track, 2f, 2f, context.Theme.Border);
 
@@ -1227,6 +1232,14 @@ public sealed class ComboBox : UiElement, IUiPopup
                 break;
             case UiVirtualKeys.Up:
                 SelectedIndex = Math.Clamp(SelectedIndex - 1, 0, Math.Max(0, Items.Count - 1));
+                args.Handled = true;
+                break;
+            case UiVirtualKeys.Home:
+                SelectedIndex = Items.Count == 0 ? -1 : 0;
+                args.Handled = true;
+                break;
+            case UiVirtualKeys.End:
+                SelectedIndex = Items.Count == 0 ? -1 : Items.Count - 1;
                 args.Handled = true;
                 break;
         }

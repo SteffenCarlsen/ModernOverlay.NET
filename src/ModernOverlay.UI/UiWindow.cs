@@ -346,6 +346,23 @@ public sealed class UiWindow : UiPanel
         }
     }
 
+    protected override void OnKeyPressed(UiKeyboardEventArgs args)
+    {
+        if (args.VirtualKey == UiVirtualKeys.Escape && CanClose)
+        {
+            CloseRequested?.Invoke(this, EventArgs.Empty);
+            Parent?.Children.Remove(this);
+            args.Handled = true;
+            return;
+        }
+
+        if (args.VirtualKey == UiVirtualKeys.Enter && IsMinimized)
+        {
+            Restore();
+            args.Handled = true;
+        }
+    }
+
     private RectF HeaderBounds => new(Bounds.X, Bounds.Y, Bounds.Width, HeaderHeight);
 
     private RectF CloseButtonBounds => new(Bounds.X + Bounds.Width - 26f, Bounds.Y + 6f, ChromeButtonSize, ChromeButtonSize);

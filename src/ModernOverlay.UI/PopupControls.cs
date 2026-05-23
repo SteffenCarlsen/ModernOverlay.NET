@@ -270,6 +270,11 @@ public class Menu : UiElement
     protected override void RenderCore(UiRenderContext context)
     {
         context.Draw.Fill.Rectangle(Bounds, context.Theme.Surface);
+        if (IsFocused)
+        {
+            context.Draw.Draw.Rectangle(Bounds, context.Theme.Accent);
+        }
+
         float x = ContentBounds.X;
         for (int index = 0; index < Items.Count; index++)
         {
@@ -283,6 +288,40 @@ public class Menu : UiElement
 
             context.Draw.Draw.Text(item.Text, context.Theme.Font, item.IsEnabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(itemRect.X + 8f, itemRect.Y + 3f));
             x += width;
+        }
+    }
+
+    protected override void OnKeyPressed(UiKeyboardEventArgs args)
+    {
+        switch (args.VirtualKey)
+        {
+            case UiVirtualKeys.Left:
+            case UiVirtualKeys.Up:
+                MoveHotIndex(-1);
+                args.Handled = true;
+                break;
+            case UiVirtualKeys.Right:
+            case UiVirtualKeys.Down:
+                MoveHotIndex(1);
+                args.Handled = true;
+                break;
+            case UiVirtualKeys.Home:
+                SelectFirstEnabled();
+                args.Handled = true;
+                break;
+            case UiVirtualKeys.End:
+                SelectLastEnabled();
+                args.Handled = true;
+                break;
+            case UiVirtualKeys.Enter:
+            case UiVirtualKeys.Space:
+                if (hotIndex >= 0)
+                {
+                    InvokeItem(hotIndex);
+                    args.Handled = true;
+                }
+
+                break;
         }
     }
 
@@ -324,12 +363,58 @@ public class Menu : UiElement
         return -1;
     }
 
-    private void InvokeItem(int index)
+    protected void InvokeItem(int index)
     {
         UiMenuItem item = Items[index];
         if (item.IsEnabled && (item.Command?.CanExecute(item.CommandParameter) ?? true))
         {
             item.Command?.Execute(item.CommandParameter);
+        }
+    }
+
+    private void MoveHotIndex(int direction)
+    {
+        if (Items.Count == 0)
+        {
+            return;
+        }
+
+        int current = hotIndex < 0 ? 0 : hotIndex;
+        for (int step = 1; step <= Items.Count; step++)
+        {
+            int next = (current + direction * step + Items.Count) % Items.Count;
+            if (Items[next].IsEnabled)
+            {
+                hotIndex = next;
+                InvalidateRender();
+                return;
+            }
+        }
+    }
+
+    private void SelectFirstEnabled()
+    {
+        for (int index = 0; index < Items.Count; index++)
+        {
+            if (Items[index].IsEnabled)
+            {
+                hotIndex = index;
+                InvalidateRender();
+                return;
+            }
+        }
+    }
+
+    private void SelectLastEnabled()
+    {
+        for (int index = Items.Count - 1; index >= 0; index--)
+        {
+            if (Items[index].IsEnabled)
+            {
+                hotIndex = index;
+                InvalidateRender();
+                return;
+            }
         }
     }
 }
@@ -439,6 +524,11 @@ public sealed class ContextMenu : Menu, IUiPopup
 
         context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Surface);
         context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Border);
+        if (IsFocused)
+        {
+            context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Accent, 2f);
+        }
+
         RectF content = ContentBounds;
         for (int index = 0; index < Items.Count; index++)
         {
@@ -450,6 +540,47 @@ public sealed class ContextMenu : Menu, IUiPopup
             }
 
             context.Draw.Draw.Text(item.Text, context.Theme.Font, item.IsEnabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(row.X + 8f, row.Y + 5f));
+        }
+    }
+
+    protected override void OnKeyPressed(UiKeyboardEventArgs args)
+    {
+        if (!IsOpen)
+        {
+            return;
+        }
+
+        switch (args.VirtualKey)
+        {
+            case UiVirtualKeys.Up:
+                MoveContextHotIndex(-1);
+                args.Handled = true;
+                break;
+            case UiVirtualKeys.Down:
+                MoveContextHotIndex(1);
+                args.Handled = true;
+                break;
+            case UiVirtualKeys.Home:
+                SelectFirstContextItem();
+                args.Handled = true;
+                break;
+            case UiVirtualKeys.End:
+                SelectLastContextItem();
+                args.Handled = true;
+                break;
+            case UiVirtualKeys.Enter:
+            case UiVirtualKeys.Space:
+                if (hotIndex >= 0)
+                {
+                    InvokeContextItem(hotIndex);
+                    args.Handled = true;
+                }
+
+                break;
+            case UiVirtualKeys.Escape:
+                IsOpen = false;
+                args.Handled = true;
+                break;
         }
     }
 
@@ -469,13 +600,7 @@ public sealed class ContextMenu : Menu, IUiPopup
         int index = ContextItemIndexAt(args.Position);
         if (index >= 0)
         {
-            UiMenuItem item = Items[index];
-            if (item.IsEnabled && (item.Command?.CanExecute(item.CommandParameter) ?? true))
-            {
-                item.Command?.Execute(item.CommandParameter);
-                IsOpen = false;
-            }
-
+            InvokeContextItem(index);
             args.Handled = true;
         }
     }
@@ -489,6 +614,62 @@ public sealed class ContextMenu : Menu, IUiPopup
 
         int index = (int)((point.Y - ContentBounds.Y) / ItemHeight);
         return index >= 0 && index < Items.Count ? index : -1;
+    }
+
+    private void MoveContextHotIndex(int direction)
+    {
+        if (Items.Count == 0)
+        {
+            return;
+        }
+
+        int current = hotIndex < 0 ? 0 : hotIndex;
+        for (int step = 1; step <= Items.Count; step++)
+        {
+            int next = (current + direction * step + Items.Count) % Items.Count;
+            if (Items[next].IsEnabled)
+            {
+                hotIndex = next;
+                InvalidateRender();
+                return;
+            }
+        }
+    }
+
+    private void SelectFirstContextItem()
+    {
+        for (int index = 0; index < Items.Count; index++)
+        {
+            if (Items[index].IsEnabled)
+            {
+                hotIndex = index;
+                InvalidateRender();
+                return;
+            }
+        }
+    }
+
+    private void SelectLastContextItem()
+    {
+        for (int index = Items.Count - 1; index >= 0; index--)
+        {
+            if (Items[index].IsEnabled)
+            {
+                hotIndex = index;
+                InvalidateRender();
+                return;
+            }
+        }
+    }
+
+    private void InvokeContextItem(int index)
+    {
+        UiMenuItem item = Items[index];
+        if (item.IsEnabled && (item.Command?.CanExecute(item.CommandParameter) ?? true))
+        {
+            item.Command?.Execute(item.CommandParameter);
+            IsOpen = false;
+        }
     }
 }
 

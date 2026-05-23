@@ -269,6 +269,11 @@ public sealed class TabControl : UiPanel
 
     protected override void RenderCore(UiRenderContext context)
     {
+        if (IsFocused)
+        {
+            context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Accent);
+        }
+
         float x = Bounds.X;
         for (int index = 0; index < Items.Count; index++)
         {
@@ -282,6 +287,31 @@ public sealed class TabControl : UiPanel
         }
 
         ActiveContent?.Render(context);
+    }
+
+    protected override void OnKeyPressed(UiKeyboardEventArgs args)
+    {
+        switch (args.VirtualKey)
+        {
+            case UiVirtualKeys.Left:
+            case UiVirtualKeys.Up:
+                MoveSelection(-1);
+                args.Handled = true;
+                break;
+            case UiVirtualKeys.Right:
+            case UiVirtualKeys.Down:
+                MoveSelection(1);
+                args.Handled = true;
+                break;
+            case UiVirtualKeys.Home:
+                SelectFirstEnabled();
+                args.Handled = true;
+                break;
+            case UiVirtualKeys.End:
+                SelectLastEnabled();
+                args.Handled = true;
+                break;
+        }
     }
 
     protected override void OnPointerPressed(UiPointerEventArgs args)
@@ -329,6 +359,49 @@ public sealed class TabControl : UiPanel
 
         return -1;
     }
+
+    private void MoveSelection(int direction)
+    {
+        if (Items.Count == 0)
+        {
+            return;
+        }
+
+        int current = SelectedIndex < 0 ? 0 : SelectedIndex;
+        for (int step = 1; step <= Items.Count; step++)
+        {
+            int next = (current + direction * step + Items.Count) % Items.Count;
+            if (Items[next].IsEnabled)
+            {
+                SelectedIndex = next;
+                return;
+            }
+        }
+    }
+
+    private void SelectFirstEnabled()
+    {
+        for (int index = 0; index < Items.Count; index++)
+        {
+            if (Items[index].IsEnabled)
+            {
+                SelectedIndex = index;
+                return;
+            }
+        }
+    }
+
+    private void SelectLastEnabled()
+    {
+        for (int index = Items.Count - 1; index >= 0; index--)
+        {
+            if (Items[index].IsEnabled)
+            {
+                SelectedIndex = index;
+                return;
+            }
+        }
+    }
 }
 
 public sealed class SegmentedControl : UiElement
@@ -369,6 +442,11 @@ public sealed class SegmentedControl : UiElement
             return;
         }
 
+        if (IsFocused)
+        {
+            context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Accent);
+        }
+
         float segmentWidth = Bounds.Width / Items.Count;
         for (int index = 0; index < Items.Count; index++)
         {
@@ -376,6 +454,36 @@ public sealed class SegmentedControl : UiElement
             context.Draw.Fill.Rectangle(segment, index == SelectedIndex ? context.Theme.Accent : context.Theme.Surface);
             context.Draw.Draw.Rectangle(segment, context.Theme.Border);
             context.Draw.Draw.Text(Items[index], context.Theme.Font, context.Theme.Foreground, new PointF(segment.X + 8f, segment.Y + 7f));
+        }
+    }
+
+    protected override void OnKeyPressed(UiKeyboardEventArgs args)
+    {
+        if (Items.Count == 0)
+        {
+            return;
+        }
+
+        switch (args.VirtualKey)
+        {
+            case UiVirtualKeys.Left:
+            case UiVirtualKeys.Up:
+                SelectedIndex = SelectedIndex <= 0 ? Items.Count - 1 : SelectedIndex - 1;
+                args.Handled = true;
+                break;
+            case UiVirtualKeys.Right:
+            case UiVirtualKeys.Down:
+                SelectedIndex = SelectedIndex < 0 || SelectedIndex >= Items.Count - 1 ? 0 : SelectedIndex + 1;
+                args.Handled = true;
+                break;
+            case UiVirtualKeys.Home:
+                SelectedIndex = 0;
+                args.Handled = true;
+                break;
+            case UiVirtualKeys.End:
+                SelectedIndex = Items.Count - 1;
+                args.Handled = true;
+                break;
         }
     }
 

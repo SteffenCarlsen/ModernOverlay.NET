@@ -194,10 +194,14 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [ ] Add style properties for background, foreground, border, accent, disabled, hover, pressed, focus, popup, and window chrome.
 - [x] Decide whether 1.1 ships a built-in theme: ship a built-in theme with customization hooks.
 - [ ] Decide whether controls expose direct style properties, style classes, or both.
-- [ ] Define runtime theme-swap semantics.
-- [ ] Define eager versus lazy resource realization for theme resources.
-- [ ] Define disposal ownership for theme-realized resources and element-level overrides.
-- [ ] Re-realize UI resources on backend/device recreation using existing `OverlayResourceManager` generation behavior.
+- [x] Define runtime theme-swap semantics.
+  - `OverlayUiRoot.ApplyTheme` replaces root-owned theme resources and invalidates measure/arrange/render/resource state.
+- [x] Define eager versus lazy resource realization for theme resources.
+  - Managed theme handles are realized eagerly on attach and theme swap; native backend realizations remain lazy through `OverlayResourceManager`.
+- [x] Define disposal ownership for theme-realized resources and element-level overrides.
+  - `UiThemeResources` owns and disposes root theme handles; ad hoc element-created handles stay owned by the creating control or caller until dedicated override APIs exist.
+- [x] Re-realize UI resources on backend/device recreation using existing `OverlayResourceManager` generation behavior.
+  - UI theme handles remain device-independent descriptors; `OverlayUiRoot` invalidates render/resource state on `DeviceRestored` so native realizations are rebuilt lazily when drawn.
 - [ ] Add fallback style behavior and diagnostics for resource creation failures.
 - [ ] Add high-contrast/readability checks for default colors.
 - [ ] Add tests for theme resource creation, disposal, and backend generation behavior.

@@ -45,6 +45,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         overlay.KeyPressed += HandleKeyPressed;
         overlay.KeyReleased += HandleKeyReleased;
         overlay.TextInput += HandleTextInput;
+        overlay.DeviceRestored += HandleDeviceRestored;
         overlay.Disposed += HandleOverlayDisposed;
         if (Options.RegisterInputRegions)
         {
@@ -62,6 +63,8 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
     public UiElement? CapturedElement { get; private set; }
 
     public UiThemeResources ThemeResources { get; }
+
+    public UiTheme Theme => ThemeResources.Theme;
 
     public RectF BoundsDips => overlay.BoundsDips;
 
@@ -163,6 +166,15 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
 
     public void MoveFocusPrevious() => MoveFocus(forward: false);
 
+    public void ApplyTheme(UiTheme theme)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        ArgumentNullException.ThrowIfNull(theme);
+        VerifyAccess();
+        ThemeResources.ApplyTheme(theme);
+        invalidation |= UiInvalidation.Measure | UiInvalidation.Arrange | UiInvalidation.Render | UiInvalidation.Resource;
+    }
+
     public bool IsKeyboardFocusWithin(UiElement element)
     {
         ArgumentNullException.ThrowIfNull(element);
@@ -191,6 +203,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         overlay.KeyPressed -= HandleKeyPressed;
         overlay.KeyReleased -= HandleKeyReleased;
         overlay.TextInput -= HandleTextInput;
+        overlay.DeviceRestored -= HandleDeviceRestored;
         overlay.Disposed -= HandleOverlayDisposed;
         if (registeredInputRegions)
         {
@@ -310,6 +323,18 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         => DispatchPointer(args, OverlayPointerEventKind.Wheel);
 
     private void HandleOverlayDisposed(OverlayWindow sender) => Dispose();
+
+    private void HandleDeviceRestored(OverlayWindow sender, OverlayDeviceEventArgs args)
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        BindAccess();
+        VerifyAccess();
+        invalidation |= UiInvalidation.Render | UiInvalidation.Resource;
+    }
 
     private void HandleKeyPressed(OverlayWindow sender, OverlayKeyboardEventArgs args)
     {

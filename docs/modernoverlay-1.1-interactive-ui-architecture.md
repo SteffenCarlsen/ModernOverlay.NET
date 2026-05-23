@@ -256,14 +256,14 @@ public interface IUiLayoutStore
 }
 ```
 
-File or JSON helpers can be samples or later convenience APIs, but should not be required by the core UI package.
+The core `ModernOverlay.UI` package should not ship a built-in file or JSON layout-store implementation in 1.1. Samples can demonstrate persistence with a small in-memory store. Any file-backed or JSON-backed adapter should be a later out-of-core sample or companion helper only after the core interface is stable.
 
 ### Sample strategy
 
 Use two sample personalities:
 
 - quick-start sample: one window, a few controls, selective click-through, and explicit `ui.Render(frame)`;
-- stress/integration sample: multiple floating windows, popup/menu/context menu, text input, tab navigation, DPI movement, runtime theme change, and layout persistence restore.
+- stress/integration sample: multiple floating windows, popup/menu/context menu, text input, tab navigation, DPI movement, runtime theme change, and layout persistence restore through `IUiLayoutStore`.
 
 The quick-start sample should teach the public shape. The stress sample should prove interaction policies and catch regressions across the full MVP surface.
 

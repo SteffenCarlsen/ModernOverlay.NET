@@ -170,7 +170,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [ ] Recompute target-anchored placements when target bounds change.
 - [x] Convert dragged anchored panels to manual placement if configured.
 - [x] Add `IUiLayoutStore` or equivalent persistence abstraction.
-- [ ] Add optional JSON layout-store helper only if the dependency footprint stays small.
+- [x] Decide not to ship a built-in JSON or file layout-store helper in the core 1.1 UI package.
+  - Layout persistence stays interface-only through `IUiLayoutStore`; any file-backed or JSON-backed adapter must live outside the core package or be revisited after the interface is stable.
 - [ ] Add tests for every placement kind, DPI changes, target-bound changes, clamping, and persisted fallback.
 
 ## 9. Rendering Foundation
@@ -531,7 +532,7 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [ ] Demonstrate text block, button, checkbox, radio buttons, slider, progress bar, list/combo, textbox, tabs, segmented control, and color picker.
 - [ ] Demonstrate popup z-order.
 - [ ] Demonstrate keyboard focus and tab navigation.
-- [ ] Demonstrate layout persistence with an in-memory or file-backed sample store.
+- [ ] Demonstrate layout persistence with an in-memory `IUiLayoutStore` sample store.
 - [ ] Add a quick-start UI sample with one window, a few controls, selective click-through, and explicit `ui.Render(frame)`.
 - [ ] Add a stress/integration UI sample with multiple floating windows, popup/menu/context menu, text input, tab navigation, DPI movement, theme change, and persistence restore.
 - [ ] Keep both samples neutral with no game-specific content.

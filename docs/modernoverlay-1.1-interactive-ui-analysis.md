@@ -22,7 +22,7 @@ The following decisions define the 1.1 MVP scope:
 3. Include keyboard and text input in the MVP; `TextBox` is not deferred.
 4. Treat the listed control set as mandatory for the MVP rather than optional follow-up work.
 5. Include `ComboBox` in the MVP, which makes popup infrastructure part of the first implementation.
-6. Expose layout persistence through an interface, not a built-in JSON storage dependency.
+6. Expose layout persistence through `IUiLayoutStore`, not a built-in JSON or file storage dependency.
 7. Ship a built-in theme with customization hooks.
 8. Include close and minimize behavior in `UiWindow`.
 9. Include layout and higher-level controls such as `Grid`, tabs, segmented controls, and color picker in the minimal 1.1 release.
@@ -158,7 +158,7 @@ Package and namespace the UI layer consistently as `ModernOverlay.UI`. A separat
 - `UiWindow`: draggable/resizable framed panel with title/header, z-order, constraints, and placement policy.
 - `UiPlacement`: manual, anchored, target-relative, overlay-relative, and persisted placement descriptors.
 - `UiTheme`: brush/font/resource descriptors realized through the overlay resource manager.
-- `IUiLayoutStore`: interface-based placement persistence without a built-in JSON storage dependency.
+- `IUiLayoutStore`: interface-based placement persistence without a built-in JSON or file storage dependency.
 
 ### Input model
 
@@ -265,7 +265,7 @@ Popup infrastructure, keyboard/text input, focus handling, selective click-throu
 
 - Implement manual and anchored placement.
 - Add target-relative placement using `FrameInfo.TargetBounds` or overlay target events.
-- Add optional `IUiLayoutStore` for persisted panel positions.
+- Add `IUiLayoutStore` for persisted panel positions.
 - Add sample demonstrating user-driven repositioning.
 
 ### Spike 5 - Keyboard and text input

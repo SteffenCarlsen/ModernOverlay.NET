@@ -69,7 +69,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add computed layout state: `DesiredSize`, `Bounds`, and `ContentBounds`.
 - [x] Add invalidation APIs: `InvalidateMeasure`, `InvalidateArrange`, `InvalidateRender`.
 - [x] Add protected virtual lifecycle hooks: `MeasureCore`, `ArrangeCore`, `RenderCore`, `OnAttached`, `OnDetached`.
-- [ ] Add public event hooks for loaded/unloaded or attached/detached if useful.
+- [x] Add public event hooks for loaded/unloaded or attached/detached if useful.
+  - `UiElement.Attached` and `UiElement.Detached` fire alongside the protected lifecycle hooks.
 - [x] Ensure child/parent mutations are deferred during measure, arrange, render, and routed event dispatch.
 - [ ] Add tests for parent ownership, invalidation propagation, visibility, enabled state, and mutation guards.
 

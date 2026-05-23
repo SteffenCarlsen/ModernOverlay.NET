@@ -43,6 +43,10 @@ public abstract class UiElement
 
     public event EventHandler<UiTextInputEventArgs>? TextInput;
 
+    public event EventHandler? Attached;
+
+    public event EventHandler? Detached;
+
     public string? Name
     {
         get => name;
@@ -255,12 +259,14 @@ public abstract class UiElement
         {
             previousRoot.NotifyElementDetached(this);
             OnDetached();
+            Detached?.Invoke(this, EventArgs.Empty);
         }
 
         Root = root;
         if (Root is not null)
         {
             OnAttached();
+            Attached?.Invoke(this, EventArgs.Empty);
         }
 
         if (this is UiPanel panel)

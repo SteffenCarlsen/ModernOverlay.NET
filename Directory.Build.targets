@@ -3,6 +3,10 @@
     <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" Link="README.md" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(IsPackable)' == 'true' and Exists('$(MSBuildThisFileDirectory)assets\modernoverlay-icon.png')">
+    <None Include="$(MSBuildThisFileDirectory)assets\modernoverlay-icon.png" Pack="true" PackagePath="\" Visible="false" Link="modernoverlay-icon.png" />
+  </ItemGroup>
+
   <Target Name="RejectSharpDxPackageReferences" BeforeTargets="CollectPackageReferences">
     <Error
       Condition="$([System.String]::Copy('%(PackageReference.Identity)').StartsWith('SharpDX', System.StringComparison.OrdinalIgnoreCase))"

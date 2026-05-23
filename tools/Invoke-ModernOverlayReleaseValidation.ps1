@@ -113,6 +113,10 @@ function Assert-PackageBoundary {
                 throw "$($package.Name) is missing the package README."
             }
 
+            if ($entries -notcontains 'modernoverlay-icon.png') {
+                throw "$($package.Name) is missing the package icon."
+            }
+
             $nuspecEntry = $zip.Entries |
                 Where-Object { $_.FullName.EndsWith('.nuspec', [StringComparison]::OrdinalIgnoreCase) } |
                 Select-Object -First 1
@@ -130,6 +134,10 @@ function Assert-PackageBoundary {
 
             if ($nuspec -notmatch 'net11\.0-windows' -or $nuspec -notmatch 'DWM/color-key fallback') {
                 throw "$($package.Name) release notes do not include the required release caveats."
+            }
+
+            if ($nuspec -notmatch '<icon>modernoverlay-icon\.png</icon>') {
+                throw "$($package.Name) does not declare the expected package icon."
             }
         }
         finally {

@@ -9,7 +9,7 @@
 </div>
 
 <p align="center">
-  <img width="900" height="600" alt="Showcase for ModernOverlay.NET" src="https://github.com/user-attachments/assets/205eb23b-d964-4876-9567-0b1112eef35d" />
+  <img width="900" alt="ModernOverlay.NET logo" src="assets/modernoverlay-logo.png" />
 </p>
 
 ModernOverlay is a Windows-only overlay library for modern .NET. It replaces the useful parts of the [GameOverlay.NET](https://github.com/michel-pi/GameOverlay.Net) library stack with a new Vortice + Direct2D/DirectWrite/WIC + Win32 implementation.
@@ -29,12 +29,12 @@ Package-facing caveats for the MVP/alpha release:
 
 ## Quick Start
 
-Reference the `ModernOverlay` package. The preview package includes the Direct2D backend assembly for the common path, and the core facade auto-discovers `ModernOverlay.Direct2D` when the assembly is present.
+Install the `ModernOverlay.NET` package. The package includes the Direct2D backend assembly for the common path, and the core facade auto-discovers `ModernOverlay.Direct2D` when the assembly is present.
 
-Minimal project reference:
+Package install:
 
-```xml
-<PackageReference Include="ModernOverlay.NET" Version="1.0.0" />
+```powershell
+dotnet add package ModernOverlay.NET
 ```
 
 Minimal overlay:

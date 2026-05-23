@@ -118,7 +118,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Implement collapsed visibility removing an element from layout.
 - [x] Implement hidden visibility preserving layout but skipping render/input.
 - [x] Implement render clipping behavior for elements and panels.
-- [ ] Add layout diagnostics for repeated invalidation loops.
+- [x] Add layout diagnostics for repeated invalidation loops.
+  - `OverlayUiRoot` caps repeated same-frame layout passes and emits `UiLayoutLoop` before leaving layout invalidation for a later frame.
 - [ ] Add tests for measure/arrange order, constraints, min/max, margin, padding, alignment, collapsed/hidden behavior, and clipping.
 
 ## 7. Layout Panels
@@ -533,8 +534,10 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 
 - [x] Add optional UI diagnostics counters: element count, layout passes, render passes, input-region checks, routed events, active popup count.
   - `OverlayUiRoot.Metrics` exposes a snapshot with element count, layout/render pass counts, input-region checks, routed events, and active popup count.
-- [ ] Add logging hooks for layout loops, invalid placement, unhandled exceptions, and resource realization failures.
-- [ ] Decide whether diagnostics use `OverlayEventSource`, `Microsoft.Extensions.Logging`, or both.
+- [x] Add logging hooks for layout loops, invalid placement, unhandled exceptions, and resource realization failures.
+  - UI diagnostics emit `UiLayoutLoop`, `UiInvalidPlacement`, `UiUnhandledException`, and `UiResourceRealizationFailure` through `OverlayEventSource`.
+- [x] Decide whether diagnostics use `OverlayEventSource`, `Microsoft.Extensions.Logging`, or both.
+  - Use `OverlayEventSource` as the primary UI diagnostics contract; applications can bridge to `Microsoft.Extensions.Logging` with the existing `OverlayEventSourceLogger`.
 - [ ] Add tests for diagnostics counters where practical.
 - [ ] Add diagnostics sample panel if useful.
 

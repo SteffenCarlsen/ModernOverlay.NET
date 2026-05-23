@@ -1,3 +1,5 @@
+using ModernOverlay.Diagnostics;
+
 namespace ModernOverlay.UI;
 
 public sealed record OverlayUiOptions
@@ -23,6 +25,8 @@ public sealed record OverlayUiMetrics(
 
 public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
 {
+    private const int MaxLayoutPassesPerFrame = 8;
+
     private readonly OverlayWindow overlay;
     private readonly Queue<Action> deferredOperations = [];
     private int ownerThreadId;
@@ -186,32 +190,35 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         ArgumentNullException.ThrowIfNull(frame);
-        BindAccess();
-        VerifyAccess();
-        UpdateFrameTimers();
-        EnsureLayout();
-        using (EnterPhase(UiRootPhase.Render))
+        RunWithDiagnostics("Render", () =>
         {
-            Root.Render(new UiRenderContext(frame, ThemeResources));
-        }
+            BindAccess();
+            VerifyAccess();
+            UpdateFrameTimers();
+            EnsureLayout();
+            using (EnterPhase(UiRootPhase.Render))
+            {
+                Root.Render(new UiRenderContext(frame, ThemeResources));
+            }
 
-        renderPasses++;
+            renderPasses++;
+        });
     }
 
     public OverlayInputRegionResult ResolveInputRegion(PointF position)
     {
-        if (disposed)
+        return disposed
+            ? OverlayInputRegionResult.PassThrough
+            : RunWithDiagnostics("ResolveInputRegion", () =>
         {
-            return OverlayInputRegionResult.PassThrough;
-        }
-
-        BindAccess();
-        VerifyAccess();
-        EnsureLayout();
-        inputRegionChecks++;
-        return ResolveInputTarget(position) is not null || HasOpenOutsideDismissPopup()
-            ? OverlayInputRegionResult.Interactive
-            : OverlayInputRegionResult.PassThrough;
+            BindAccess();
+            VerifyAccess();
+            EnsureLayout();
+            inputRegionChecks++;
+            return ResolveInputTarget(position) is not null || HasOpenOutsideDismissPopup()
+                ? OverlayInputRegionResult.Interactive
+                : OverlayInputRegionResult.PassThrough;
+        });
     }
 
     internal void Invalidate(UiInvalidation flags)
@@ -293,8 +300,11 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         ObjectDisposedException.ThrowIf(disposed, this);
         ArgumentNullException.ThrowIfNull(theme);
         VerifyAccess();
-        ThemeResources.ApplyTheme(theme);
-        invalidation |= UiInvalidation.Measure | UiInvalidation.Arrange | UiInvalidation.Render | UiInvalidation.Resource;
+        RunWithDiagnostics("ApplyTheme", () =>
+        {
+            ThemeResources.ApplyTheme(theme);
+            invalidation |= UiInvalidation.Measure | UiInvalidation.Arrange | UiInvalidation.Render | UiInvalidation.Resource;
+        });
     }
 
     public bool IsKeyboardFocusWithin(UiElement element)
@@ -417,33 +427,52 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
             return;
         }
 
-        var available = new SizeF(bounds.Width, bounds.Height);
-        using (EnterPhase(UiRootPhase.Measure))
+        int passes = 0;
+        bool layoutStillInvalidAfterCap = false;
+        do
         {
-            Root.Measure(available);
-        }
+            passes++;
+            invalidation &= ~(UiInvalidation.Measure | UiInvalidation.Arrange);
+            var available = new SizeF(bounds.Width, bounds.Height);
+            using (EnterPhase(UiRootPhase.Measure))
+            {
+                Root.Measure(available);
+            }
 
-        using (EnterPhase(UiRootPhase.Arrange))
-        {
-            Root.Arrange(new RectF(0f, 0f, available.Width, available.Height));
-        }
+            using (EnterPhase(UiRootPhase.Arrange))
+            {
+                Root.Arrange(new RectF(0f, 0f, available.Width, available.Height));
+            }
 
-        layoutPasses++;
+            layoutPasses++;
+            if (passes == MaxLayoutPassesPerFrame
+                && (invalidation & (UiInvalidation.Measure | UiInvalidation.Arrange)) != 0)
+            {
+                OverlayEventSource.Log.UiLayoutLoop(passes, Root.DescendantsAndSelf().Count());
+                layoutStillInvalidAfterCap = true;
+                break;
+            }
+        }
+        while ((invalidation & (UiInvalidation.Measure | UiInvalidation.Arrange)) != 0);
+
         lastLayoutBounds = bounds;
-        invalidation &= ~(UiInvalidation.Measure | UiInvalidation.Arrange);
+        if (!layoutStillInvalidAfterCap)
+        {
+            invalidation &= ~(UiInvalidation.Measure | UiInvalidation.Arrange);
+        }
     }
 
     private void HandlePointerMoved(OverlayWindow sender, OverlayPointerEventArgs args)
-        => DispatchPointer(args, OverlayPointerEventKind.Moved);
+        => RunWithDiagnostics("PointerMoved", () => DispatchPointer(args, OverlayPointerEventKind.Moved));
 
     private void HandlePointerPressed(OverlayWindow sender, OverlayPointerEventArgs args)
-        => DispatchPointer(args, OverlayPointerEventKind.Pressed);
+        => RunWithDiagnostics("PointerPressed", () => DispatchPointer(args, OverlayPointerEventKind.Pressed));
 
     private void HandlePointerReleased(OverlayWindow sender, OverlayPointerEventArgs args)
-        => DispatchPointer(args, OverlayPointerEventKind.Released);
+        => RunWithDiagnostics("PointerReleased", () => DispatchPointer(args, OverlayPointerEventKind.Released));
 
     private void HandlePointerWheel(OverlayWindow sender, OverlayPointerEventArgs args)
-        => DispatchPointer(args, OverlayPointerEventKind.Wheel);
+        => RunWithDiagnostics("PointerWheel", () => DispatchPointer(args, OverlayPointerEventKind.Wheel));
 
     private void HandleOverlayDisposed(OverlayWindow sender) => Dispose();
 
@@ -466,28 +495,31 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
             return;
         }
 
-        BindAccess();
-        VerifyAccess();
-        if (args.VirtualKey == UiVirtualKeys.Tab)
+        RunWithDiagnostics("KeyPressed", () =>
         {
-            if ((args.Modifiers & OverlayModifierKeys.Shift) != 0)
+            BindAccess();
+            VerifyAccess();
+            if (args.VirtualKey == UiVirtualKeys.Tab)
             {
-                MoveFocusPrevious();
+                if ((args.Modifiers & OverlayModifierKeys.Shift) != 0)
+                {
+                    MoveFocusPrevious();
+                }
+                else
+                {
+                    MoveFocusNext();
+                }
+
+                return;
             }
-            else
+
+            if (args.VirtualKey == UiVirtualKeys.Escape && DismissTopmostEscapePopup())
             {
-                MoveFocusNext();
+                return;
             }
 
-            return;
-        }
-
-        if (args.VirtualKey == UiVirtualKeys.Escape && DismissTopmostEscapePopup())
-        {
-            return;
-        }
-
-        DispatchKey(args, pressed: true);
+            DispatchKey(args, pressed: true);
+        });
     }
 
     private void HandleKeyReleased(OverlayWindow sender, OverlayKeyboardEventArgs args)
@@ -497,9 +529,12 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
             return;
         }
 
-        BindAccess();
-        VerifyAccess();
-        DispatchKey(args, pressed: false);
+        RunWithDiagnostics("KeyReleased", () =>
+        {
+            BindAccess();
+            VerifyAccess();
+            DispatchKey(args, pressed: false);
+        });
     }
 
     private void HandleTextInput(OverlayWindow sender, OverlayTextInputEventArgs args)
@@ -509,16 +544,19 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
             return;
         }
 
-        BindAccess();
-        VerifyAccess();
-        var uiArgs = new UiTextInputEventArgs(args.Text);
-        using (EnterPhase(UiRootPhase.EventDispatch))
+        RunWithDiagnostics("TextInput", () =>
         {
-            RouteTextInput(FocusedElement, uiArgs);
-            routedEvents++;
-        }
+            BindAccess();
+            VerifyAccess();
+            var uiArgs = new UiTextInputEventArgs(args.Text);
+            using (EnterPhase(UiRootPhase.EventDispatch))
+            {
+                RouteTextInput(FocusedElement, uiArgs);
+                routedEvents++;
+            }
 
-        invalidation |= UiInvalidation.Render;
+            invalidation |= UiInvalidation.Render;
+        });
     }
 
     private void DispatchPointer(OverlayPointerEventArgs overlayArgs, OverlayPointerEventKind kind)
@@ -948,6 +986,46 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
 
     private static TimeSpan Elapsed(long currentTimestamp, long startTimestamp)
         => TimeSpan.FromSeconds((currentTimestamp - startTimestamp) / (double)System.Diagnostics.Stopwatch.Frequency);
+
+    internal static void LogInvalidPlacement(UiElement element, string placementKind, string reason)
+    {
+        string elementName = string.IsNullOrWhiteSpace(element.Name)
+            ? element.GetType().Name
+            : element.Name!;
+        OverlayEventSource.Log.UiInvalidPlacement(elementName, placementKind, reason);
+    }
+
+    private static void RunWithDiagnostics(string phaseName, Action operation)
+    {
+        try
+        {
+            operation();
+        }
+        catch (Exception ex)
+        {
+            LogUnhandledException(phaseName, ex);
+            throw;
+        }
+    }
+
+    private static T RunWithDiagnostics<T>(string phaseName, Func<T> operation)
+    {
+        try
+        {
+            return operation();
+        }
+        catch (Exception ex)
+        {
+            LogUnhandledException(phaseName, ex);
+            throw;
+        }
+    }
+
+    private static void LogUnhandledException(string phaseName, Exception exception)
+        => OverlayEventSource.Log.UiUnhandledException(
+            phaseName,
+            exception.GetType().FullName ?? exception.GetType().Name,
+            exception.Message);
 
     private void VerifyAccess()
     {

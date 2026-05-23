@@ -481,6 +481,19 @@ public sealed class UiWindow : UiPanel
         };
         if (point is not { } nextPoint)
         {
+            OverlayUiRoot.LogInvalidPlacement(this, resolvedPlacement.Kind.ToString(), "Placement kind cannot be resolved for this element.");
+            return;
+        }
+
+        if (!IsFinite(nextPoint.X) || !IsFinite(nextPoint.Y))
+        {
+            OverlayUiRoot.LogInvalidPlacement(this, resolvedPlacement.Kind.ToString(), "Placement coordinates must be finite.");
+            return;
+        }
+
+        if (!IsFinite(windowSize.Width) || !IsFinite(windowSize.Height))
+        {
+            OverlayUiRoot.LogInvalidPlacement(this, resolvedPlacement.Kind.ToString(), "Placement size must be finite.");
             return;
         }
 
@@ -562,4 +575,6 @@ public sealed class UiWindow : UiPanel
         int maxZ = Parent.Children.Select(child => child.ZIndex).DefaultIfEmpty(ZIndex).Max();
         ZIndex = Math.Max(ZIndex, maxZ + 1);
     }
+
+    private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
 }

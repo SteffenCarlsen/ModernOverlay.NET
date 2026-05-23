@@ -1,3 +1,5 @@
+using ModernOverlay.Diagnostics;
+
 namespace ModernOverlay.UI;
 
 public sealed class UiRenderContext
@@ -48,7 +50,7 @@ public sealed class UiThemeResources : IDisposable
     {
         this.resources = resources;
         this.theme = theme;
-        Realize(theme);
+        ReplaceHandles(theme, disposeExisting: false);
     }
 
     public UiTheme Theme => theme;
@@ -74,9 +76,7 @@ public sealed class UiThemeResources : IDisposable
     internal void ApplyTheme(UiTheme nextTheme)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
-        DisposeHandles();
-        theme = nextTheme;
-        Realize(nextTheme);
+        ReplaceHandles(nextTheme, disposeExisting: true);
     }
 
     public SolidBrushHandle CreateSolidBrush(ColorRgba color)
@@ -96,17 +96,80 @@ public sealed class UiThemeResources : IDisposable
         DisposeHandles();
     }
 
-    private void Realize(UiTheme nextTheme)
+    private void ReplaceHandles(UiTheme nextTheme, bool disposeExisting)
     {
-        Foreground = resources.CreateSolidBrush(nextTheme.Foreground);
-        MutedForeground = resources.CreateSolidBrush(nextTheme.MutedForeground);
-        Surface = resources.CreateSolidBrush(nextTheme.Surface);
-        SurfaceHover = resources.CreateSolidBrush(nextTheme.SurfaceHover);
-        SurfacePressed = resources.CreateSolidBrush(nextTheme.SurfacePressed);
-        Border = resources.CreateSolidBrush(nextTheme.Border);
-        Accent = resources.CreateSolidBrush(nextTheme.Accent);
-        Disabled = resources.CreateSolidBrush(nextTheme.Disabled);
-        Font = resources.CreateFont(new FontOptions(nextTheme.FontFamily, nextTheme.FontSize));
+        ThemeHandleSet handles = Realize(nextTheme);
+        if (disposeExisting)
+        {
+            DisposeHandles();
+        }
+
+        theme = nextTheme;
+        Foreground = handles.Foreground;
+        MutedForeground = handles.MutedForeground;
+        Surface = handles.Surface;
+        SurfaceHover = handles.SurfaceHover;
+        SurfacePressed = handles.SurfacePressed;
+        Border = handles.Border;
+        Accent = handles.Accent;
+        Disabled = handles.Disabled;
+        Font = handles.Font;
+    }
+
+    private ThemeHandleSet Realize(UiTheme nextTheme)
+    {
+        SolidBrushHandle? foreground = null;
+        SolidBrushHandle? mutedForeground = null;
+        SolidBrushHandle? surface = null;
+        SolidBrushHandle? surfaceHover = null;
+        SolidBrushHandle? surfacePressed = null;
+        SolidBrushHandle? border = null;
+        SolidBrushHandle? accent = null;
+        SolidBrushHandle? disabled = null;
+        FontHandle? font = null;
+        try
+        {
+            foreground = CreateTrackedResource("Theme.ForegroundBrush", () => resources.CreateSolidBrush(nextTheme.Foreground));
+            mutedForeground = CreateTrackedResource("Theme.MutedForegroundBrush", () => resources.CreateSolidBrush(nextTheme.MutedForeground));
+            surface = CreateTrackedResource("Theme.SurfaceBrush", () => resources.CreateSolidBrush(nextTheme.Surface));
+            surfaceHover = CreateTrackedResource("Theme.SurfaceHoverBrush", () => resources.CreateSolidBrush(nextTheme.SurfaceHover));
+            surfacePressed = CreateTrackedResource("Theme.SurfacePressedBrush", () => resources.CreateSolidBrush(nextTheme.SurfacePressed));
+            border = CreateTrackedResource("Theme.BorderBrush", () => resources.CreateSolidBrush(nextTheme.Border));
+            accent = CreateTrackedResource("Theme.AccentBrush", () => resources.CreateSolidBrush(nextTheme.Accent));
+            disabled = CreateTrackedResource("Theme.DisabledBrush", () => resources.CreateSolidBrush(nextTheme.Disabled));
+            font = CreateTrackedResource("Theme.Font", () => resources.CreateFont(new FontOptions(nextTheme.FontFamily, nextTheme.FontSize)));
+            return new ThemeHandleSet(foreground, mutedForeground, surface, surfaceHover, surfacePressed, border, accent, disabled, font);
+        }
+        catch
+        {
+            foreground?.Dispose();
+            mutedForeground?.Dispose();
+            surface?.Dispose();
+            surfaceHover?.Dispose();
+            surfacePressed?.Dispose();
+            border?.Dispose();
+            accent?.Dispose();
+            disabled?.Dispose();
+            font?.Dispose();
+            throw;
+        }
+    }
+
+    private static T CreateTrackedResource<T>(string resourceKind, Func<T> create)
+        where T : OverlayResourceHandle
+    {
+        try
+        {
+            return create();
+        }
+        catch (Exception ex)
+        {
+            OverlayEventSource.Log.UiResourceRealizationFailure(
+                resourceKind,
+                ex.GetType().FullName ?? ex.GetType().Name,
+                ex.Message);
+            throw;
+        }
     }
 
     private void DisposeHandles()
@@ -121,4 +184,15 @@ public sealed class UiThemeResources : IDisposable
         Disabled?.Dispose();
         Font?.Dispose();
     }
+
+    private sealed record ThemeHandleSet(
+        SolidBrushHandle Foreground,
+        SolidBrushHandle MutedForeground,
+        SolidBrushHandle Surface,
+        SolidBrushHandle SurfaceHover,
+        SolidBrushHandle SurfacePressed,
+        SolidBrushHandle Border,
+        SolidBrushHandle Accent,
+        SolidBrushHandle Disabled,
+        FontHandle Font);
 }

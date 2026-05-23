@@ -114,6 +114,22 @@ public sealed class OverlayEventSourceTests
         Assert.IsTrue(listener.WaitForEvent("ExcessiveTextLayoutCreation"));
     }
 
+    [TestMethod]
+    public void UiDiagnosticsEmitEventSourceEvents()
+    {
+        using var listener = new RecordingOverlayEventListener();
+
+        OverlayEventSource.Log.UiLayoutLoop(8, 3);
+        OverlayEventSource.Log.UiInvalidPlacement("Window", "Cursor", "Missing cursor position.");
+        OverlayEventSource.Log.UiUnhandledException("Render", "UnitTestException", "Expected message.");
+        OverlayEventSource.Log.UiResourceRealizationFailure("Theme.Font", "UnitTestException", "Expected message.");
+
+        Assert.IsTrue(listener.WaitForEvent("UiLayoutLoop"));
+        Assert.IsTrue(listener.WaitForEvent("UiInvalidPlacement"));
+        Assert.IsTrue(listener.WaitForEvent("UiUnhandledException"));
+        Assert.IsTrue(listener.WaitForEvent("UiResourceRealizationFailure"));
+    }
+
     private sealed class RecordingOverlayEventListener : EventListener
     {
         private readonly ConcurrentQueue<string> eventNames = new();

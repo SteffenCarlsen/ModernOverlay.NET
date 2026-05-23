@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net11.0-windows</TargetFramework>
     <IsPackable>false</IsPackable>
+    <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,6 +14,8 @@
     <ProjectReference Include="..\..\src\ModernOverlay\ModernOverlay.csproj" />
     <ProjectReference Include="..\..\src\ModernOverlay.Diagnostics\ModernOverlay.Diagnostics.csproj" />
     <ProjectReference Include="..\..\src\ModernOverlay.Direct2D\ModernOverlay.Direct2D.csproj" />
+    <ProjectReference Include="..\..\src\ModernOverlay.Integration.Experimental\ModernOverlay.Integration.Experimental.csproj" />
+    <ProjectReference Include="..\..\src\ModernOverlay.Integration\ModernOverlay.Integration.csproj" />
     <ProjectReference Include="..\..\src\ModernOverlay.Win32\ModernOverlay.Win32.csproj" />
   </ItemGroup>
 

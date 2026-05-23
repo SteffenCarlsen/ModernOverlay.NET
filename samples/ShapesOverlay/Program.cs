@@ -1,7 +1,4 @@
 using ModernOverlay;
-using ModernOverlay.Direct2D;
-
-Direct2DOverlayBackend.Register();
 
 await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
 {
@@ -34,6 +31,7 @@ overlay.Render += frame =>
     frame.Draw.RoundedRectangle(new RectF(36, 36, 648, 320), 24, 24, white, dash, 3f);
     frame.Draw.Geometry(path, white, 3f);
     frame.Draw.Circle(new PointF(560, 130), 48, cyan, 4f);
+    frame.Draw.CornerBox(new RectF(92, 174, 118, 72), white, cornerLength: 22f, strokeWidth: 3f);
 
     using (frame.Transform(Matrix3x2F.CreateTranslation(26, -8)))
     {

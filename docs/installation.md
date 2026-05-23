@@ -17,22 +17,25 @@ During repository development, samples reference projects directly:
 <ProjectReference Include="..\..\src\ModernOverlay.Direct2D\ModernOverlay.Direct2D.csproj" />
 ```
 
-For package-based consumption, use the core package plus the Direct2D backend package while the package split remains explicit:
+The solution includes the spec-named samples `StickyWindowOverlay`, `InteractiveOverlay`, `ImageAndTextOverlay`, and `GeometryOverlay` as linked-source aliases for the more descriptive capability samples `StickyTargetOverlay`, `InputModeOverlay`, `ImageOverlay`, and `ShapesOverlay`.
+
+For package-based consumption, the common path is one package:
+
+```xml
+<PackageReference Include="ModernOverlay" Version="0.1.0-preview" />
+```
+
+The `ModernOverlay` package includes the Direct2D backend assembly for the preview common path. The facade auto-discovers and registers that backend before creating the first overlay. `Direct2DOverlayBackend.Register()` remains available for tests, custom startup flows, and hosts that want explicit registration.
+
+Advanced hosts can still reference the backend package directly:
 
 ```xml
 <PackageReference Include="ModernOverlay" Version="0.1.0-preview" />
 <PackageReference Include="ModernOverlay.Direct2D" Version="0.1.0-preview" />
 ```
 
-The current backend registration model requires:
-
-```csharp
-Direct2DOverlayBackend.Register();
-```
-
-Call this once during application startup before creating overlays.
+See [public API and package review](public-api-package-review.md) for the package split review and the options for a future all-in-one package.
 
 ## Target Framework
 
-Applications should target `net11.0-windows` while this repository uses the .NET 11 preview path. See `docs/adr/0001-dotnet-11-preview-and-net10-contingency.md` for the exact conditions that would move the implementation to `net10.0-windows`.
-
+Applications should target `net11.0-windows` while this repository uses the .NET 11 preview path. `main` intentionally does not carry a checked-in `net10.0-windows` fallback.

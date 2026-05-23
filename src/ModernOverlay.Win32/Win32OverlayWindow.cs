@@ -51,6 +51,11 @@ public sealed class Win32OverlayWindow : IDisposable
             {
                 throw new NativeWin32Exception("SetWindowPos(show)");
             }
+
+            if (state.ExcludeFromCapture)
+            {
+                Win32WindowEffects.ExcludeFromCapture(state.Hwnd);
+            }
         });
     }
 
@@ -152,6 +157,18 @@ public sealed class Win32OverlayWindow : IDisposable
         });
     }
 
+    public void SetTransparentColorKey(uint colorKey, byte alpha = byte.MaxValue)
+    {
+        ThrowIfDisposed();
+        ownerThread.Invoke(() =>
+        {
+            if (!NativeMethods.SetLayeredWindowAttributes(state.Hwnd, colorKey, alpha, NativeMethods.LwaColorKey | NativeMethods.LwaAlpha))
+            {
+                throw new NativeWin32Exception("SetLayeredWindowAttributes(color key)");
+            }
+        });
+    }
+
     public Win32DpiScale GetDpiScale()
     {
         ThrowIfDisposed();
@@ -204,6 +221,12 @@ public sealed class Win32OverlayWindow : IDisposable
     {
         ThrowIfDisposed();
         ownerThread.RunFrameLoop(interval, renderFrame, cancellationToken);
+    }
+
+    public void RunFrameLoop(Func<TimeSpan> resolveInterval, Action renderFrame, CancellationToken cancellationToken)
+    {
+        ThrowIfDisposed();
+        ownerThread.RunFrameLoop(resolveInterval, renderFrame, cancellationToken);
     }
 
     public void Dispose()
@@ -263,7 +286,7 @@ public sealed class Win32OverlayWindow : IDisposable
             throw new NativeWin32Exception("CreateWindowExW");
         }
 
-        var state = new WindowState(className, instance, hwnd, windowProcedure);
+        var state = new WindowState(className, instance, hwnd, windowProcedure, options.ExcludeFromCapture);
         lock (WindowsGate)
         {
             Windows.Add(hwnd, state);
@@ -286,7 +309,7 @@ public sealed class Win32OverlayWindow : IDisposable
             return 0;
         }
 
-        if (TryGetPointerEvent(message, lParam, out Win32PointerEvent pointerEvent)
+        if (TryGetPointerEvent(hwnd, message, wParam, lParam, out Win32PointerEvent pointerEvent)
             && TryGetWindowState(hwnd, out state)
             && state is not null)
         {
@@ -335,10 +358,12 @@ public sealed class Win32OverlayWindow : IDisposable
         state.DpiChanged?.Invoke(scale, bounds);
     }
 
-    private static bool TryGetPointerEvent(uint message, nint lParam, out Win32PointerEvent pointerEvent)
+    private static bool TryGetPointerEvent(nint hwnd, uint message, nuint wParam, nint lParam, out Win32PointerEvent pointerEvent)
     {
         Win32PointerEventKind kind;
         Win32PointerButton button;
+        int wheelDelta = 0;
+        bool isHorizontalWheel = false;
         switch (message)
         {
             case NativeMethods.WmMouseMove:
@@ -369,17 +394,44 @@ public sealed class Win32OverlayWindow : IDisposable
                 kind = Win32PointerEventKind.Released;
                 button = Win32PointerButton.Middle;
                 break;
+            case NativeMethods.WmMouseWheel:
+                kind = Win32PointerEventKind.Wheel;
+                button = Win32PointerButton.None;
+                wheelDelta = GetSignedHighWord(unchecked((ulong)wParam));
+                break;
+            case NativeMethods.WmMouseHWheel:
+                kind = Win32PointerEventKind.Wheel;
+                button = Win32PointerButton.None;
+                wheelDelta = GetSignedHighWord(unchecked((ulong)wParam));
+                isHorizontalWheel = true;
+                break;
             default:
                 pointerEvent = default;
                 return false;
         }
 
-        long value = lParam.ToInt64();
-        int x = unchecked((short)(value & 0xFFFF));
-        int y = unchecked((short)((value >> 16) & 0xFFFF));
-        pointerEvent = new Win32PointerEvent(kind, button, x, y);
+        NativeMethods.Point point = GetPointerPoint(message, lParam);
+        if (kind == Win32PointerEventKind.Wheel && !NativeMethods.ScreenToClient(hwnd, ref point))
+        {
+            throw new NativeWin32Exception("ScreenToClient(pointer wheel)");
+        }
+
+        pointerEvent = new Win32PointerEvent(kind, button, point.X, point.Y, wheelDelta, isHorizontalWheel);
         return true;
     }
+
+    private static NativeMethods.Point GetPointerPoint(uint message, nint lParam)
+    {
+        long value = lParam.ToInt64();
+        return new NativeMethods.Point
+        {
+            X = unchecked((short)(value & 0xFFFF)),
+            Y = unchecked((short)((value >> 16) & 0xFFFF)),
+        };
+    }
+
+    private static int GetSignedHighWord(ulong value)
+        => unchecked((short)((value >> 16) & 0xFFFF));
 
     private void ApplyFrameChanged()
     {
@@ -409,7 +461,7 @@ public sealed class Win32OverlayWindow : IDisposable
         ObjectDisposedException.ThrowIf(disposed, this);
     }
 
-    private sealed record WindowState(string ClassName, nint Instance, nint Hwnd, NativeMethods.WndProc WindowProcedure)
+    private sealed record WindowState(string ClassName, nint Instance, nint Hwnd, NativeMethods.WndProc WindowProcedure, bool ExcludeFromCapture)
     {
         public Action<int>? HotkeyPressed { get; set; }
 
@@ -419,13 +471,20 @@ public sealed class Win32OverlayWindow : IDisposable
     }
 }
 
-public readonly record struct Win32PointerEvent(Win32PointerEventKind Kind, Win32PointerButton Button, int X, int Y);
+public readonly record struct Win32PointerEvent(
+    Win32PointerEventKind Kind,
+    Win32PointerButton Button,
+    int X,
+    int Y,
+    int WheelDelta = 0,
+    bool IsHorizontalWheel = false);
 
 public enum Win32PointerEventKind
 {
     Moved,
     Pressed,
     Released,
+    Wheel,
 }
 
 public enum Win32PointerButton

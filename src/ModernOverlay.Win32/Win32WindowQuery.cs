@@ -99,6 +99,23 @@ public static class Win32WindowQuery
         return TryFindTopLevelWindow(window => string.Equals(GetWindowClassName(window), className, StringComparison.OrdinalIgnoreCase), out hwnd);
     }
 
+    public static bool TryFindWindow(string? className, string? title, out nint hwnd)
+        => TryFindWindow(className, title, Win32WindowTitleMatchMode.Exact, out hwnd);
+
+    public static bool TryFindWindow(string? className, string? title, Win32WindowTitleMatchMode titleMatchMode, out nint hwnd)
+    {
+        bool hasClassName = !string.IsNullOrWhiteSpace(className);
+        bool hasTitle = !string.IsNullOrWhiteSpace(title);
+        _ = hasClassName || hasTitle
+            ? true
+            : throw new ArgumentException("A window class name or title must be provided.", nameof(className));
+
+        return TryFindTopLevelWindow(
+            window => (!hasClassName || string.Equals(GetWindowClassName(window), className, StringComparison.OrdinalIgnoreCase))
+                && (!hasTitle || Matches(GetWindowTitle(window), title!, titleMatchMode)),
+            out hwnd);
+    }
+
     public static bool TryFindChildWindowByTitle(nint parentHwnd, string title, out nint hwnd)
         => TryFindChildWindowByTitle(parentHwnd, title, Win32WindowTitleMatchMode.Exact, out hwnd);
 

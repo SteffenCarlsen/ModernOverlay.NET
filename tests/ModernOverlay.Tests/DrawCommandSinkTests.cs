@@ -109,9 +109,32 @@ public sealed class DrawCommandSinkTests
         CollectionAssert.AreEqual(expected, sink.Commands);
     }
 
+    [TestMethod]
+    public void CornerBoxDrawsEightCornerSegments()
+    {
+        var sink = new RecordingDrawCommandSink();
+        var context = new DrawContext(sink);
+        var resources = new OverlayResourceManager();
+        using SolidBrushHandle brush = resources.CreateSolidBrush(ColorRgba.White);
+
+        context.Draw.CornerBox(new RectF(10, 20, 40, 20), brush, cornerLength: 8, strokeWidth: 2);
+
+        Assert.AreEqual(8, sink.Lines.Count);
+        Assert.AreEqual(new PointF(10, 20), sink.Lines[0].Start);
+        Assert.AreEqual(new PointF(18, 20), sink.Lines[0].End);
+        Assert.AreEqual(new PointF(10, 20), sink.Lines[1].Start);
+        Assert.AreEqual(new PointF(10, 28), sink.Lines[1].End);
+        Assert.AreEqual(new PointF(50, 40), sink.Lines[6].Start);
+        Assert.AreEqual(new PointF(42, 40), sink.Lines[6].End);
+        Assert.AreEqual(new PointF(50, 40), sink.Lines[7].Start);
+        Assert.AreEqual(new PointF(50, 32), sink.Lines[7].End);
+    }
+
     private sealed class RecordingDrawCommandSink : IDrawCommandSink
     {
         public List<string> Commands { get; } = [];
+
+        public List<(PointF Start, PointF End)> Lines { get; } = [];
 
         public int CommandCount => Commands.Count;
 
@@ -132,7 +155,10 @@ public sealed class DrawCommandSinkTests
         public void PopTransform() => Commands.Add(nameof(PopTransform));
 
         public void DrawLine(PointF start, PointF end, BrushHandle brush, float strokeWidth, StrokeStyleHandle? strokeStyle)
-            => Commands.Add(nameof(DrawLine));
+        {
+            Lines.Add((start, end));
+            Commands.Add(nameof(DrawLine));
+        }
 
         public void DrawRectangle(RectF rect, BrushHandle brush, float strokeWidth, StrokeStyleHandle? strokeStyle)
             => Commands.Add(nameof(DrawRectangle));

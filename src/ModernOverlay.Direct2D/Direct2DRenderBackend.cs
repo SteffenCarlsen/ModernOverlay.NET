@@ -1,5 +1,6 @@
 using ModernOverlay.Diagnostics;
 using ModernOverlay.Rendering;
+using SharpGen.Runtime;
 using Vortice.Direct2D1;
 using Vortice.DirectWrite;
 using Vortice.Mathematics;
@@ -37,6 +38,8 @@ internal sealed class Direct2DRenderBackend : IRenderBackend
     public PresentMode EffectivePresentMode { get; private set; } = PresentMode.BackendDefault;
 
     public bool IsInitialized => context is not null;
+
+    internal bool SimulateRecreateTargetOnNextEndFrame { get; set; }
 
     public void Initialize(RenderBackendInitializeContext context)
     {
@@ -112,7 +115,21 @@ internal sealed class Direct2DRenderBackend : IRenderBackend
         ThrowIfDisposed();
         EnsureInitialized();
         commandSink.EndFrame();
-        EnsureRenderTarget().EndDraw(out _, out _);
+        try
+        {
+            EnsureRenderTarget().EndDraw(out _, out _);
+        }
+        catch (SharpGenException exception) when (exception.ResultCode == Vortice.Direct2D1.ResultCode.RecreateTarget)
+        {
+            return EndFrameResult.RecreateTarget("Direct2D requested render-target recreation.");
+        }
+
+        if (SimulateRecreateTargetOnNextEndFrame)
+        {
+            SimulateRecreateTargetOnNextEndFrame = false;
+            return EndFrameResult.RecreateTarget("Simulated Direct2D render-target recreation request.");
+        }
+
         return new EndFrameResult(Presented: true);
     }
 

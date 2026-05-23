@@ -38,7 +38,13 @@ internal readonly record struct BeginFrameResult(bool CanRender, string? SkipRea
     public static BeginFrameResult Skipped(string reason) => new(false, reason);
 }
 
-internal readonly record struct EndFrameResult(bool Presented);
+internal readonly record struct EndFrameResult(
+    bool Presented,
+    bool RequiresRecreate = false,
+    string? RecreateReason = null)
+{
+    public static EndFrameResult RecreateTarget(string reason) => new(false, true, reason);
+}
 
 internal sealed record RenderBackendInitializeContext(
     WindowHandle Hwnd,

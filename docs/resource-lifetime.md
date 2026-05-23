@@ -27,6 +27,13 @@ using FontHandle font = overlay.Resources.CreateFont(new FontOptions("Segoe UI",
 
 Set `RejectResourceCreationDuringRender` to catch accidental resource allocation inside render callbacks.
 
+```csharp
+await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
+{
+    RejectResourceCreationDuringRender = true,
+});
+```
+
 ## Native Realizations
 
 The Direct2D backend realizes brushes, stroke styles, text layouts, images, and geometry paths lazily. Backend recreation disposes native caches and recreates native resources from public descriptors as needed.
@@ -35,3 +42,10 @@ The Direct2D backend realizes brushes, stroke styles, text layouts, images, and 
 
 `OverlayResourceManager.CreateLeakReport()` returns live handles with kind, id, generation, allocation site, and native realization snapshots. It also emits an EventSource resource leak event when live resources remain.
 
+```csharp
+OverlayResourceLeakReport report = overlay.Resources.CreateLeakReport();
+foreach (OverlayResourceSnapshot leak in report.LiveResources)
+{
+    Console.WriteLine($"{leak.Kind} #{leak.Id} allocated at {leak.AllocationSite}");
+}
+```

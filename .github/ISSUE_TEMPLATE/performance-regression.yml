@@ -1,0 +1,60 @@
+name: Performance regression
+description: Report a bounded ModernOverlay benchmark regression.
+title: "[Performance] "
+labels:
+  - performance
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template when a BenchmarkDotNet run shows a repeatable regression.
+        Include enough context for a same-machine before/after comparison.
+  - type: input
+    id: benchmark
+    attributes:
+      label: Benchmark
+      description: Benchmark class and method, including parameters.
+      placeholder: Direct2DRenderBenchmarks.ClearFrame
+    validations:
+      required: true
+  - type: input
+    id: baseline
+    attributes:
+      label: Baseline
+      description: Baseline commit, package, branch, or artifact.
+    validations:
+      required: true
+  - type: input
+    id: current
+    attributes:
+      label: Current
+      description: Current commit, package, branch, or artifact.
+    validations:
+      required: true
+  - type: textarea
+    id: results
+    attributes:
+      label: Results
+      description: Paste the BenchmarkDotNet summary table or link to the saved report artifact.
+      render: markdown
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, CPU, GPU, .NET SDK/runtime, power plan, and relevant display setup.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Describe the affected user scenario and why this regression is severe enough to track.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Include noise concerns, reruns, profiler traces, or suspected cause.

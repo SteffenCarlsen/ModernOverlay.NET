@@ -4,11 +4,44 @@
     <TargetFramework>net11.0-windows</TargetFramework>
     <Description>Modern Windows overlay facade and drawing API.</Description>
     <IsPackable>true</IsPackable>
+    <BundledDirect2DBackendTargetFramework>net11.0-windows7.0</BundledDirect2DBackendTargetFramework>
+    <BundledDirect2DBackendPath>..\ModernOverlay.Direct2D\bin\$(Configuration)\$(TargetFramework)\ModernOverlay.Direct2D.dll</BundledDirect2DBackendPath>
+    <BundledDirect2DBackendDocumentationPath>..\ModernOverlay.Direct2D\bin\$(Configuration)\$(TargetFramework)\ModernOverlay.Direct2D.xml</BundledDirect2DBackendDocumentationPath>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Vortice.Direct2D1" />
+    <PackageReference Include="Vortice.DirectX" />
+    <PackageReference Include="Vortice.DXGI" />
+    <PackageReference Include="Vortice.Mathematics" />
+    <PackageReference Include="Vortice.Win32" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None
+      Include="$(BundledDirect2DBackendPath)"
+      Pack="true"
+      PackagePath="lib\$(BundledDirect2DBackendTargetFramework)\"
+      Visible="false" />
+    <None
+      Include="$(BundledDirect2DBackendDocumentationPath)"
+      Pack="true"
+      PackagePath="lib\$(BundledDirect2DBackendTargetFramework)\"
+      Visible="false" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ModernOverlay.Diagnostics\ModernOverlay.Diagnostics.csproj" />
     <ProjectReference Include="..\ModernOverlay.Win32\ModernOverlay.Win32.csproj" />
   </ItemGroup>
+
+  <Target Name="ValidateBundledDirect2DBackendForPack" BeforeTargets="GenerateNuspec">
+    <Error
+      Condition="!Exists('$(BundledDirect2DBackendPath)')"
+      Text="ModernOverlay package requires the bundled Direct2D backend at '$(BundledDirect2DBackendPath)'. Build ModernOverlay.Direct2D first or pack ModernOverlay.sln after a successful build." />
+    <Error
+      Condition="!Exists('$(BundledDirect2DBackendDocumentationPath)')"
+      Text="ModernOverlay package requires the bundled Direct2D backend XML documentation at '$(BundledDirect2DBackendDocumentationPath)'. Build ModernOverlay.Direct2D first or pack ModernOverlay.sln after a successful build." />
+  </Target>
 
 </Project>

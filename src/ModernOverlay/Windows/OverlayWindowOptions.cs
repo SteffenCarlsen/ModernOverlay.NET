@@ -1,4 +1,4 @@
-namespace ModernOverlay;
+namespace ModernOverlay.Windows;
 
 public enum OverlayInputMode
 {
@@ -59,7 +59,6 @@ public enum RenderExceptionPolicy
 {
     StopOverlay = 0,
     Continue = 1,
-    IgnoreAndContinue = Continue,
     FailFast = 2,
     PauseOverlay = 3,
 }
@@ -129,6 +128,8 @@ public sealed record OverlayTarget
 
     public bool Reacquire { get; init; }
 
+    public TimeSpan? TrackingInterval { get; init; }
+
     internal TargetDiscoveryKind DiscoveryKind { get; init; } = TargetDiscoveryKind.Hwnd;
 
     internal string? DiscoveryValue { get; init; }
@@ -150,6 +151,11 @@ public sealed record OverlayTarget
     }
 
     public OverlayTarget WithReacquire(bool reacquire) => this with { Reacquire = reacquire };
+
+    public OverlayTarget WithTrackingInterval(TimeSpan interval)
+        => interval >= TimeSpan.Zero
+            ? this with { TrackingInterval = interval }
+            : throw new ArgumentOutOfRangeException(nameof(interval), "Target tracking interval cannot be negative.");
 }
 
 internal enum TargetDiscoveryKind
@@ -211,18 +217,6 @@ public static class WindowTarget
         };
     }
 
-    public static OverlayTarget ByWindowTitle(string title)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(title);
-        return new OverlayTarget
-        {
-            DiscoveryKind = TargetDiscoveryKind.WindowTitle,
-            DiscoveryValue = title,
-            MatchMode = MatchMode.Exact,
-            Reacquire = true,
-        };
-    }
-
     public static OverlayTarget ByClassName(string className)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(className);
@@ -240,8 +234,6 @@ public static class WindowTarget
             DiscoveryKind = TargetDiscoveryKind.ForegroundWindow,
             Reacquire = true,
         };
-
-    public static OverlayTarget Foreground() => ForegroundWindow();
 
     public static OverlayTarget FromProvider(IWindowTargetProvider provider)
     {
@@ -290,6 +282,8 @@ public sealed record OverlayWindowOptions
     public RenderExceptionPolicy ExceptionPolicy { get; init; } = RenderExceptionPolicy.StopOverlay;
 
     public bool EnableBlurBehind { get; init; }
+
+    public bool ExcludeFromCapture { get; init; }
 
     public bool RejectResourceCreationDuringRender { get; init; }
 

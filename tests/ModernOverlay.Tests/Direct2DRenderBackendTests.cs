@@ -110,8 +110,8 @@ public sealed class Direct2DRenderBackendTests
             backend.Dispose();
         });
 
-        Assert.IsTrue(listener.WaitForEvent("BackendFallback"));
-        Assert.AreEqual(1, listener.CountEvents("BackendFallback"));
+        Assert.IsTrue(listener.WaitForBackendFallback(nameof(PresentMode)));
+        Assert.AreEqual(1, listener.CountBackendFallbacks(nameof(PresentMode)));
     }
 
     [TestMethod]
@@ -152,6 +152,34 @@ public sealed class Direct2DRenderBackendTests
             Assert.AreEqual(1, brush.NativeRealizationCount);
             backend.Dispose();
             Assert.AreEqual(0, brush.NativeRealizationCount);
+        });
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public void EndFrameCanReportRenderTargetRecreationRequest()
+    {
+        using Win32OverlayWindow window = CreateHiddenWindow();
+        var backend = new Direct2DRenderBackend();
+
+        window.InvokeOnOwnerThread(() =>
+        {
+            backend.Initialize(new RenderBackendInitializeContext(
+                new WindowHandle(window.Hwnd),
+                new PixelSize(640, 360),
+                DpiScale.Default,
+                RenderQualityOptions.Default,
+                PresentMode.BackendDefault));
+            backend.SimulateRecreateTargetOnNextEndFrame = true;
+
+            _ = backend.BeginFrame(CreateFrameInfo());
+            backend.Clear(ColorRgba.Transparent);
+            EndFrameResult end = backend.EndFrame();
+
+            Assert.IsFalse(end.Presented);
+            Assert.IsTrue(end.RequiresRecreate);
+            StringAssert.Contains(end.RecreateReason, "recreation");
+            backend.Dispose();
         });
     }
 
@@ -291,6 +319,7 @@ public sealed class Direct2DRenderBackendTests
     private sealed class RecordingOverlayEventListener : EventListener
     {
         private readonly ConcurrentQueue<string> eventNames = new();
+        private readonly ConcurrentQueue<string> backendFallbackFeatures = new();
 
         public bool WaitForEvent(string eventName)
         {
@@ -308,8 +337,24 @@ public sealed class Direct2DRenderBackendTests
             return eventNames.Contains(eventName);
         }
 
-        public int CountEvents(string eventName)
-            => eventNames.Count(name => string.Equals(name, eventName, StringComparison.Ordinal));
+        public bool WaitForBackendFallback(string feature)
+        {
+            DateTimeOffset deadline = DateTimeOffset.UtcNow.AddSeconds(5);
+            while (DateTimeOffset.UtcNow < deadline)
+            {
+                if (backendFallbackFeatures.Contains(feature))
+                {
+                    return true;
+                }
+
+                Thread.Sleep(10);
+            }
+
+            return backendFallbackFeatures.Contains(feature);
+        }
+
+        public int CountBackendFallbacks(string feature)
+            => backendFallbackFeatures.Count(value => string.Equals(value, feature, StringComparison.Ordinal));
 
         protected override void OnEventSourceCreated(EventSource eventSource)
         {
@@ -324,6 +369,10 @@ public sealed class Direct2DRenderBackendTests
             if (eventData.EventSource.Name == "ModernOverlay" && eventData.EventName is not null)
             {
                 eventNames.Enqueue(eventData.EventName);
+                if (eventData.EventName == "BackendFallback" && eventData.Payload?.Count >= 2 && eventData.Payload[1] is string feature)
+                {
+                    backendFallbackFeatures.Enqueue(feature);
+                }
             }
         }
     }

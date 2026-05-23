@@ -17,6 +17,7 @@ public sealed class OverlayEventSourceTests
         OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
         {
             IsVisible = false,
+            HiddenRenderPolicy = HiddenRenderPolicy.Continue,
             FrameRateLimit = FrameRateLimit.Fixed(120),
         });
 
@@ -56,6 +57,27 @@ public sealed class OverlayEventSourceTests
 
         Assert.IsTrue(listener.WaitForEvent("DeviceLost"));
         Assert.IsTrue(listener.WaitForEvent("DeviceRestored"));
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task UnsupportedTransparencyModesFallbackAndEmitDiagnostics()
+    {
+        using var listener = new RecordingOverlayEventListener();
+        await using OverlayWindow updateLayeredOverlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
+        {
+            IsVisible = false,
+            TransparencyMode = TransparencyMode.UpdateLayeredWindow,
+        });
+        await using OverlayWindow directCompositionOverlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
+        {
+            IsVisible = false,
+            TransparencyMode = TransparencyMode.DirectComposition,
+        });
+
+        Assert.IsFalse(updateLayeredOverlay.Hwnd.IsNull);
+        Assert.IsFalse(directCompositionOverlay.Hwnd.IsNull);
+        Assert.IsTrue(listener.WaitForEvent("BackendFallback"));
     }
 
     [TestMethod]

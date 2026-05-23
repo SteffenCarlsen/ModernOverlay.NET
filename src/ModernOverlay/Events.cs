@@ -17,6 +17,7 @@ public enum OverlayPointerEventKind
     Moved,
     Pressed,
     Released,
+    Wheel,
 }
 
 public enum OverlayPointerButton
@@ -70,13 +71,22 @@ public sealed class OverlayTargetChangedEventArgs : EventArgs
 
 public sealed class OverlayPointerEventArgs : EventArgs
 {
-    public OverlayPointerEventArgs(OverlayPointerEventKind kind, OverlayPointerButton button, PointF position, int pixelX, int pixelY)
+    public OverlayPointerEventArgs(
+        OverlayPointerEventKind kind,
+        OverlayPointerButton button,
+        PointF position,
+        int pixelX,
+        int pixelY,
+        int wheelDelta = 0,
+        bool isHorizontalWheel = false)
     {
         Kind = kind;
         Button = button;
         Position = position;
         PixelX = pixelX;
         PixelY = pixelY;
+        WheelDelta = wheelDelta;
+        IsHorizontalWheel = isHorizontalWheel;
     }
 
     public OverlayPointerEventKind Kind { get; }
@@ -88,4 +98,8 @@ public sealed class OverlayPointerEventArgs : EventArgs
     public int PixelX { get; }
 
     public int PixelY { get; }
+
+    public int WheelDelta { get; }
+
+    public bool IsHorizontalWheel { get; }
 }

@@ -1,7 +1,4 @@
 using ModernOverlay;
-using ModernOverlay.Direct2D;
-
-Direct2DOverlayBackend.Register();
 
 await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
 {
@@ -16,6 +13,7 @@ using SolidBrushHandle accent = overlay.Resources.CreateSolidBrush(new ColorRgba
 using FontHandle font = overlay.Resources.CreateFont(new FontOptions("Segoe UI", 18));
 PointF lastPointer = new(float.NaN, float.NaN);
 int pointerPresses = 0;
+int wheelDelta = 0;
 
 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(6));
 Task toggleTask = ToggleInputModeAsync(overlay, cts.Token);
@@ -24,6 +22,12 @@ overlay.PointerPressed += (_, args) =>
 {
     lastPointer = args.Position;
     pointerPresses++;
+};
+
+overlay.PointerWheel += (_, args) =>
+{
+    lastPointer = args.Position;
+    wheelDelta += args.WheelDelta;
 };
 
 overlay.Render += frame =>
@@ -35,6 +39,7 @@ overlay.Render += frame =>
         ? "Pointer presses: none"
         : $"Pointer presses: {pointerPresses} at {lastPointer.X:0}, {lastPointer.Y:0}";
     frame.Draw.Text(pointerText, font, white, new PointF(48, 92));
+    frame.Draw.Text($"Wheel delta: {wheelDelta}", font, white, new PointF(48, 126));
 };
 
 try

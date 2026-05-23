@@ -1,18 +1,17 @@
 # Quick Start
 
-ModernOverlay is a Windows-only, Vortice-backed overlay library. It currently targets `net11.0-windows`, which is a preview runtime in this repository, so consumers should expect preview SDK/tooling churn until the target reaches GA or a `net10.0-windows` fallback is chosen.
+ModernOverlay is a Windows-only, Vortice-backed overlay library. It currently targets `net11.0-windows`, which is a preview runtime in this repository, so consumers should expect preview SDK/tooling churn until the target reaches GA. `main` does not carry a checked-in `net10.0-windows` fallback.
 
 This is not a drop-in GameOverlay.NET package. The API keeps the useful model of transparent immediate-mode overlays, but uses new names, explicit lifetimes, and safer target-tracking/diagnostic surfaces.
 
 ## Minimal Overlay
 
-Applications that use the current Direct2D backend must reference `ModernOverlay.Direct2D` and register the backend before creating overlays:
+Applications can reference the preview `ModernOverlay` package directly. It includes the current Direct2D backend assembly for the common path, and the facade auto-discovers the backend before creating the first overlay:
 
 ```csharp
 using ModernOverlay;
-using ModernOverlay.Direct2D;
-
-Direct2DOverlayBackend.Register();
+using ModernOverlay.Drawing;
+using ModernOverlay.Windows;
 
 await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
 {
@@ -44,18 +43,18 @@ Use `WindowTarget` to follow a known window, process, title, class, foreground w
 
 ```csharp
 var target = WindowTarget.ByTitle("Notepad")
-    .WithBoundsMode(TargetBoundsMode.ClientArea);
+    .WithBoundsMode(TargetBoundsMode.ClientArea)
+    .WithTrackingInterval(TimeSpan.FromMilliseconds(33));
 
 await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
 {
     Target = target,
-    TargetTrackingInterval = TimeSpan.FromMilliseconds(33),
     ZOrder = OverlayZOrder.FollowTarget,
     InputMode = OverlayInputMode.ClickThrough,
 });
 ```
 
-For deterministic local validation, see `samples/StickyTargetOverlay`, which follows an owned test HWND instead of a third-party process.
+For deterministic local validation, see `samples/StickyWindowOverlay` or its capability alias `samples/StickyTargetOverlay`, which follows an owned test HWND instead of a third-party process.
 
 ## Interaction
 
@@ -67,7 +66,11 @@ overlay.PointerPressed += (_, args) =>
 {
     PointF positionInDips = args.Position;
 };
+
+overlay.PointerWheel += (_, args) =>
+{
+    int wheelDelta = args.WheelDelta;
+};
 ```
 
 Global hotkeys are available through `overlay.Hotkeys`. Hotkey and pointer callbacks run on the overlay owner thread, so keep them short.
-

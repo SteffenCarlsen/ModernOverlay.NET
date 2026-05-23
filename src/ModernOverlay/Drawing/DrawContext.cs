@@ -1,6 +1,6 @@
 using ModernOverlay.Rendering;
 
-namespace ModernOverlay;
+namespace ModernOverlay.Drawing;
 
 public sealed class DrawContext
 {
@@ -341,6 +341,25 @@ public sealed class DrawOperations
         Rectangle(rect, brush, strokeStyle, strokeWidth);
     }
 
+    public void CornerBox(RectF rect, BrushHandle brush, float cornerLength, float strokeWidth = 1f)
+    {
+        ValidateBrush(brush);
+        ValidateRect(rect, nameof(rect));
+        ValidateCornerLength(cornerLength);
+        ValidateStrokeWidth(strokeWidth);
+        DrawCornerBox(rect, brush, null, cornerLength, strokeWidth);
+    }
+
+    public void CornerBox(RectF rect, BrushHandle brush, StrokeStyleHandle strokeStyle, float cornerLength, float strokeWidth = 1f)
+    {
+        ValidateBrush(brush);
+        ValidateStrokeStyle(strokeStyle);
+        ValidateRect(rect, nameof(rect));
+        ValidateCornerLength(cornerLength);
+        ValidateStrokeWidth(strokeWidth);
+        DrawCornerBox(rect, brush, strokeStyle, cornerLength, strokeWidth);
+    }
+
     public void Crosshair(PointF center, float size, BrushHandle brush, float strokeWidth = 1f)
     {
         ValidateCrosshair(size);
@@ -524,6 +543,27 @@ public sealed class DrawOperations
         }
     }
 
+    private void DrawCornerBox(RectF rect, BrushHandle brush, StrokeStyleHandle? strokeStyle, float cornerLength, float strokeWidth)
+    {
+        float x1 = rect.X;
+        float y1 = rect.Y;
+        float x2 = rect.X + rect.Width;
+        float y2 = rect.Y + rect.Height;
+        float length = MathF.Min(cornerLength, MathF.Min(rect.Width, rect.Height) / 2f);
+
+        sink.DrawLine(new PointF(x1, y1), new PointF(x1 + length, y1), brush, strokeWidth, strokeStyle);
+        sink.DrawLine(new PointF(x1, y1), new PointF(x1, y1 + length), brush, strokeWidth, strokeStyle);
+
+        sink.DrawLine(new PointF(x2, y1), new PointF(x2 - length, y1), brush, strokeWidth, strokeStyle);
+        sink.DrawLine(new PointF(x2, y1), new PointF(x2, y1 + length), brush, strokeWidth, strokeStyle);
+
+        sink.DrawLine(new PointF(x1, y2), new PointF(x1 + length, y2), brush, strokeWidth, strokeStyle);
+        sink.DrawLine(new PointF(x1, y2), new PointF(x1, y2 - length), brush, strokeWidth, strokeStyle);
+
+        sink.DrawLine(new PointF(x2, y2), new PointF(x2 - length, y2), brush, strokeWidth, strokeStyle);
+        sink.DrawLine(new PointF(x2, y2), new PointF(x2, y2 - length), brush, strokeWidth, strokeStyle);
+    }
+
     private void DrawArrow(PointF start, PointF end, BrushHandle brush, StrokeStyleHandle? strokeStyle, float strokeWidth, float headLength, float headAngleDegrees)
     {
         float dx = end.X - start.X;
@@ -567,6 +607,11 @@ public sealed class DrawOperations
     private static void ValidateCrosshair(float size)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(size);
+    }
+
+    private static void ValidateCornerLength(float cornerLength)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cornerLength);
     }
 }
 

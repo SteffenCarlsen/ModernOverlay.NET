@@ -27,6 +27,26 @@ public sealed class TargetTrackingTests
 
     [TestMethod]
     [TestCategory("WindowsIntegration")]
+    public async Task OverlayCanTrackTargetClientArea()
+    {
+        using Win32OverlayWindow target = CreateHiddenTarget(35, 45, 260, 150);
+        Assert.IsTrue(Win32WindowQuery.TryGetWindowBounds(target.Hwnd, clientArea: true, out Win32WindowBounds clientBounds));
+
+        await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
+        {
+            IsVisible = false,
+            Target = WindowTarget.FromHwnd(new WindowHandle(target.Hwnd)).WithBoundsMode(TargetBoundsMode.ClientArea),
+        });
+
+        Assert.IsTrue(Win32WindowQuery.TryGetWindowBounds(overlay.Hwnd.Value, clientArea: false, out Win32WindowBounds overlayBounds));
+        Assert.AreEqual(clientBounds.X, overlayBounds.X);
+        Assert.AreEqual(clientBounds.Y, overlayBounds.Y);
+        Assert.AreEqual(clientBounds.Width, overlayBounds.Width);
+        Assert.AreEqual(clientBounds.Height, overlayBounds.Height);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
     public async Task OverlaySyncsTargetWindowBoundsBeforeRendering()
     {
         using Win32OverlayWindow target = CreateHiddenTarget(10, 20, 200, 120);
@@ -35,6 +55,7 @@ public sealed class TargetTrackingTests
         await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
         {
             IsVisible = false,
+            HiddenRenderPolicy = HiddenRenderPolicy.Continue,
             FrameRateLimit = FrameRateLimit.Fixed(120),
             Target = WindowTarget.FromHwnd(new WindowHandle(target.Hwnd)),
         });
@@ -59,13 +80,35 @@ public sealed class TargetTrackingTests
     {
         using Win32OverlayWindow target = CreateHiddenTarget(10, 20, 200, 100);
         var customBounds = new WindowBounds(25, 35, 90, 45);
+        var fallbackBounds = new WindowBounds(300, 310, 120, 80);
         await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
         {
             IsVisible = false,
+            Bounds = fallbackBounds,
             Target = WindowTarget.FromHwnd(new WindowHandle(target.Hwnd)).WithCustomBounds(_ => customBounds),
         });
 
-        Assert.AreEqual(customBounds, overlay.Options.Bounds);
+        Assert.AreEqual(fallbackBounds, overlay.Options.Bounds);
+        Assert.IsTrue(Win32WindowQuery.TryGetWindowBounds(overlay.Hwnd.Value, clientArea: false, out Win32WindowBounds overlayBounds));
+        Assert.AreEqual(customBounds, new WindowBounds(overlayBounds.X, overlayBounds.Y, overlayBounds.Width, overlayBounds.Height));
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task TargetLevelTrackingIntervalOverridesWindowDefault()
+    {
+        using Win32OverlayWindow target = CreateHiddenTarget(10, 20, 200, 100);
+        TimeSpan targetInterval = TimeSpan.FromMilliseconds(75);
+
+        await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
+        {
+            IsVisible = false,
+            TargetTrackingInterval = TimeSpan.FromMilliseconds(500),
+            Target = WindowTarget.FromHwnd(new WindowHandle(target.Hwnd)).WithTrackingInterval(targetInterval),
+        });
+
+        Assert.AreEqual(TimeSpan.FromMilliseconds(500), overlay.Options.TargetTrackingInterval);
+        Assert.AreEqual(targetInterval, overlay.Options.Target?.TrackingInterval);
     }
 
     [TestMethod]
@@ -78,6 +121,7 @@ public sealed class TargetTrackingTests
         await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
         {
             IsVisible = false,
+            HiddenRenderPolicy = HiddenRenderPolicy.Continue,
             FrameRateLimit = FrameRateLimit.Fixed(120),
             Target = WindowTarget.FromHwnd(new WindowHandle(target.Hwnd)),
             ZOrder = OverlayZOrder.FollowTarget,
@@ -93,7 +137,7 @@ public sealed class TargetTrackingTests
 
     [TestMethod]
     [TestCategory("WindowsIntegration")]
-    public async Task OverlayCanDiscoverTargetByWindowTitle()
+    public async Task OverlayCanDiscoverTargetByExactTitle()
     {
         string title = $"ModernOverlay target title {Guid.NewGuid():N}";
         using Win32OverlayWindow target = CreateHiddenTarget(45, 55, 300, 140, title: title);
@@ -102,7 +146,7 @@ public sealed class TargetTrackingTests
         await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
         {
             IsVisible = false,
-            Target = WindowTarget.ByWindowTitle(title),
+            Target = WindowTarget.ByTitle(title, MatchMode.Exact),
         });
 
         Assert.IsTrue(Win32WindowQuery.TryGetWindowBounds(overlay.Hwnd.Value, clientArea: false, out Win32WindowBounds bounds));
@@ -197,33 +241,41 @@ public sealed class TargetTrackingTests
     [TestCategory("WindowsIntegration")]
     public async Task TargetMinimizedPausePolicySkipsRenderingUntilRestore()
     {
-        using Win32OverlayWindow target = CreateHiddenTarget(85, 95, 260, 150);
-        target.Show();
-        target.Minimize();
-        Assert.IsTrue(Win32WindowQuery.IsWindowMinimized(target.Hwnd));
-        using var runCancellation = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        bool restored = false;
-
-        await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
+        using Win32OverlayWindow target = CreateHiddenTarget(520, 420, 260, 150);
+        try
         {
-            IsVisible = false,
-            FrameRateLimit = FrameRateLimit.Fixed(120),
-            Target = WindowTarget.FromHwnd(new WindowHandle(target.Hwnd)),
-            TargetMinimizedPolicy = TargetMinimizedPolicy.PauseRendering,
-        });
+            target.Show();
+            target.Minimize();
+            Assert.IsTrue(Win32WindowQuery.IsWindowMinimized(target.Hwnd));
+            using var runCancellation = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            bool restored = false;
 
-        overlay.Render += _ =>
-        {
+            await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
+            {
+                IsVisible = false,
+                HiddenRenderPolicy = HiddenRenderPolicy.Continue,
+                FrameRateLimit = FrameRateLimit.Fixed(120),
+                Target = WindowTarget.FromHwnd(new WindowHandle(target.Hwnd)),
+                TargetMinimizedPolicy = TargetMinimizedPolicy.PauseRendering,
+            });
+
+            overlay.Render += _ =>
+            {
+                Assert.IsTrue(restored);
+                runCancellation.Cancel();
+            };
+            Task restoreTask = RestoreAfterDelayAsync(target, () => restored = true, TimeSpan.FromMilliseconds(200), runCancellation.Token);
+
+            await overlay.RunAsync(runCancellation.Token);
+            await restoreTask;
+
             Assert.IsTrue(restored);
-            runCancellation.Cancel();
-        };
-        Task restoreTask = RestoreAfterDelayAsync(target, () => restored = true, TimeSpan.FromMilliseconds(200), runCancellation.Token);
-
-        await overlay.RunAsync(runCancellation.Token);
-        await restoreTask;
-
-        Assert.IsTrue(restored);
-        Assert.IsGreaterThan(0, overlay.FrameStats.FrameCount);
+            Assert.IsGreaterThan(0, overlay.FrameStats.FrameCount);
+        }
+        finally
+        {
+            target.Hide();
+        }
     }
 
     [TestMethod]
@@ -240,8 +292,9 @@ public sealed class TargetTrackingTests
         await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
         {
             IsVisible = false,
+            HiddenRenderPolicy = HiddenRenderPolicy.Continue,
             FrameRateLimit = FrameRateLimit.Fixed(120),
-            Target = WindowTarget.ByWindowTitle(title),
+            Target = WindowTarget.ByTitle(title, MatchMode.Exact),
         });
 
         try

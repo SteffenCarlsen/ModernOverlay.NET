@@ -10,6 +10,7 @@ public sealed class OverlayWindow : IAsyncDisposable
 {
     private const int FrameStatsWindowSize = 120;
 
+    private readonly Lock runGate = new();
     private readonly CancellationTokenSource lifetimeCancellation = new();
     private readonly Win32OverlayWindow nativeWindow;
     private readonly IRenderBackend renderBackend;
@@ -28,16 +29,19 @@ public sealed class OverlayWindow : IAsyncDisposable
     private bool targetWasLost;
     private bool paused;
     private bool disposed;
+    private CancellationTokenSource? activeRunCancellation;
     private long frameCount;
     private long skippedFrameCount;
     private long droppedFrameCount;
     private long targetTrackingUpdateCount;
     private TimeSpan recentFrameDurationTotal;
     private DateTimeOffset firstFrameUtc;
+    private DateTimeOffset lastFrameStartUtc;
     private DateTimeOffset lastTargetTrackingUtc;
     private TimeSpan currentTargetFrameInterval;
+    private readonly TimeSpan targetTrackingInterval;
 
-    private OverlayWindow(OverlayWindowOptions options, Win32OverlayWindow nativeWindow)
+    private OverlayWindow(OverlayWindowOptions options, Win32OverlayWindow nativeWindow, WindowBounds initialBounds)
     {
         Options = options;
         this.nativeWindow = nativeWindow;
@@ -50,7 +54,7 @@ public sealed class OverlayWindow : IAsyncDisposable
         nativeWindow.SetPointerCallback(HandlePointerEvent);
         renderBackend = RenderBackendRegistry.CreateBackend(options);
         currentDpiScale = ToDpiScale(nativeWindow.GetDpiScale());
-        currentBounds = options.Bounds;
+        currentBounds = initialBounds;
         nativeWindow.InvokeOnOwnerThread(() =>
         {
             renderBackend.Initialize(CreateBackendInitializeContext(currentBounds, currentDpiScale));
@@ -60,6 +64,7 @@ public sealed class OverlayWindow : IAsyncDisposable
         inputMode = options.InputMode;
         zOrder = options.ZOrder;
         currentTargetFrameInterval = options.FrameRateLimit.ToFrameInterval();
+        targetTrackingInterval = options.Target?.TrackingInterval ?? options.TargetTrackingInterval;
         desiredVisible = options.IsVisible;
         OverlayEventSource.Log.OverlayCreated(nativeWindow.Hwnd);
     }
@@ -89,6 +94,8 @@ public sealed class OverlayWindow : IAsyncDisposable
     public event OverlayPointerHandler? PointerPressed;
 
     public event OverlayPointerHandler? PointerReleased;
+
+    public event OverlayPointerHandler? PointerWheel;
 
     public OverlayWindowOptions Options { get; }
 
@@ -151,8 +158,12 @@ public sealed class OverlayWindow : IAsyncDisposable
             throw new ArgumentOutOfRangeException(nameof(options), "Target tracking interval cannot be negative.");
         }
 
+        if (options.Target?.TrackingInterval is { } targetTrackingInterval && targetTrackingInterval < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), "Target tracking interval cannot be negative.");
+        }
+
         WindowBounds initialBounds = ResolveInitialBounds(options);
-        OverlayWindowOptions effectiveOptions = options with { Bounds = initialBounds };
 
         var nativeOptions = new Win32OverlayWindowOptions(
             options.WindowClass.ClassName,
@@ -164,32 +175,53 @@ public sealed class OverlayWindow : IAsyncDisposable
             options.InputMode == OverlayInputMode.ClickThrough,
             options.ZOrder == OverlayZOrder.TopMost,
             !options.WindowClass.ShowInTaskbar,
-            options.DpiMode == DpiMode.PerMonitorV2);
+            options.DpiMode == DpiMode.PerMonitorV2,
+            options.ExcludeFromCapture);
 
         Win32OverlayWindow nativeWindow = Win32OverlayWindow.Create(nativeOptions);
-        ApplyInitialTransparency(effectiveOptions, nativeWindow);
-        if (options.IsVisible)
+        try
         {
-            nativeWindow.Show();
+            ApplyInitialTransparency(options, nativeWindow);
+            if (options.IsVisible)
+            {
+                nativeWindow.Show();
+            }
+        }
+        catch
+        {
+            nativeWindow.Dispose();
+            throw;
         }
 
-        return ValueTask.FromResult(new OverlayWindow(effectiveOptions, nativeWindow));
+        return ValueTask.FromResult(new OverlayWindow(options, nativeWindow, initialBounds));
     }
 
     private static void ApplyInitialTransparency(OverlayWindowOptions options, Win32OverlayWindow nativeWindow)
     {
+        const uint transparentBlackColorKey = 0x000000;
+
         switch (options.TransparencyMode)
         {
             case TransparencyMode.Auto:
             case TransparencyMode.DwmGlassFrame:
                 nativeWindow.ExtendFrameIntoClientArea();
+                nativeWindow.SetTransparentColorKey(transparentBlackColorKey);
                 break;
             case TransparencyMode.LayeredWindowAttributes:
-                nativeWindow.SetLayeredAlpha(byte.MaxValue);
+                nativeWindow.SetTransparentColorKey(transparentBlackColorKey);
                 break;
             case TransparencyMode.UpdateLayeredWindow:
+                ApplyTransparencyFallback(
+                    nativeWindow,
+                    options.TransparencyMode,
+                    "UpdateLayeredWindow CPU-copy fallback backend is not implemented; using DWM glass frame extension.");
+                break;
             case TransparencyMode.DirectComposition:
-                throw new NotSupportedException($"{options.TransparencyMode} is reserved for a later renderer backend.");
+                ApplyTransparencyFallback(
+                    nativeWindow,
+                    options.TransparencyMode,
+                    "DirectComposition backend is not implemented; using DWM glass frame extension.");
+                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(options), $"Unsupported transparency mode: {options.TransparencyMode}.");
         }
@@ -205,20 +237,45 @@ public sealed class OverlayWindow : IAsyncDisposable
         }
     }
 
+    private static void ApplyTransparencyFallback(Win32OverlayWindow nativeWindow, TransparencyMode requestedMode, string reason)
+    {
+        const uint transparentBlackColorKey = 0x000000;
+
+        nativeWindow.ExtendFrameIntoClientArea();
+        nativeWindow.SetTransparentColorKey(transparentBlackColorKey);
+        OverlayEventSource.Log.BackendFallback(
+            "Win32 overlay window",
+            nameof(TransparencyMode),
+            requestedMode.ToString(),
+            TransparencyMode.DwmGlassFrame.ToString(),
+            reason);
+    }
+
     public async ValueTask RunAsync(CancellationToken ct = default)
     {
         ThrowIfDisposed();
 
-        using CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(ct, lifetimeCancellation.Token);
-        TimeSpan interval = ResolveFrameInterval();
-        currentTargetFrameInterval = interval;
+        CancellationTokenSource runCancellation = new();
+        lock (runGate)
+        {
+            if (activeRunCancellation is not null)
+            {
+                runCancellation.Dispose();
+                throw new InvalidOperationException("The overlay run loop is already active.");
+            }
+
+            activeRunCancellation = runCancellation;
+        }
+
+        using CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(ct, lifetimeCancellation.Token, runCancellation.Token);
+        _ = ResolveAndStoreFrameInterval();
 
         Loaded?.Invoke(this);
 
         try
         {
             await Task.Run(
-                () => nativeWindow.RunFrameLoop(interval, RenderOneFrame, linked.Token),
+                () => nativeWindow.RunFrameLoop(ResolveAndStoreFrameInterval, RenderOneFrame, linked.Token),
                 CancellationToken.None).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (linked.IsCancellationRequested)
@@ -226,14 +283,28 @@ public sealed class OverlayWindow : IAsyncDisposable
         }
         finally
         {
+            lock (runGate)
+            {
+                if (ReferenceEquals(activeRunCancellation, runCancellation))
+                {
+                    activeRunCancellation = null;
+                }
+            }
+
+            runCancellation.Dispose();
             Unloaded?.Invoke(this);
         }
     }
 
     public ValueTask StopAsync(CancellationToken ct = default)
     {
+        ThrowIfDisposed();
         ct.ThrowIfCancellationRequested();
-        lifetimeCancellation.Cancel();
+        lock (runGate)
+        {
+            activeRunCancellation?.Cancel();
+        }
+
         return ValueTask.CompletedTask;
     }
 
@@ -261,7 +332,7 @@ public sealed class OverlayWindow : IAsyncDisposable
 
     public void Resume() => paused = false;
 
-    public void SetBounds(WindowBounds bounds)
+    public void SetBoundsPixels(WindowBounds bounds)
     {
         if (bounds.IsEmpty)
         {
@@ -271,26 +342,18 @@ public sealed class OverlayWindow : IAsyncDisposable
         ApplyBounds(bounds, raiseTargetChanged: false);
     }
 
-    public void SetBoundsPixels(WindowBounds bounds) => SetBounds(bounds);
+    public void SetBoundsDips(RectF bounds, DpiScale dpi) => SetBoundsPixels(WindowBounds.FromDips(bounds, dpi));
 
-    public void SetBoundsDips(RectF bounds, DpiScale dpi) => SetBounds(WindowBounds.FromDips(bounds, dpi));
+    public void MovePixels(int x, int y) => SetBoundsPixels(currentBounds with { X = x, Y = y });
 
-    public void MovePixels(int x, int y) => SetBounds(currentBounds with { X = x, Y = y });
-
-    public void ResizePixels(int width, int height) => SetBounds(currentBounds with { Width = width, Height = height });
+    public void ResizePixels(int width, int height) => SetBoundsPixels(currentBounds with { Width = width, Height = height });
 
     public ValueTask RecreateAsync(CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
         const string lostReason = "Manual recreation requested.";
-        DeviceLost?.Invoke(this, new OverlayDeviceEventArgs(lostReason));
-        OverlayEventSource.Log.DeviceLost(nativeWindow.Hwnd, lostReason);
-        Resources.AdvanceGeneration();
-        currentDpiScale = ToDpiScale(nativeWindow.GetDpiScale());
-        nativeWindow.InvokeOnOwnerThread(() => renderBackend.Recreate(CreateBackendInitializeContext(currentBounds, currentDpiScale)));
         const string restoredReason = "Backend recreated and resource generation advanced.";
-        DeviceRestored?.Invoke(this, new OverlayDeviceEventArgs(restoredReason));
-        OverlayEventSource.Log.DeviceRestored(nativeWindow.Hwnd, restoredReason, renderBackend.Generation.Value, Resources.CurrentGeneration);
+        nativeWindow.InvokeOnOwnerThread(() => RecreateBackendOnOwnerThread(lostReason, restoredReason));
         return ValueTask.CompletedTask;
     }
 
@@ -315,7 +378,12 @@ public sealed class OverlayWindow : IAsyncDisposable
 
     private void RenderOneFrame()
     {
-        if (paused && Options.HiddenRenderPolicy == HiddenRenderPolicy.Pause)
+        if (paused)
+        {
+            return;
+        }
+
+        if (!desiredVisible && Options.HiddenRenderPolicy == HiddenRenderPolicy.Pause)
         {
             return;
         }
@@ -352,14 +420,15 @@ public sealed class OverlayWindow : IAsyncDisposable
             firstFrameUtc = start;
         }
 
-        TimeSpan actualFrameInterval = previousFrameUtc == default ? TimeSpan.Zero : start - previousFrameUtc;
+        TimeSpan frameStartInterval = lastFrameStartUtc == default ? TimeSpan.Zero : start - lastFrameStartUtc;
+        lastFrameStartUtc = start;
         var frameInfo = new FrameInfo(
             frameCount + 1,
             start,
             start - firstFrameUtc,
-            actualFrameInterval,
+            frameStartInterval,
             currentTargetFrameInterval,
-            actualFrameInterval,
+            frameStartInterval,
             Environment.CurrentManagedThreadId,
             currentDpiScale,
             currentBounds,
@@ -394,7 +463,7 @@ public sealed class OverlayWindow : IAsyncDisposable
 
         renderDuration = Stopwatch.GetElapsedTime(renderStart);
         long presentStart = Stopwatch.GetTimestamp();
-        _ = renderBackend.EndFrame();
+        EndFrameResult endFrame = renderBackend.EndFrame();
         TimeSpan presentDuration = Stopwatch.GetElapsedTime(presentStart);
         if (renderException is not null)
         {
@@ -407,23 +476,31 @@ public sealed class OverlayWindow : IAsyncDisposable
             ExceptionDispatchInfo.Capture(renderException).Throw();
         }
 
+        if (endFrame.RequiresRecreate)
+        {
+            string lostReason = endFrame.RecreateReason ?? "Render backend requested device recreation.";
+            RecreateBackendOnOwnerThread(lostReason, "Backend recreated after render-target recreation request.");
+            return;
+        }
+
         frameCount++;
         DateTimeOffset end = DateTimeOffset.UtcNow;
         TimeSpan frameDuration = end - start;
+        TimeSpan completedFrameInterval = previousFrameUtc == default ? frameDuration : end - previousFrameUtc;
         (TimeSpan movingAverageFrameDuration, TimeSpan worstFrameDuration) = RecordFrameDuration(frameDuration);
-        if (IsDroppedFrame(actualFrameInterval))
+        if (IsDroppedFrame(completedFrameInterval))
         {
             droppedFrameCount++;
             OverlayEventSource.Log.FrameOverBudget(
                 frameCount,
-                actualFrameInterval.TotalMilliseconds,
+                completedFrameInterval.TotalMilliseconds,
                 currentTargetFrameInterval.TotalMilliseconds);
         }
 
         TimeSpan elapsedSinceFirstFrame = end - firstFrameUtc;
         FrameStats = new FrameStats(
             frameCount,
-            ToFramesPerSecond(actualFrameInterval),
+            ToFramesPerSecond(completedFrameInterval),
             elapsedSinceFirstFrame > TimeSpan.Zero ? frameCount / elapsedSinceFirstFrame.TotalSeconds : 0d,
             frameDuration,
             movingAverageFrameDuration,
@@ -431,7 +508,7 @@ public sealed class OverlayWindow : IAsyncDisposable
             end,
             Environment.CurrentManagedThreadId,
             currentTargetFrameInterval,
-            actualFrameInterval,
+            completedFrameInterval,
             renderDuration,
             presentDuration,
             renderBackend.CommandSink.CommandCount,
@@ -510,6 +587,13 @@ public sealed class OverlayWindow : IAsyncDisposable
             : Win32DisplayQuery.TryGetRefreshRateForWindow(nativeWindow.Hwnd, out int displayFramesPerSecond)
             ? Options.FrameRateLimit.ToFrameInterval(displayFramesPerSecond)
             : Options.FrameRateLimit.ToFrameInterval();
+    }
+
+    private TimeSpan ResolveAndStoreFrameInterval()
+    {
+        TimeSpan interval = ResolveFrameInterval();
+        currentTargetFrameInterval = interval;
+        return interval;
     }
 
     private static bool TryResolveTargetHwnd(OverlayTarget target, out WindowHandle hwnd)
@@ -599,7 +683,7 @@ public sealed class OverlayWindow : IAsyncDisposable
             return;
         }
 
-        TimeSpan interval = Options.TargetTrackingInterval;
+        TimeSpan interval = targetTrackingInterval;
         bool shouldTrack = interval == TimeSpan.Zero
             || lastTargetTrackingUtc == default
             || start - lastTargetTrackingUtc >= interval
@@ -674,6 +758,17 @@ public sealed class OverlayWindow : IAsyncDisposable
         BoundsChanged?.Invoke(this, new OverlayWindowChangedEventArgs(effectiveBounds));
     }
 
+    private void RecreateBackendOnOwnerThread(string lostReason, string restoredReason)
+    {
+        DeviceLost?.Invoke(this, new OverlayDeviceEventArgs(lostReason));
+        OverlayEventSource.Log.DeviceLost(nativeWindow.Hwnd, lostReason);
+        Resources.AdvanceGeneration();
+        currentDpiScale = ToDpiScale(nativeWindow.GetDpiScale());
+        renderBackend.Recreate(CreateBackendInitializeContext(currentBounds, currentDpiScale));
+        DeviceRestored?.Invoke(this, new OverlayDeviceEventArgs(restoredReason));
+        OverlayEventSource.Log.DeviceRestored(nativeWindow.Hwnd, restoredReason, renderBackend.Generation.Value, Resources.CurrentGeneration);
+    }
+
     private void ThrowIfDisposed()
     {
         ObjectDisposedException.ThrowIf(disposed, this);
@@ -688,6 +783,7 @@ public sealed class OverlayWindow : IAsyncDisposable
             Win32PointerEventKind.Moved => OverlayPointerEventKind.Moved,
             Win32PointerEventKind.Pressed => OverlayPointerEventKind.Pressed,
             Win32PointerEventKind.Released => OverlayPointerEventKind.Released,
+            Win32PointerEventKind.Wheel => OverlayPointerEventKind.Wheel,
             _ => throw new ArgumentOutOfRangeException(nameof(pointerEvent), "Unsupported pointer event kind."),
         };
         OverlayPointerButton button = pointerEvent.Button switch
@@ -700,7 +796,14 @@ public sealed class OverlayWindow : IAsyncDisposable
         };
 
         var position = new PointF(pointerEvent.X / currentDpiScale.X, pointerEvent.Y / currentDpiScale.Y);
-        var args = new OverlayPointerEventArgs(kind, button, position, pointerEvent.X, pointerEvent.Y);
+        var args = new OverlayPointerEventArgs(
+            kind,
+            button,
+            position,
+            pointerEvent.X,
+            pointerEvent.Y,
+            pointerEvent.WheelDelta,
+            pointerEvent.IsHorizontalWheel);
         switch (kind)
         {
             case OverlayPointerEventKind.Moved:
@@ -711,6 +814,9 @@ public sealed class OverlayWindow : IAsyncDisposable
                 break;
             case OverlayPointerEventKind.Released:
                 PointerReleased?.Invoke(this, args);
+                break;
+            case OverlayPointerEventKind.Wheel:
+                PointerWheel?.Invoke(this, args);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(pointerEvent), "Unsupported pointer event kind.");
@@ -740,15 +846,15 @@ public sealed class OverlayWindow : IAsyncDisposable
             worst);
     }
 
-    private bool IsDroppedFrame(TimeSpan actualFrameInterval)
+    private bool IsDroppedFrame(TimeSpan frameInterval)
     {
-        if (actualFrameInterval <= TimeSpan.Zero || currentTargetFrameInterval <= TimeSpan.Zero)
+        if (frameInterval <= TimeSpan.Zero || currentTargetFrameInterval <= TimeSpan.Zero)
         {
             return false;
         }
 
         long budgetTicks = currentTargetFrameInterval.Ticks + currentTargetFrameInterval.Ticks / 2;
-        return actualFrameInterval.Ticks > budgetTicks;
+        return frameInterval.Ticks > budgetTicks;
     }
 
     private static double ToFramesPerSecond(TimeSpan interval)

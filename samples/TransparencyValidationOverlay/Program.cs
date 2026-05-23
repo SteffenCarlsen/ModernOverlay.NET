@@ -1,7 +1,4 @@
 using ModernOverlay;
-using ModernOverlay.Direct2D;
-
-Direct2DOverlayBackend.Register();
 
 await using OverlayWindow dwmGlass = await CreateOverlayAsync(
     "DWM glass frame",
@@ -11,21 +8,48 @@ await using OverlayWindow layered = await CreateOverlayAsync(
     "Layered alpha",
     new WindowBounds(120, 330, 420, 180),
     TransparencyMode.LayeredWindowAttributes);
+await using OverlayWindow updateFallback = await CreateOverlayAsync(
+    "UpdateLayeredWindow fallback",
+    new WindowBounds(580, 120, 420, 180),
+    TransparencyMode.UpdateLayeredWindow);
+await using OverlayWindow compositionFallback = await CreateOverlayAsync(
+    "DirectComposition fallback",
+    new WindowBounds(580, 330, 420, 180),
+    TransparencyMode.DirectComposition);
 
-using SolidBrushHandle white = dwmGlass.Resources.CreateSolidBrush(ColorRgba.White);
-using SolidBrushHandle cyan = dwmGlass.Resources.CreateSolidBrush(new ColorRgba(0.1f, 0.7f, 1f, 0.9f));
-using FontHandle font = dwmGlass.Resources.CreateFont(new FontOptions("Segoe UI", 18));
-using SolidBrushHandle layeredWhite = layered.Resources.CreateSolidBrush(ColorRgba.White);
-using SolidBrushHandle layeredAccent = layered.Resources.CreateSolidBrush(new ColorRgba(1f, 0.5f, 0.2f, 0.9f));
-using FontHandle layeredFont = layered.Resources.CreateFont(new FontOptions("Segoe UI", 18));
+var resources = new List<IDisposable>();
+AttachFrame(dwmGlass, "DWM glass", new ColorRgba(0.1f, 0.7f, 1f, 0.9f), resources);
+AttachFrame(layered, "Layered attributes", new ColorRgba(1f, 0.5f, 0.2f, 0.9f), resources);
+AttachFrame(updateFallback, "Update fallback", new ColorRgba(0.7f, 0.9f, 0.2f, 0.9f), resources);
+AttachFrame(compositionFallback, "Composition fallback", new ColorRgba(0.8f, 0.4f, 1f, 0.9f), resources);
 
-dwmGlass.Render += frame => DrawValidationFrame(frame, "DWM glass", white, cyan, font);
-layered.Render += frame => DrawValidationFrame(frame, "Layered attributes", layeredWhite, layeredAccent, layeredFont);
+try
+{
+    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(6));
+    await Task.WhenAll(
+        dwmGlass.RunAsync(cts.Token).AsTask(),
+        layered.RunAsync(cts.Token).AsTask(),
+        updateFallback.RunAsync(cts.Token).AsTask(),
+        compositionFallback.RunAsync(cts.Token).AsTask());
+}
+finally
+{
+    foreach (IDisposable resource in resources)
+    {
+        resource.Dispose();
+    }
+}
 
-using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(6));
-await Task.WhenAll(
-    dwmGlass.RunAsync(cts.Token).AsTask(),
-    layered.RunAsync(cts.Token).AsTask());
+static void AttachFrame(OverlayWindow overlay, string label, ColorRgba accentColor, ICollection<IDisposable> resources)
+{
+    SolidBrushHandle white = overlay.Resources.CreateSolidBrush(ColorRgba.White);
+    SolidBrushHandle accent = overlay.Resources.CreateSolidBrush(accentColor);
+    FontHandle font = overlay.Resources.CreateFont(new FontOptions("Segoe UI", 18));
+    resources.Add(white);
+    resources.Add(accent);
+    resources.Add(font);
+    overlay.Render += frame => DrawValidationFrame(frame, label, white, accent, font);
+}
 
 static async ValueTask<OverlayWindow> CreateOverlayAsync(string title, WindowBounds bounds, TransparencyMode mode)
 {

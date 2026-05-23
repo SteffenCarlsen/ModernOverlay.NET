@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net11.0-windows</TargetFramework>
+    <Description>Experimental opt-in integration contracts for authorized ModernOverlay hosts.</Description>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ModernOverlay.Integration\ModernOverlay.Integration.csproj" />
+    <ProjectReference Include="..\ModernOverlay\ModernOverlay.csproj" />
+  </ItemGroup>
+
+</Project>

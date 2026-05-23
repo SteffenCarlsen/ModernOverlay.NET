@@ -1,4 +1,8 @@
-# GameOverlay.NET Modernization Implementation Specification
+# ModernOverlay Modernization Specification
+
+This is the original implementation specification for modernizing the useful GameOverlay.NET overlay model into the `ModernOverlay` library. It is kept as a public design record: it explains the intended architecture, release criteria, risk model, and parity targets that shaped the repository.
+
+Current implementation status is tracked separately in [feature completeness](feature-completeness.md), [definition of done audit](definition-of-done-audit.md), [next action points](next-action-points.md), and the root [task list](../Tasks.md). Treat this document as the baseline plan, not as the live backlog.
 
 **Date:** 2026-05-22  
 **Prepared for:** modernization of GameOverlay.NET into a modern Windows/.NET overlay library  

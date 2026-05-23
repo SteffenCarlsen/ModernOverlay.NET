@@ -13,6 +13,7 @@ internal static class NativeMethods
     internal const uint WaitObject0 = 0x00000000;
     internal const uint QsAllInput = 0x04FF;
     internal const uint MwmoInputAvailable = 0x0004;
+    internal const uint LwaColorKey = 0x00000001;
     internal const uint LwaAlpha = 0x00000002;
     internal const uint CoinitApartmentThreaded = 0x2;
     internal const uint TimerAllAccess = 0x001F0003;
@@ -29,6 +30,8 @@ internal static class NativeMethods
     internal const uint WmRButtonUp = 0x0205;
     internal const uint WmMButtonDown = 0x0207;
     internal const uint WmMButtonUp = 0x0208;
+    internal const uint WmMouseWheel = 0x020A;
+    internal const uint WmMouseHWheel = 0x020E;
     internal const uint ModAlt = 0x0001;
     internal const uint ModControl = 0x0002;
     internal const uint ModShift = 0x0004;
@@ -49,6 +52,9 @@ internal static class NativeMethods
     internal const uint GwOwner = 4;
     internal const uint GwChild = 5;
     internal const uint DwmBbEnable = 0x00000001;
+    internal const uint WdaNone = 0x00000000;
+    internal const uint WdaMonitor = 0x00000001;
+    internal const uint WdaExcludeFromCapture = 0x00000011;
 
     internal static readonly nint HwndTopMost = new(-1);
     internal static readonly nint HwndNoTopMost = new(-2);
@@ -256,6 +262,14 @@ internal static class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool SetLayeredWindowAttributes(nint hwnd, uint colorKey, byte alpha, uint flags);
 
+    [DllImport("user32.dll", EntryPoint = "SetWindowDisplayAffinity", ExactSpelling = true, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool SetWindowDisplayAffinity(nint hwnd, uint affinity);
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowDisplayAffinity", ExactSpelling = true, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool GetWindowDisplayAffinity(nint hwnd, out uint affinity);
+
     [DllImport("user32.dll", EntryPoint = "SetProcessDpiAwarenessContext", ExactSpelling = true, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool SetProcessDpiAwarenessContext(nint value);
@@ -290,6 +304,10 @@ internal static class NativeMethods
     [DllImport("user32.dll", EntryPoint = "ClientToScreen", ExactSpelling = true, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool ClientToScreen(nint hwnd, ref Point point);
+
+    [DllImport("user32.dll", EntryPoint = "ScreenToClient", ExactSpelling = true, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool ScreenToClient(nint hwnd, ref Point point);
 
     [DllImport("user32.dll", EntryPoint = "GetDC", ExactSpelling = true, SetLastError = true)]
     internal static extern nint GetDC(nint hwnd);

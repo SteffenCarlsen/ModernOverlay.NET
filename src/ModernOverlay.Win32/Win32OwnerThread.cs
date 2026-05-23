@@ -53,20 +53,24 @@ internal sealed class Win32OwnerThread : IDisposable
     }
 
     public void RunFrameLoop(TimeSpan interval, Action renderFrame, CancellationToken cancellationToken)
+        => RunFrameLoop(() => interval, renderFrame, cancellationToken);
+
+    public void RunFrameLoop(Func<TimeSpan> resolveInterval, Action renderFrame, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(resolveInterval);
         ArgumentNullException.ThrowIfNull(renderFrame);
         ThrowIfDisposed();
 
         if (Environment.CurrentManagedThreadId == ownerThreadId)
         {
-            RunFrameLoopCore(interval, renderFrame, cancellationToken);
+            RunFrameLoopCore(resolveInterval, renderFrame, cancellationToken);
             return;
         }
 
         var completion = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         workItems.Enqueue(new WorkItem(() =>
         {
-            RunFrameLoopCore(interval, renderFrame, cancellationToken);
+            RunFrameLoopCore(resolveInterval, renderFrame, cancellationToken);
             return null;
         }, completion));
         workAvailable.Set();
@@ -165,8 +169,9 @@ internal sealed class Win32OwnerThread : IDisposable
         DrainMessages();
     }
 
-    private void RunFrameLoopCore(TimeSpan interval, Action renderFrame, CancellationToken cancellationToken)
+    private void RunFrameLoopCore(Func<TimeSpan> resolveInterval, Action renderFrame, CancellationToken cancellationToken)
     {
+        TimeSpan interval = NormalizeFrameInterval(resolveInterval());
         if (interval == TimeSpan.Zero)
         {
             RunUnlimitedFrameLoop(renderFrame, cancellationToken);
@@ -181,12 +186,7 @@ internal sealed class Win32OwnerThread : IDisposable
 
         try
         {
-            long dueTime = -interval.Ticks;
-            int periodMilliseconds = Math.Max(1, (int)Math.Min(interval.TotalMilliseconds, int.MaxValue));
-            if (!NativeMethods.SetWaitableTimer(timer, in dueTime, periodMilliseconds, 0, 0, false))
-            {
-                throw new NativeWin32Exception("SetWaitableTimer");
-            }
+            SetFrameTimer(timer, interval);
 
             nint[] handles =
             [
@@ -214,6 +214,18 @@ internal sealed class Win32OwnerThread : IDisposable
 
                 if (waitResult == NativeMethods.WaitObject0 + 2)
                 {
+                    TimeSpan nextInterval = NormalizeFrameInterval(resolveInterval());
+                    if (nextInterval != interval)
+                    {
+                        if (nextInterval == TimeSpan.Zero)
+                        {
+                            throw new InvalidOperationException("A running fixed-rate frame loop cannot change to unlimited mode.");
+                        }
+
+                        interval = nextInterval;
+                        SetFrameTimer(timer, interval);
+                    }
+
                     renderFrame();
                 }
             }
@@ -223,6 +235,23 @@ internal sealed class Win32OwnerThread : IDisposable
             _ = NativeMethods.CancelWaitableTimer(timer);
             _ = NativeMethods.CloseHandle(timer);
         }
+    }
+
+    private static void SetFrameTimer(nint timer, TimeSpan interval)
+    {
+        long dueTime = -interval.Ticks;
+        int periodMilliseconds = Math.Max(1, (int)Math.Min(interval.TotalMilliseconds, int.MaxValue));
+        if (!NativeMethods.SetWaitableTimer(timer, in dueTime, periodMilliseconds, 0, 0, false))
+        {
+            throw new NativeWin32Exception("SetWaitableTimer");
+        }
+    }
+
+    private static TimeSpan NormalizeFrameInterval(TimeSpan interval)
+    {
+        return interval >= TimeSpan.Zero
+            ? interval
+            : throw new ArgumentOutOfRangeException(nameof(interval), "Frame interval cannot be negative.");
     }
 
     private void RunUnlimitedFrameLoop(Action renderFrame, CancellationToken cancellationToken)

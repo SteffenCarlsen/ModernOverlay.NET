@@ -2,7 +2,7 @@
 
 ## Overlay Does Not Appear
 
-- Confirm the app references `ModernOverlay.Direct2D` and calls `Direct2DOverlayBackend.Register()` before `OverlayWindow.CreateAsync`.
+- Confirm the app references `ModernOverlay.Direct2D` so the backend assembly is present for auto-discovery before `OverlayWindow.CreateAsync`.
 - Check that bounds are non-empty and on a visible monitor. Negative coordinates are valid for multi-monitor layouts, but easy to misread during testing.
 - Use `overlay.FrameStats` or `DiagnosticsOverlay` to confirm frames are rendering.
 - Inspect `Win32NativeDiagnostics.LastFailure` for the latest surfaced Win32/HRESULT failure.
@@ -16,9 +16,16 @@
 ## Target Tracking Fails
 
 - Prefer owned HWNDs or authorized/cooperative targets when validating behavior.
-- `WindowTarget.ByTitle` uses ordinal-insensitive contains matching by default. Use `ByWindowTitle` for exact title compatibility behavior.
+- `WindowTarget.ByTitle` uses ordinal-insensitive contains matching by default. Pass `MatchMode.Exact` when an exact title match is required.
 - `FollowTarget` z-order is best-effort. Windows can reorder overlays due to activation, other topmost windows, virtual desktops, secure desktops, and shell behavior.
 - `TargetTrackingInterval` trades overhead for latency. The default is 33 ms; use `TimeSpan.Zero` only when every-frame target polling is needed.
+
+## FPS Looks Capped Or Inconsistent
+
+- `FrameRateLimit.Unlimited` disables ModernOverlay's scheduled frame delay, but it does not override backend presentation or compositor pacing.
+- If an unlimited overlay still sits near the monitor refresh rate, set `OverlayWindowOptions.PresentMode = PresentMode.Immediate` and compare `FrameStats.PresentDuration` in `DiagnosticsOverlay`.
+- `PresentMode.BackendDefault` is intentionally conservative. With the current Direct2D HWND backend, it can be paced by the normal HWND/compositor presentation path.
+- `FrameStats.CurrentFramesPerSecond` is calculated from completed-frame cadence, including presentation. Compare it with `AverageFramesPerSecond`, `LastFrameDuration`, `RenderDuration`, and `PresentDuration` when diagnosing timing.
 
 ## DPI Or Multi-monitor Behavior Looks Wrong
 
@@ -29,8 +36,9 @@
 ## Transparency Looks Wrong
 
 - The current default maps `TransparencyMode.Auto` to DWM glass frame extension.
-- `TransparencyMode.LayeredWindowAttributes` is wired for global alpha behavior, not proof of per-pixel Direct2D alpha.
-- `UpdateLayeredWindow` and `DirectComposition` intentionally throw until their backends exist.
+- Direct2D HWND transparency currently uses a transparent black color key. Pure-black overlay content will also become transparent until a true per-pixel alpha backend exists.
+- `TransparencyMode.LayeredWindowAttributes` is wired for global alpha behavior plus the same transparent black color key, not proof of per-pixel Direct2D alpha.
+- `UpdateLayeredWindow` and `DirectComposition` currently fall back to DWM glass/color-key transparency and emit `BackendFallback` diagnostics until their dedicated backends exist.
 - See `docs/transparency-validation.md` for the manual validation checklist.
 
 ## Render Callback Exceptions
@@ -42,4 +50,3 @@ Set `OverlayWindowOptions.ExceptionPolicy`:
 - `FailFast`: terminate the process after logging.
 
 Use `RejectResourceCreationDuringRender` to catch accidental hot-path resource allocation through the overlay-owned resource manager.
-

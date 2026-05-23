@@ -42,6 +42,14 @@ jobs:
         shell: pwsh
         run: dotnet restore ModernOverlay.sln -bl:artifacts\restore.binlog
 
+      - name: Validate solution shape
+        shell: pwsh
+        run: |
+          $solutionText = Get-Content -Path ModernOverlay.sln -Raw
+          if ($solutionText -match '2150E333-8FDC-42A3-9474-1A3956D46DE8' -or $solutionText -match 'GlobalSection\(NestedProjects\)') {
+            throw 'ModernOverlay.sln contains virtual solution folders or nested-project entries. Use --in-root when adding projects.'
+          }
+
       - name: Build
         shell: pwsh
         run: dotnet build ModernOverlay.sln --configuration Release --no-restore -m:1 -bl:artifacts\build.binlog
@@ -55,6 +63,31 @@ jobs:
         shell: pwsh
         run: dotnet test ModernOverlay.sln --configuration Release --no-build --filter "TestCategory=WindowsIntegration" --logger trx --results-directory artifacts\TestResults -bl:artifacts\test-windows-integration.binlog
 
+      - name: Pack
+        shell: pwsh
+        run: dotnet pack ModernOverlay.sln --configuration Release --no-build -m:1 -bl:artifacts\pack.binlog
+
+      - name: Benchmark dry run
+        shell: pwsh
+        run: |
+          Push-Location benchmarks\ModernOverlay.Benchmarks
+          try {
+            dotnet run --project .\ModernOverlay.Benchmarks.csproj --configuration Release --no-build -- --filter "*" --job Dry --noOverwrite *> benchmark-dryrun-latest.log
+            if ($LASTEXITCODE -ne 0) {
+              throw "Benchmark dry run failed with exit code $LASTEXITCODE."
+            }
+
+            $issuePatterns = 'Benchmarks with issues', '// Build Error', '// Exception', 'No benchmarks were found', 'No loggers defined'
+            foreach ($pattern in $issuePatterns) {
+              if (Select-String -Path benchmark-dryrun-latest.log -Pattern $pattern -Quiet) {
+                throw "Benchmark dry run log contains '$pattern'."
+              }
+            }
+          }
+          finally {
+            Pop-Location
+          }
+
       - name: Upload diagnostics
         uses: actions/upload-artifact@v4
         if: always()
@@ -63,3 +96,6 @@ jobs:
           path: |
             artifacts/**/*.binlog
             artifacts/TestResults/**/*.trx
+            benchmarks/ModernOverlay.Benchmarks/benchmark-dryrun-latest.log
+            benchmarks/ModernOverlay.Benchmarks/BenchmarkDotNet.Artifacts/**/*
+            docs/dependency-report.md

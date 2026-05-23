@@ -1,7 +1,4 @@
 using ModernOverlay;
-using ModernOverlay.Direct2D;
-
-Direct2DOverlayBackend.Register();
 
 byte[] samplePng =
 [

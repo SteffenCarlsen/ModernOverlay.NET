@@ -16,6 +16,7 @@ public sealed class OverlayWindowOptionsTests
         Assert.AreEqual(TargetMinimizedPolicy.HideOverlay, options.TargetMinimizedPolicy);
         Assert.AreEqual(TimeSpan.FromMilliseconds(33), options.TargetTrackingInterval);
         Assert.AreEqual(RenderExceptionPolicy.StopOverlay, options.ExceptionPolicy);
+        Assert.IsFalse(options.ExcludeFromCapture);
     }
 
     [TestMethod]
@@ -27,9 +28,14 @@ public sealed class OverlayWindowOptionsTests
     }
 
     [TestMethod]
-    public void ContinueExceptionPolicyKeepsCompatibilityAlias()
+    public void PublicFacadeAvoidsCompatibilityAliases()
     {
-        CollectionAssert.Contains(Enum.GetNames<RenderExceptionPolicy>(), nameof(RenderExceptionPolicy.IgnoreAndContinue));
+        Assert.AreEqual("ModernOverlay.Windows", typeof(OverlayWindowOptions).Namespace);
+        Assert.AreEqual("ModernOverlay.Windows", typeof(OverlayInputMode).Namespace);
+        Assert.AreEqual("ModernOverlay.Windows", typeof(WindowTarget).Namespace);
+        CollectionAssert.DoesNotContain(Enum.GetNames<RenderExceptionPolicy>(), "IgnoreAndContinue");
+        Assert.IsNull(typeof(WindowTarget).GetMethod("ByWindowTitle"));
+        Assert.IsNull(typeof(WindowTarget).GetMethod("Foreground", Type.EmptyTypes));
     }
 
     [TestMethod]
@@ -68,6 +74,16 @@ public sealed class OverlayWindowOptionsTests
         Assert.AreEqual(new KeyGesture(0x7B, HotkeyModifiers.Shift), KeyGesture.FunctionKey(12, HotkeyModifiers.Shift));
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => KeyGesture.FromKey('1', HotkeyModifiers.Control));
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => KeyGesture.FunctionKey(25, HotkeyModifiers.Control));
+    }
+
+    [TestMethod]
+    public void TargetTrackingIntervalCanBeConfiguredOnTarget()
+    {
+        TimeSpan interval = TimeSpan.FromMilliseconds(42);
+        OverlayTarget target = WindowTarget.ByTitle("demo").WithTrackingInterval(interval);
+
+        Assert.AreEqual(interval, target.TrackingInterval);
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => target.WithTrackingInterval(TimeSpan.FromMilliseconds(-1)));
     }
 
     [TestMethod]

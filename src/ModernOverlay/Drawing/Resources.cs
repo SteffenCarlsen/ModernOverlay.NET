@@ -2,7 +2,7 @@ using ModernOverlay.Diagnostics;
 
 using System.Diagnostics;
 
-namespace ModernOverlay;
+namespace ModernOverlay.Drawing;
 
 public abstract class OverlayResourceHandle : IDisposable
 {

@@ -1,8 +1,5 @@
 using ModernOverlay;
-using ModernOverlay.Direct2D;
 using ModernOverlay.Win32;
-
-Direct2DOverlayBackend.Register();
 
 using Win32OverlayWindow target = Win32OverlayWindow.Create(new Win32OverlayWindowOptions(
     ClassName: $"ModernOverlayStickyTarget_{Guid.NewGuid():N}",
@@ -20,8 +17,8 @@ await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayW
 {
     Title = "ModernOverlay Sticky Target Sample",
     IsVisible = true,
-    Target = WindowTarget.FromHwnd(new WindowHandle(target.Hwnd)),
-    TargetTrackingInterval = TimeSpan.FromMilliseconds(16),
+    Target = WindowTarget.FromHwnd(new WindowHandle(target.Hwnd))
+        .WithTrackingInterval(TimeSpan.FromMilliseconds(16)),
     ZOrder = OverlayZOrder.FollowTarget,
     FrameRateLimit = FrameRateLimit.Fixed(60),
 });

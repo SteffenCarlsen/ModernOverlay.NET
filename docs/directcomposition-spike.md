@@ -6,6 +6,8 @@ Date: 2026-05-22
 
 Keep the Direct2D HWND render-target backend as the parity backend for the current implementation. Do not make DirectComposition the default yet.
 
+Do not build a DirectComposition/DXGI prototype in the MVP/alpha pass. The alpha milestone should finish and document the Direct2D HWND path first; DirectComposition gets its own backend milestone once the acceptance evidence below can be collected.
+
 ## Evidence From Current Implementation
 
 - The internal backend abstraction already separates `OverlayWindow` from the concrete Direct2D HWND backend.
@@ -15,7 +17,9 @@ Keep the Direct2D HWND render-target backend as the parity backend for the curre
 
 ## DirectComposition Status
 
-DirectComposition remains a future backend candidate. The repository does not currently include a DirectComposition/DXGI swap-chain backend, and `TransparencyMode.DirectComposition` intentionally throws `NotSupportedException`.
+DirectComposition remains a future backend candidate. The repository does not currently include a DirectComposition/DXGI swap-chain backend, and `TransparencyMode.DirectComposition` currently falls back to DWM frame extension while emitting a `BackendFallback` diagnostic event.
+
+Capture-backed output-duplication rendering is tracked separately in `docs/capture-backed-overlay-spike.md`. It may compete with DirectComposition for some visual-sync scenarios, but it is not a DirectComposition implementation and should not be treated as true transparency.
 
 The spike did not promote DirectComposition because the required acceptance evidence is not yet available:
 

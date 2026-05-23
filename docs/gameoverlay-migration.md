@@ -6,7 +6,7 @@ ModernOverlay preserves functional value, not API compatibility. The table below
 |---|---|
 | Transparent overlay window | `OverlayWindow.CreateAsync` with `TransparencyMode.Auto` or `DwmGlassFrame` |
 | Click-through window | `OverlayInputMode.ClickThrough` |
-| Interactive overlay | `OverlayInputMode.Interactive` plus `PointerMoved`/`PointerPressed`/`PointerReleased` |
+| Interactive overlay | `OverlayInputMode.Interactive` plus `PointerMoved`/`PointerPressed`/`PointerReleased`/`PointerWheel` |
 | Sticky window | `OverlayWindowOptions.Target` with `WindowTarget.*` factories |
 | Topmost overlay | `OverlayZOrder.TopMost` |
 | Follow target z-order | `OverlayZOrder.FollowTarget` |
@@ -19,8 +19,8 @@ ModernOverlay preserves functional value, not API compatibility. The table below
 | Images | `CreateImage` plus `frame.Draw.Image` |
 | Geometry paths | `CreateGeometry` plus `Draw.Geometry`/`Fill.Geometry` |
 | Dashed lines/shapes | `StrokeStyleHandle` overloads |
-| Helper shapes | `Draw.Arrow`, `Draw.Crosshair`, `Draw.Box` |
-| Window helper methods | `ModernOverlay.Win32.Win32WindowQuery`, `Win32WindowZOrder`, `Win32WindowEffects` |
+| Helper shapes | `Draw.Arrow`, `Draw.Crosshair`, `Draw.Box`, `Draw.CornerBox` |
+| Window helper methods | `ModernOverlay.Windows.WindowQuery`, `WindowZOrder`, `WindowEffects`; lower-level `ModernOverlay.Win32.Win32*` helpers remain available |
 | Native error inspection | `Win32NativeDiagnostics.LastFailure` |
 | Frame diagnostics | `overlay.FrameStats`, `OverlayEventSource`, `OverlayEventSourceLogger` |
 
@@ -34,8 +34,8 @@ ModernOverlay preserves functional value, not API compatibility. The table below
 
 ## Current Compatibility Notes
 
-- `Draw.Box` is a rectangle alias. Corner-only ESP-style boxes should be added as an explicit option or separate helper if required.
-- DirectComposition and `UpdateLayeredWindow` are reserved for later backend work.
+- `Draw.Box` is a full rectangle helper. Use `Draw.CornerBox` for corner-only ESP-style boxes.
+- DirectComposition and `UpdateLayeredWindow` are reserved for later backend work and currently fall back to the DWM-glass transparency path with diagnostics.
 - Automatic animated-image timing is not implemented. Callers can draw an explicit WIC frame index.
-- Direct2D backend registration is explicit for now: call `Direct2DOverlayBackend.Register()`.
-
+- Direct2D backend registration is automatic when the `ModernOverlay.Direct2D` assembly is present. `Direct2DOverlayBackend.Register()` remains available for explicit startup flows.
+- `ModernOverlay.Windows` now exposes spec-shaped helper facades backed by the Win32 implementation. Use `ModernOverlay.Win32` directly only when you need the lower-level native-flavored names.

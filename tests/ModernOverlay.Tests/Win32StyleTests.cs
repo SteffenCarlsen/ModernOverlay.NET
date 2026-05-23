@@ -44,9 +44,10 @@ public sealed class Win32StyleTests
     [TestCategory("WindowsIntegration")]
     public void Win32QueryExposesRequiredWindowMetadata()
     {
+        string title = $"ModernOverlay Win32 query test {Guid.NewGuid():N}";
         using Win32OverlayWindow window = Win32OverlayWindow.Create(new Win32OverlayWindowOptions(
             ClassName: null,
-            Title: "ModernOverlay Win32 query test",
+            Title: title,
             X: 0,
             Y: 0,
             Width: 160,
@@ -65,11 +66,42 @@ public sealed class Win32StyleTests
         Assert.AreNotEqual(nint.Zero, desktop);
         Assert.IsFalse(Win32WindowQuery.TryGetOwnerWindow(window.Hwnd, out _));
 
+        WindowHandle handle = new(window.Hwnd);
+        Assert.IsTrue(WindowQuery.IsWindow(handle));
+        Assert.IsTrue(WindowQuery.TryGetWindowBounds(handle, out WindowBounds windowBounds));
+        Assert.AreEqual(160, windowBounds.Width);
+        Assert.AreEqual(90, windowBounds.Height);
+        Assert.IsTrue(WindowQuery.TryGetWindowStyles(handle, out WindowStylesSnapshot publicStyles));
+        Assert.AreEqual(styles.Style, publicStyles.Style);
+        Assert.AreEqual(styles.ExtendedStyle, publicStyles.ExtendedStyle);
+
         Win32WindowZOrder.MakeTopmost(window.Hwnd);
         Win32WindowZOrder.RemoveTopmost(window.Hwnd);
         Win32WindowEffects.ExtendFrameIntoClientArea(window.Hwnd);
         Win32WindowEffects.EnableBlurBehind(window.Hwnd);
         Win32WindowEffects.EnableBlurBehind(window.Hwnd, enabled: false);
+        window.SetTransparentColorKey(0x000000);
+        window.Show();
+        Win32WindowEffects.ExcludeFromCapture(window.Hwnd);
+        Assert.AreEqual(Win32WindowDisplayAffinity.ExcludeFromCapture, Win32WindowEffects.GetDisplayAffinity(window.Hwnd));
+        Win32WindowEffects.ClearDisplayAffinity(window.Hwnd);
+        Assert.AreEqual(Win32WindowDisplayAffinity.None, Win32WindowEffects.GetDisplayAffinity(window.Hwnd));
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task OverlayOptionAppliesCaptureExclusionBeforeUse()
+    {
+        await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
+        {
+            Bounds = new WindowBounds(360, 360, 160, 90),
+            IsVisible = true,
+            ExcludeFromCapture = true,
+        });
+
+        Assert.AreEqual(Win32WindowDisplayAffinity.ExcludeFromCapture, Win32WindowEffects.GetDisplayAffinity(overlay.Hwnd.Value));
+        Assert.IsTrue(WindowEffects.TryClearDisplayAffinity(overlay.Hwnd));
+        Assert.AreEqual(Win32WindowDisplayAffinity.None, Win32WindowEffects.GetDisplayAffinity(overlay.Hwnd.Value));
     }
 
     [TestMethod]
@@ -109,10 +141,39 @@ public sealed class Win32StyleTests
             Assert.AreEqual(child, byClassName);
             Assert.IsTrue(Win32WindowQuery.TryFindChildWindow(window.Hwnd, "Static", "target", Win32WindowTitleMatchMode.EndsWith, out nint byClassAndTitle));
             Assert.AreEqual(child, byClassAndTitle);
+            Assert.IsTrue(WindowQuery.TryFindChildWindow(new WindowHandle(window.Hwnd), "Static", "target", MatchMode.EndsWith, out WindowHandle publicByClassAndTitle));
+            Assert.AreEqual(new WindowHandle(child), publicByClassAndTitle);
         }
         finally
         {
             _ = DestroyWindow(child);
+        }
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task VisibleOverlayDoesNotStealForegroundWindow()
+    {
+        bool hadForegroundBefore = Win32WindowQuery.TryGetForegroundWindow(out nint foregroundBefore);
+
+        await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
+        {
+            Bounds = new WindowBounds(340, 330, 160, 80),
+            IsVisible = true,
+            ZOrder = OverlayZOrder.TopMost,
+        });
+
+        await Task.Delay(150);
+
+        bool hasForegroundAfter = Win32WindowQuery.TryGetForegroundWindow(out nint foregroundAfter);
+        if (hasForegroundAfter)
+        {
+            Assert.AreNotEqual(overlay.Hwnd.Value, foregroundAfter);
+        }
+
+        if (hadForegroundBefore && hasForegroundAfter)
+        {
+            Assert.AreEqual(foregroundBefore, foregroundAfter);
         }
     }
 
@@ -140,4 +201,5 @@ public sealed class Win32StyleTests
     [DllImport("user32.dll", EntryPoint = "DestroyWindow", ExactSpelling = true, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool DestroyWindow(nint hwnd);
+
 }

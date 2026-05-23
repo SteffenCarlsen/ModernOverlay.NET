@@ -11,11 +11,12 @@
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
     <RepositoryUrl>https://github.com/local/ModernOverlay</RepositoryUrl>
+    <Version>0.1.0-preview</Version>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/local/ModernOverlay</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>windows;overlay;direct2d;win32;vortice;net11-preview</PackageTags>
-    <PackageReleaseNotes>Preview package: targets net11.0-windows on a .NET 11 preview SDK. APIs, packaging, and backend registration may change before GA or a net10.0-windows fallback.</PackageReleaseNotes>
+    <PackageReleaseNotes>Preview package: targets net11.0-windows on a .NET 11 preview SDK. APIs, packaging, and backend registration may change before GA. DirectComposition and UpdateLayeredWindow requests currently use the documented DWM/color-key fallback path. Capture exclusion and cooperative named-pipe ACL support are preview features, not bypass or privacy guarantees.</PackageReleaseNotes>
     <Authors>ModernOverlay contributors</Authors>
     <Company>ModernOverlay</Company>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -23,6 +24,20 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Using
+      Include="ModernOverlay.Drawing"
+      Condition="'$(MSBuildProjectName)' != 'ModernOverlay.Win32' and '$(MSBuildProjectName)' != 'ModernOverlay.Diagnostics'" />
+    <Using
+      Include="ModernOverlay.Windows"
+      Condition="'$(MSBuildProjectName)' != 'ModernOverlay.Win32' and '$(MSBuildProjectName)' != 'ModernOverlay.Diagnostics'" />
+    <Using
+      Include="ModernOverlay.Drawing.PointF"
+      Alias="PointF"
+      Condition="'$(MSBuildProjectName)' == 'ModernOverlay.Tests'" />
+    <Using
+      Include="ModernOverlay.Drawing.SizeF"
+      Alias="SizeF"
+      Condition="'$(MSBuildProjectName)' == 'ModernOverlay.Tests'" />
     <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" PrivateAssets="all" />
   </ItemGroup>
 </Project>

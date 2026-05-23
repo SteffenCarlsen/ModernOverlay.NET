@@ -376,7 +376,7 @@ public sealed class Image : UiElement
         };
 }
 
-public class Button : UiControl
+public class Button : ContentControl
 {
     private string text = string.Empty;
     private UiCommand? command;
@@ -425,10 +425,21 @@ public class Button : UiControl
 
     protected override SizeF MeasureCore(SizeF availableSize)
     {
+        if (Content is not null)
+        {
+            SizeF contentSize = base.MeasureCore(availableSize);
+            return new SizeF(MathF.Max(MinWidth, contentSize.Width), MathF.Max(MinHeight, contentSize.Height));
+        }
+
         float fontSize = Root?.ThemeResources.Theme.FontSize ?? UiTheme.Default.FontSize;
         float width = MathF.Min(availableSize.Width, Text.Length * fontSize * 0.6f + Padding.Horizontal);
         float height = fontSize * 1.35f + Padding.Vertical;
         return new SizeF(MathF.Max(MinWidth, width), MathF.Max(MinHeight, height));
+    }
+
+    protected override void ArrangeCore(RectF finalRect)
+    {
+        ArrangeContent();
     }
 
     protected override void RenderCore(UiRenderContext context)
@@ -437,7 +448,11 @@ public class Button : UiControl
         context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, background);
         context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, IsFocused && IsEffectivelyEnabled ? ResolveFocusBrush(context) : ResolveBorderBrush(context));
 
-        if (Text.Length > 0)
+        if (Content is not null)
+        {
+            base.RenderCore(context);
+        }
+        else if (Text.Length > 0)
         {
             RectF content = ContentBounds;
             context.Draw.Draw.Text(Text, context.Theme.Font, CanExecute() ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(content.X, content.Y));
@@ -547,7 +562,11 @@ public sealed class CheckBox : ToggleButton
             context.Draw.Fill.Rectangle(UiGeometry.Deflate(box, new Thickness(3f)), stateBrush);
         }
 
-        if (Text.Length > 0)
+        if (Content is not null)
+        {
+            Content.Render(context);
+        }
+        else if (Text.Length > 0)
         {
             RectF content = ContentBounds;
             context.Draw.Draw.Text(Text, context.Theme.Font, IsEffectivelyEnabled ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(content.X, content.Y));
@@ -593,7 +612,11 @@ public sealed class RadioButton : ToggleButton
             context.Draw.Fill.Circle(center, 4f, stateBrush);
         }
 
-        if (Text.Length > 0)
+        if (Content is not null)
+        {
+            Content.Render(context);
+        }
+        else if (Text.Length > 0)
         {
             RectF content = ContentBounds;
             context.Draw.Draw.Text(Text, context.Theme.Font, IsEffectivelyEnabled ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(content.X, content.Y));

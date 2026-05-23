@@ -310,7 +310,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - `UiControl` is the base for the main non-panel interactive controls.
 - [x] Add common visual states: normal, hover, pressed, disabled, focused.
   - `UiVisualState` and `UiElement.VisualState` define the common state vocabulary.
-- [ ] Add content/alignment support where needed.
+- [x] Add content/alignment support where needed.
+  - `ContentControl` exposes a retained `Content` child plus content horizontal/vertical alignment; `Button` uses it for child content.
 - [x] Add `ContentControl` for controls with one child/content object.
 - [x] Add `HeaderedContentControl` if windows/group boxes/tabs need it.
 - [x] Add `RangeBase` for slider/progress/number controls.
@@ -350,7 +351,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 
 - [x] Implement `Button`.
 - [x] Support text content first.
-- [ ] Support child content if `ContentControl` exists.
+- [x] Support child content if `ContentControl` exists.
+  - `Button` now derives from `ContentControl`; `Text` remains the lightweight fallback when no retained child content is assigned.
 - [x] Invoke click on pointer press/release within the control.
 - [x] Invoke command on click and Enter/Space when focused.
 - [ ] Add tests for click, command, disabled state, keyboard activation, and pointer cancel after drag/leave.

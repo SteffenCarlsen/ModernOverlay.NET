@@ -116,6 +116,8 @@ public abstract class Selector : UiControl
 public class ContentControl : UiPanel
 {
     private UiElement? content;
+    private UiHorizontalAlignment contentHorizontalAlignment = UiHorizontalAlignment.Stretch;
+    private UiVerticalAlignment contentVerticalAlignment = UiVerticalAlignment.Stretch;
 
     public UiElement? Content
     {
@@ -142,6 +144,18 @@ public class ContentControl : UiPanel
         }
     }
 
+    public UiHorizontalAlignment ContentHorizontalAlignment
+    {
+        get => contentHorizontalAlignment;
+        set => SetProperty(ref contentHorizontalAlignment, value, UiInvalidation.Arrange);
+    }
+
+    public UiVerticalAlignment ContentVerticalAlignment
+    {
+        get => contentVerticalAlignment;
+        set => SetProperty(ref contentVerticalAlignment, value, UiInvalidation.Arrange);
+    }
+
     protected override SizeF MeasureCore(SizeF availableSize)
     {
         SizeF contentSize = Content?.Measure(UiGeometry.Deflate(availableSize, Padding)) ?? new SizeF(0f, 0f);
@@ -150,7 +164,36 @@ public class ContentControl : UiPanel
 
     protected override void ArrangeCore(RectF finalRect)
     {
-        Content?.Arrange(ContentBounds);
+        ArrangeContent();
+    }
+
+    protected void ArrangeContent()
+    {
+        if (Content is null)
+        {
+            return;
+        }
+
+        RectF slot = ContentBounds;
+        float width = ContentHorizontalAlignment == UiHorizontalAlignment.Stretch
+            ? slot.Width
+            : MathF.Min(Content.DesiredSize.Width, slot.Width);
+        float height = ContentVerticalAlignment == UiVerticalAlignment.Stretch
+            ? slot.Height
+            : MathF.Min(Content.DesiredSize.Height, slot.Height);
+        float x = ContentHorizontalAlignment switch
+        {
+            UiHorizontalAlignment.Center => slot.X + (slot.Width - width) / 2f,
+            UiHorizontalAlignment.Right => slot.X + slot.Width - width,
+            _ => slot.X,
+        };
+        float y = ContentVerticalAlignment switch
+        {
+            UiVerticalAlignment.Center => slot.Y + (slot.Height - height) / 2f,
+            UiVerticalAlignment.Bottom => slot.Y + slot.Height - height,
+            _ => slot.Y,
+        };
+        Content.Arrange(new RectF(x, y, width, height));
     }
 }
 

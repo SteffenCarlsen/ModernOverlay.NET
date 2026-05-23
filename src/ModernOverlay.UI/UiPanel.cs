@@ -87,7 +87,7 @@ public class UiElementCollection : IEnumerable<UiElement>
     }
 }
 
-public class UiPanel : UiElement
+public class UiPanel : UiControl
 {
     public UiPanel()
     {

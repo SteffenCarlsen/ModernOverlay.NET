@@ -224,8 +224,10 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Respect clipping.
 - [x] Respect per-element input participation.
 - [x] Add `ReceivesInput` or equivalent per-element opt-in property.
-- [ ] Add optional custom input-region override per element.
-- [ ] Add input-region behavior for transparent backgrounds.
+- [x] Add optional custom input-region override per element.
+  - `UiElement.InputRegion` lets an opt-in input element narrow or reshape its interactive area while preserving normal child traversal and clipping.
+- [x] Add input-region behavior for transparent backgrounds.
+  - Transparent-looking panels remain pass-through unless `ReceivesInput` is enabled; visual transparency does not imply input capture, and `InputRegion` can narrow controls with transparent regions.
 - [x] Add popup-layer input-region resolution before normal content.
   - Open popup regions are resolved before normal root input so dropdown/content outside owner bounds can still receive pointer input.
 - [ ] Add tests for nested panels, clipping, z-index, popups, disabled elements, hidden/collapsed elements, and custom input regions.

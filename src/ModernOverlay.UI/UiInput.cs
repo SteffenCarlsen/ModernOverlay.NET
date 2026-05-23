@@ -1,5 +1,7 @@
 namespace ModernOverlay.UI;
 
+public delegate bool UiInputRegionHandler(UiElement element, PointF point);
+
 public sealed class UiPointerEventArgs : EventArgs
 {
     public UiPointerEventArgs(

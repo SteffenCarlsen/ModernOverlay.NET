@@ -7,6 +7,7 @@ public abstract class UiElement
     private UiVisibility visibility = UiVisibility.Visible;
     private bool isEnabled = true;
     private bool receivesInput;
+    private UiInputRegionHandler? inputRegion;
     private bool focusable;
     private int tabIndex;
     private float opacity = 1f;
@@ -82,6 +83,12 @@ public abstract class UiElement
     {
         get => receivesInput;
         set => SetProperty(ref receivesInput, value, UiInvalidation.InputRegion);
+    }
+
+    public UiInputRegionHandler? InputRegion
+    {
+        get => inputRegion;
+        set => SetProperty(ref inputRegion, value, UiInvalidation.InputRegion);
     }
 
     public bool Focusable
@@ -341,7 +348,7 @@ public abstract class UiElement
             }
         }
 
-        return ReceivesInput && HitTestCore(point) ? this : null;
+        return ReceivesInput && ResolveInputRegion(point) ? this : null;
     }
 
     internal void RaisePointerMoved(UiPointerEventArgs args)
@@ -409,6 +416,9 @@ public abstract class UiElement
     }
 
     protected virtual bool HitTestCore(PointF point) => UiGeometry.Contains(Bounds, point);
+
+    protected virtual bool ResolveInputRegion(PointF point)
+        => InputRegion?.Invoke(this, point) ?? HitTestCore(point);
 
     protected virtual void OnPointerMoved(UiPointerEventArgs args)
     {

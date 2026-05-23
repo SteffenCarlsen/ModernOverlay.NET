@@ -23,6 +23,9 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
     private UiRootPhase phase;
     private bool disposed;
     private UiElement? pressedElement;
+    private PointF pressedPosition;
+    private bool pressedExceededDragThreshold;
+    private float dragThreshold = 4f;
     private List<UiElement> hoveredElements = [];
     private readonly bool registeredInputRegions;
 
@@ -67,6 +70,20 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
     public UiTheme Theme => ThemeResources.Theme;
 
     public RectF BoundsDips => overlay.BoundsDips;
+
+    public float DragThreshold
+    {
+        get => dragThreshold;
+        set
+        {
+            if (value < 0f || !float.IsFinite(value))
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), "Drag threshold must be finite and non-negative.");
+            }
+
+            dragThreshold = value;
+        }
+    }
 
     internal bool IsInProtectedPhase => phase != UiRootPhase.Idle;
 
@@ -423,12 +440,20 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
             return;
         }
 
-        var args = new UiPointerEventArgs(kind, overlayArgs.Button, overlayArgs.Position, overlayArgs.WheelDelta, overlayArgs.IsHorizontalWheel);
+        if (kind == OverlayPointerEventKind.Moved && pressedElement is not null && !pressedExceededDragThreshold)
+        {
+            pressedExceededDragThreshold = HasExceededDragThreshold(overlayArgs.Position);
+        }
+
+        bool isDragGesture = (kind is OverlayPointerEventKind.Moved or OverlayPointerEventKind.Released) && pressedExceededDragThreshold;
+        var args = new UiPointerEventArgs(kind, overlayArgs.Button, overlayArgs.Position, overlayArgs.WheelDelta, overlayArgs.IsHorizontalWheel, isDragGesture);
         using (EnterPhase(UiRootPhase.EventDispatch))
         {
             if (kind == OverlayPointerEventKind.Pressed)
             {
                 pressedElement = target;
+                pressedPosition = overlayArgs.Position;
+                pressedExceededDragThreshold = false;
                 target.IsPressed = true;
                 if (target.Focusable)
                 {
@@ -446,6 +471,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
                 }
 
                 pressedElement = null;
+                pressedExceededDragThreshold = false;
             }
         }
 
@@ -753,6 +779,14 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
 
     private static bool IsUnavailableForTreeInput(UiElement element)
         => element.Visibility != UiVisibility.Visible || !element.IsEffectivelyEnabled;
+
+    private bool HasExceededDragThreshold(PointF position)
+    {
+        float threshold = MathF.Max(0f, DragThreshold);
+        float deltaX = position.X - pressedPosition.X;
+        float deltaY = position.Y - pressedPosition.Y;
+        return deltaX * deltaX + deltaY * deltaY >= threshold * threshold;
+    }
 
     private void VerifyAccess()
     {

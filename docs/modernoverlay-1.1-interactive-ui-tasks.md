@@ -243,7 +243,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Implement `ReleasePointerCapture(UiElement element)`.
 - [x] Release capture automatically when element is removed, disabled, hidden, or root is disposed.
 - [x] Route move/up/wheel to captured element when capture is active.
-- [ ] Track drag threshold to distinguish click from drag.
+- [x] Track drag threshold to distinguish click from drag.
+  - `OverlayUiRoot.DragThreshold` marks routed pointer move/release events as drag gestures after meaningful movement, and buttons suppress click activation on dragged releases.
 - [ ] Add tests for capture, capture release, element removal during capture, and click suppression after drag.
 
 ## 14. Focus And Keyboard Input

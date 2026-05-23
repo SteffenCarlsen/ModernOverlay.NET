@@ -9,13 +9,15 @@ public sealed class UiPointerEventArgs : EventArgs
         OverlayPointerButton button,
         PointF position,
         int wheelDelta = 0,
-        bool isHorizontalWheel = false)
+        bool isHorizontalWheel = false,
+        bool isDragGesture = false)
     {
         Kind = kind;
         Button = button;
         Position = position;
         WheelDelta = wheelDelta;
         IsHorizontalWheel = isHorizontalWheel;
+        IsDragGesture = isDragGesture;
     }
 
     public OverlayPointerEventKind Kind { get; }
@@ -27,6 +29,8 @@ public sealed class UiPointerEventArgs : EventArgs
     public int WheelDelta { get; }
 
     public bool IsHorizontalWheel { get; }
+
+    public bool IsDragGesture { get; }
 
     public bool Handled { get; set; }
 }

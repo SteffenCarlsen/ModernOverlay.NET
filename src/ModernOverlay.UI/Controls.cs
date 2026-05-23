@@ -306,7 +306,7 @@ public class Button : UiElement
         }
 
         ReleasePointerCapture();
-        if (UiGeometry.Contains(Bounds, args.Position) && CanExecute())
+        if (!args.IsDragGesture && UiGeometry.Contains(Bounds, args.Position) && CanExecute())
         {
             InvokeClick(args.Position, args.Button);
             args.Handled = true;

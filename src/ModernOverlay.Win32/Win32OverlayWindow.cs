@@ -193,6 +193,24 @@ public sealed class Win32OverlayWindow : IDisposable
         ownerThread.Invoke(() => state.PointerEvent = callback);
     }
 
+    public void SetKeyboardCallback(Action<Win32KeyboardEvent>? callback)
+    {
+        ThrowIfDisposed();
+        ownerThread.Invoke(() => state.KeyboardEvent = callback);
+    }
+
+    public void SetTextInputCallback(Action<Win32TextInputEvent>? callback)
+    {
+        ThrowIfDisposed();
+        ownerThread.Invoke(() => state.TextInputEvent = callback);
+    }
+
+    public void SetInputRegionCallback(Func<int, int, bool>? callback)
+    {
+        ThrowIfDisposed();
+        ownerThread.Invoke(() => state.InputRegion = callback);
+    }
+
     public void RegisterHotKey(int id, uint modifiers, uint virtualKey)
     {
         ThrowIfDisposed();
@@ -303,6 +321,29 @@ public sealed class Win32OverlayWindow : IDisposable
             return 0;
         }
 
+        if (message == NativeMethods.WmNcHitTest && TryGetWindowState(hwnd, out state) && state is not null)
+        {
+            return ResolveInputRegion(hwnd, lParam, state)
+                ? NativeMethods.HtClient
+                : NativeMethods.HtTransparent;
+        }
+
+        if (TryGetKeyboardEvent(message, wParam, lParam, out Win32KeyboardEvent keyboardEvent)
+            && TryGetWindowState(hwnd, out state)
+            && state is not null)
+        {
+            state.KeyboardEvent?.Invoke(keyboardEvent);
+            return 0;
+        }
+
+        if (TryGetTextInputEvent(message, wParam, out Win32TextInputEvent textInputEvent)
+            && TryGetWindowState(hwnd, out state)
+            && state is not null)
+        {
+            state.TextInputEvent?.Invoke(textInputEvent);
+            return 0;
+        }
+
         if (message == NativeMethods.WmDpiChanged && TryGetWindowState(hwnd, out state) && state is not null)
         {
             HandleDpiChanged(hwnd, wParam, lParam, state);
@@ -356,6 +397,16 @@ public sealed class Win32OverlayWindow : IDisposable
         }
 
         state.DpiChanged?.Invoke(scale, bounds);
+    }
+
+    private static bool ResolveInputRegion(nint hwnd, nint lParam, WindowState state)
+    {
+        Func<int, int, bool>? inputRegion = state.InputRegion;
+        NativeMethods.Point point = GetPointerPoint(NativeMethods.WmNcHitTest, lParam);
+        _ = NativeMethods.ScreenToClient(hwnd, ref point)
+            ? true
+            : throw new NativeWin32Exception("ScreenToClient(input region)");
+        return inputRegion?.Invoke(point.X, point.Y) ?? true;
     }
 
     private static bool TryGetPointerEvent(nint hwnd, uint message, nuint wParam, nint lParam, out Win32PointerEvent pointerEvent)
@@ -420,6 +471,87 @@ public sealed class Win32OverlayWindow : IDisposable
         return true;
     }
 
+    private static bool TryGetKeyboardEvent(uint message, nuint wParam, nint lParam, out Win32KeyboardEvent keyboardEvent)
+    {
+        bool isPressed;
+        bool isSystem;
+        switch (message)
+        {
+            case NativeMethods.WmKeyDown:
+                isPressed = true;
+                isSystem = false;
+                break;
+            case NativeMethods.WmSysKeyDown:
+                isPressed = true;
+                isSystem = true;
+                break;
+            case NativeMethods.WmKeyUp:
+                isPressed = false;
+                isSystem = false;
+                break;
+            case NativeMethods.WmSysKeyUp:
+                isPressed = false;
+                isSystem = true;
+                break;
+            default:
+                keyboardEvent = default;
+                return false;
+        }
+
+        int data = lParam.ToInt32();
+        keyboardEvent = new Win32KeyboardEvent(
+            unchecked((int)wParam),
+            isPressed,
+            isSystem,
+            data & 0xFFFF,
+            (data >> 16) & 0xFF,
+            (data & (1 << 24)) != 0,
+            (data & (1 << 30)) != 0,
+            (data & (1 << 31)) != 0,
+            GetModifierKeys());
+        return true;
+    }
+
+    private static bool TryGetTextInputEvent(uint message, nuint wParam, out Win32TextInputEvent textInputEvent)
+    {
+        if (message is not NativeMethods.WmChar and not NativeMethods.WmSysChar)
+        {
+            textInputEvent = default;
+            return false;
+        }
+
+        textInputEvent = new Win32TextInputEvent(char.ConvertFromUtf32(unchecked((int)wParam)), message == NativeMethods.WmSysChar);
+        return true;
+    }
+
+    private static Win32ModifierKeys GetModifierKeys()
+    {
+        Win32ModifierKeys modifiers = Win32ModifierKeys.None;
+        if (IsKeyDown(NativeMethods.VkShift))
+        {
+            modifiers |= Win32ModifierKeys.Shift;
+        }
+
+        if (IsKeyDown(NativeMethods.VkControl))
+        {
+            modifiers |= Win32ModifierKeys.Control;
+        }
+
+        if (IsKeyDown(NativeMethods.VkMenu))
+        {
+            modifiers |= Win32ModifierKeys.Alt;
+        }
+
+        if (IsKeyDown(NativeMethods.VkLWin) || IsKeyDown(NativeMethods.VkRWin))
+        {
+            modifiers |= Win32ModifierKeys.Windows;
+        }
+
+        return modifiers;
+    }
+
+    private static bool IsKeyDown(int virtualKey) => (NativeMethods.GetKeyState(virtualKey) & unchecked((short)0x8000)) != 0;
+
     private static NativeMethods.Point GetPointerPoint(uint message, nint lParam)
     {
         long value = lParam.ToInt64();
@@ -468,6 +600,12 @@ public sealed class Win32OverlayWindow : IDisposable
         public Action<Win32DpiScale, Win32WindowBounds>? DpiChanged { get; set; }
 
         public Action<Win32PointerEvent>? PointerEvent { get; set; }
+
+        public Action<Win32KeyboardEvent>? KeyboardEvent { get; set; }
+
+        public Action<Win32TextInputEvent>? TextInputEvent { get; set; }
+
+        public Func<int, int, bool>? InputRegion { get; set; }
     }
 }
 
@@ -493,4 +631,27 @@ public enum Win32PointerButton
     Left,
     Right,
     Middle,
+}
+
+public readonly record struct Win32KeyboardEvent(
+    int VirtualKey,
+    bool IsPressed,
+    bool IsSystemKey,
+    int RepeatCount,
+    int ScanCode,
+    bool IsExtendedKey,
+    bool WasDown,
+    bool IsTransitionState,
+    Win32ModifierKeys Modifiers);
+
+public readonly record struct Win32TextInputEvent(string Text, bool IsSystemCharacter);
+
+[Flags]
+public enum Win32ModifierKeys
+{
+    None = 0,
+    Shift = 1 << 0,
+    Control = 1 << 1,
+    Alt = 1 << 2,
+    Windows = 1 << 3,
 }

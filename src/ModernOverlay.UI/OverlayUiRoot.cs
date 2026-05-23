@@ -1,0 +1,627 @@
+namespace ModernOverlay.UI;
+
+public sealed record OverlayUiOptions
+{
+    public bool RegisterInputRegions { get; init; } = true;
+
+    public UiTheme Theme { get; init; } = UiTheme.Default;
+}
+
+public static class OverlayUi
+{
+    public static OverlayUiRoot Attach(OverlayWindow overlay, OverlayUiOptions? options = null)
+        => new(overlay, options ?? new OverlayUiOptions());
+}
+
+public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
+{
+    private readonly OverlayWindow overlay;
+    private readonly Queue<Action> deferredOperations = [];
+    private int ownerThreadId;
+    private UiInvalidation invalidation = UiInvalidation.Measure | UiInvalidation.Arrange | UiInvalidation.Render | UiInvalidation.InputRegion;
+    private UiRootPhase phase;
+    private bool disposed;
+    private UiElement? pressedElement;
+    private UiElement? hoveredElement;
+    private readonly bool registeredInputRegions;
+
+    internal OverlayUiRoot(OverlayWindow overlay, OverlayUiOptions options)
+    {
+        this.overlay = overlay ?? throw new ArgumentNullException(nameof(overlay));
+        Options = options ?? throw new ArgumentNullException(nameof(options));
+        ThemeResources = new UiThemeResources(overlay.Resources, Options.Theme);
+        Root = new Canvas
+        {
+            Width = float.NaN,
+            Height = float.NaN,
+        };
+        Root.SetRoot(this);
+
+        overlay.PointerMoved += HandlePointerMoved;
+        overlay.PointerPressed += HandlePointerPressed;
+        overlay.PointerReleased += HandlePointerReleased;
+        overlay.PointerWheel += HandlePointerWheel;
+        overlay.KeyPressed += HandleKeyPressed;
+        overlay.KeyReleased += HandleKeyReleased;
+        overlay.TextInput += HandleTextInput;
+        overlay.Disposed += HandleOverlayDisposed;
+        if (Options.RegisterInputRegions)
+        {
+            registeredInputRegions = true;
+            overlay.SetInputRegionResolver(this);
+        }
+    }
+
+    public OverlayUiOptions Options { get; }
+
+    public Canvas Root { get; }
+
+    public UiElement? FocusedElement { get; private set; }
+
+    public UiElement? CapturedElement { get; private set; }
+
+    public UiThemeResources ThemeResources { get; }
+
+    public RectF BoundsDips => overlay.BoundsDips;
+
+    internal bool IsInProtectedPhase => phase != UiRootPhase.Idle;
+
+    public void Render(DrawContext frame)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        ArgumentNullException.ThrowIfNull(frame);
+        BindAccess();
+        VerifyAccess();
+        EnsureLayout();
+        using (EnterPhase(UiRootPhase.Render))
+        {
+            Root.Render(new UiRenderContext(frame, ThemeResources));
+        }
+    }
+
+    public OverlayInputRegionResult ResolveInputRegion(PointF position)
+    {
+        if (disposed)
+        {
+            return OverlayInputRegionResult.PassThrough;
+        }
+
+        BindAccess();
+        VerifyAccess();
+        EnsureLayout();
+        return Root.ResolveInput(position) is not null || HasOpenOutsideDismissPopup()
+            ? OverlayInputRegionResult.Interactive
+            : OverlayInputRegionResult.PassThrough;
+    }
+
+    internal void Invalidate(UiInvalidation flags)
+    {
+        VerifyAccess();
+        if (flags == UiInvalidation.None)
+        {
+            return;
+        }
+
+        invalidation |= flags;
+    }
+
+    public void Focus(UiElement? element)
+    {
+        VerifyAccess();
+        using (EnterPhase(UiRootPhase.FocusChange))
+        {
+            if (element is not null && element.Root != this)
+            {
+                throw new InvalidOperationException("Cannot focus an element attached to another UI root.");
+            }
+
+            FocusedElement = element;
+            invalidation |= UiInvalidation.Render | UiInvalidation.FocusState;
+        }
+    }
+
+    public void CapturePointer(UiElement element)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        VerifyAccess();
+        if (element.Root != this)
+        {
+            throw new InvalidOperationException("Cannot capture pointer for an element attached to another UI root.");
+        }
+
+        CapturedElement = element;
+        invalidation |= UiInvalidation.Render;
+    }
+
+    public void ReleasePointerCapture(UiElement element)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        VerifyAccess();
+        if (CapturedElement == element)
+        {
+            using (EnterPhase(UiRootPhase.CaptureRelease))
+            {
+                CapturedElement = null;
+                invalidation |= UiInvalidation.Render;
+            }
+        }
+    }
+
+    public void MoveFocusNext() => MoveFocus(forward: true);
+
+    public void MoveFocusPrevious() => MoveFocus(forward: false);
+
+    public void Defer(Action operation)
+    {
+        ArgumentNullException.ThrowIfNull(operation);
+        deferredOperations.Enqueue(operation);
+    }
+
+    public void Dispose()
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        disposed = true;
+        overlay.PointerMoved -= HandlePointerMoved;
+        overlay.PointerPressed -= HandlePointerPressed;
+        overlay.PointerReleased -= HandlePointerReleased;
+        overlay.PointerWheel -= HandlePointerWheel;
+        overlay.KeyPressed -= HandleKeyPressed;
+        overlay.KeyReleased -= HandleKeyReleased;
+        overlay.TextInput -= HandleTextInput;
+        overlay.Disposed -= HandleOverlayDisposed;
+        if (registeredInputRegions)
+        {
+            overlay.SetInputRegionResolver(null);
+        }
+
+        DismissAllPopups(UiPopupDismissReason.RootDisposed);
+        Root.SetRoot(null);
+        ThemeResources.Dispose();
+    }
+
+    internal void NotifyElementDetached(UiElement element)
+    {
+        DismissPopupsOwnedBy(element);
+
+        if (FocusedElement == element)
+        {
+            FocusedElement = null;
+        }
+
+        if (CapturedElement == element)
+        {
+            CapturedElement = null;
+        }
+
+        if (pressedElement == element)
+        {
+            pressedElement = null;
+        }
+
+        if (hoveredElement == element)
+        {
+            hoveredElement.IsMouseOver = false;
+            hoveredElement = null;
+        }
+    }
+
+    private void EnsureLayout()
+    {
+        if ((invalidation & (UiInvalidation.Measure | UiInvalidation.Arrange)) == 0)
+        {
+            return;
+        }
+
+        RectF bounds = overlay.BoundsDips;
+        var available = new SizeF(bounds.Width, bounds.Height);
+        using (EnterPhase(UiRootPhase.Measure))
+        {
+            Root.Measure(available);
+        }
+
+        using (EnterPhase(UiRootPhase.Arrange))
+        {
+            Root.Arrange(new RectF(0f, 0f, available.Width, available.Height));
+        }
+
+        invalidation &= ~(UiInvalidation.Measure | UiInvalidation.Arrange);
+    }
+
+    private void HandlePointerMoved(OverlayWindow sender, OverlayPointerEventArgs args)
+        => DispatchPointer(args, OverlayPointerEventKind.Moved);
+
+    private void HandlePointerPressed(OverlayWindow sender, OverlayPointerEventArgs args)
+        => DispatchPointer(args, OverlayPointerEventKind.Pressed);
+
+    private void HandlePointerReleased(OverlayWindow sender, OverlayPointerEventArgs args)
+        => DispatchPointer(args, OverlayPointerEventKind.Released);
+
+    private void HandlePointerWheel(OverlayWindow sender, OverlayPointerEventArgs args)
+        => DispatchPointer(args, OverlayPointerEventKind.Wheel);
+
+    private void HandleOverlayDisposed(OverlayWindow sender) => Dispose();
+
+    private void HandleKeyPressed(OverlayWindow sender, OverlayKeyboardEventArgs args)
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        BindAccess();
+        VerifyAccess();
+        if (args.VirtualKey == UiVirtualKeys.Tab)
+        {
+            if ((args.Modifiers & OverlayModifierKeys.Shift) != 0)
+            {
+                MoveFocusPrevious();
+            }
+            else
+            {
+                MoveFocusNext();
+            }
+
+            return;
+        }
+
+        if (args.VirtualKey == UiVirtualKeys.Escape && DismissTopmostEscapePopup())
+        {
+            return;
+        }
+
+        DispatchKey(args, pressed: true);
+    }
+
+    private void HandleKeyReleased(OverlayWindow sender, OverlayKeyboardEventArgs args)
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        BindAccess();
+        VerifyAccess();
+        DispatchKey(args, pressed: false);
+    }
+
+    private void HandleTextInput(OverlayWindow sender, OverlayTextInputEventArgs args)
+    {
+        if (disposed || FocusedElement is null)
+        {
+            return;
+        }
+
+        BindAccess();
+        VerifyAccess();
+        var uiArgs = new UiTextInputEventArgs(args.Text);
+        using (EnterPhase(UiRootPhase.EventDispatch))
+        {
+            RouteTextInput(FocusedElement, uiArgs);
+        }
+
+        invalidation |= UiInvalidation.Render;
+    }
+
+    private void DispatchPointer(OverlayPointerEventArgs overlayArgs, OverlayPointerEventKind kind)
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        BindAccess();
+        VerifyAccess();
+        EnsureLayout();
+        if (kind == OverlayPointerEventKind.Moved)
+        {
+            UpdateHoveredElement(Root.ResolveInput(overlayArgs.Position));
+        }
+
+        UiElement? target = CapturedElement ?? Root.ResolveInput(overlayArgs.Position);
+        if (kind == OverlayPointerEventKind.Pressed && DismissPopupsOutside(overlayArgs.Position))
+        {
+            target = CapturedElement ?? Root.ResolveInput(overlayArgs.Position);
+        }
+
+        if (target is null)
+        {
+            return;
+        }
+
+        var args = new UiPointerEventArgs(kind, overlayArgs.Button, overlayArgs.Position, overlayArgs.WheelDelta, overlayArgs.IsHorizontalWheel);
+        using (EnterPhase(UiRootPhase.EventDispatch))
+        {
+            if (kind == OverlayPointerEventKind.Pressed)
+            {
+                pressedElement = target;
+                target.IsPressed = true;
+                if (target.Focusable)
+                {
+                    Focus(target);
+                }
+            }
+
+            RoutePointer(target, args);
+
+            if (kind == OverlayPointerEventKind.Released)
+            {
+                if (pressedElement is { } pressed)
+                {
+                    pressed.IsPressed = false;
+                }
+
+                pressedElement = null;
+            }
+        }
+
+        invalidation |= UiInvalidation.Render;
+    }
+
+    private void UpdateHoveredElement(UiElement? next)
+    {
+        if (ReferenceEquals(hoveredElement, next))
+        {
+            return;
+        }
+
+        hoveredElement?.IsMouseOver = false;
+
+        hoveredElement = next;
+        hoveredElement?.IsMouseOver = true;
+
+        invalidation |= UiInvalidation.Render;
+    }
+
+    private static void RoutePointer(UiElement target, UiPointerEventArgs args)
+    {
+        for (UiElement? current = target; current is not null && !args.Handled; current = current.Parent)
+        {
+            switch (args.Kind)
+            {
+                case OverlayPointerEventKind.Moved:
+                    current.RaisePointerMoved(args);
+                    break;
+                case OverlayPointerEventKind.Pressed:
+                    current.RaisePointerPressed(args);
+                    break;
+                case OverlayPointerEventKind.Released:
+                    current.RaisePointerReleased(args);
+                    break;
+                case OverlayPointerEventKind.Wheel:
+                    current.RaisePointerWheel(args);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(args), "Unsupported pointer event kind.");
+            }
+        }
+    }
+
+    private void DispatchKey(OverlayKeyboardEventArgs overlayArgs, bool pressed)
+    {
+        if (FocusedElement is null)
+        {
+            return;
+        }
+
+        var args = new UiKeyboardEventArgs(overlayArgs.VirtualKey, overlayArgs.IsRepeat, overlayArgs.Modifiers);
+        using (EnterPhase(UiRootPhase.EventDispatch))
+        {
+            RouteKey(FocusedElement, args, pressed);
+        }
+
+        invalidation |= UiInvalidation.Render;
+    }
+
+    private static void RouteKey(UiElement target, UiKeyboardEventArgs args, bool pressed)
+    {
+        for (UiElement? current = target; current is not null && !args.Handled; current = current.Parent)
+        {
+            if (pressed)
+            {
+                current.RaiseKeyPressed(args);
+            }
+            else
+            {
+                current.RaiseKeyReleased(args);
+            }
+        }
+    }
+
+    private static void RouteTextInput(UiElement target, UiTextInputEventArgs args)
+    {
+        for (UiElement? current = target; current is not null && !args.Handled; current = current.Parent)
+        {
+            current.RaiseTextInput(args);
+        }
+    }
+
+    private void MoveFocus(bool forward)
+    {
+        VerifyAccess();
+        UiElement[] focusable = Root
+            .DescendantsAndSelf()
+            .Where(element => element.Focusable && element.Visibility == UiVisibility.Visible && element.IsEffectivelyEnabled)
+            .ToArray();
+        if (focusable.Length == 0)
+        {
+            Focus(null);
+            return;
+        }
+
+        int currentIndex = FocusedElement is null ? -1 : Array.IndexOf(focusable, FocusedElement);
+        int nextIndex = forward
+            ? (currentIndex + 1 + focusable.Length) % focusable.Length
+            : (currentIndex - 1 + focusable.Length) % focusable.Length;
+        Focus(focusable[nextIndex]);
+    }
+
+    private IDisposable EnterPhase(UiRootPhase nextPhase)
+    {
+        UiRootPhase previous = phase;
+        phase = nextPhase;
+        return new PhaseScope(this, previous);
+    }
+
+    private void LeavePhase(UiRootPhase previous)
+    {
+        phase = previous;
+        if (phase == UiRootPhase.Idle)
+        {
+            FlushDeferredOperations();
+        }
+    }
+
+    private void FlushDeferredOperations()
+    {
+        while (deferredOperations.TryDequeue(out Action? operation))
+        {
+            operation();
+        }
+    }
+
+    private bool HasOpenOutsideDismissPopup()
+        => OpenPopups().Any(popup => popup.DismissOnOutsidePointer);
+
+    private IEnumerable<IUiPopup> OpenPopups()
+        => Root.DescendantsAndSelf()
+            .OfType<IUiPopup>()
+            .Where(popup => popup.IsPopupOpen);
+
+    private bool DismissPopupsOutside(PointF point)
+    {
+        IUiPopup[] popups = OpenPopups()
+            .Where(popup => popup.DismissOnOutsidePointer && !popup.ContainsPopupPoint(point))
+            .OrderByDescending(popup => popup.PopupElement.ZIndex)
+            .ThenByDescending(popup => popup.PopupElement.InsertionOrder)
+            .ToArray();
+        if (popups.Length == 0)
+        {
+            return false;
+        }
+
+        using (EnterPhase(UiRootPhase.PopupDismissal))
+        {
+            foreach (IUiPopup popup in popups)
+            {
+                popup.DismissPopup(UiPopupDismissReason.OutsidePointer);
+            }
+        }
+
+        invalidation |= UiInvalidation.Render | UiInvalidation.InputRegion;
+        return true;
+    }
+
+    private bool DismissTopmostEscapePopup()
+    {
+        IUiPopup? popup = OpenPopups()
+            .Where(openPopup => openPopup.DismissOnEscape)
+            .OrderByDescending(openPopup => openPopup.PopupElement.ZIndex)
+            .ThenByDescending(openPopup => openPopup.PopupElement.InsertionOrder)
+            .FirstOrDefault();
+        if (popup is null)
+        {
+            return false;
+        }
+
+        using (EnterPhase(UiRootPhase.PopupDismissal))
+        {
+            popup.DismissPopup(UiPopupDismissReason.Escape);
+        }
+
+        invalidation |= UiInvalidation.Render | UiInvalidation.InputRegion;
+        return true;
+    }
+
+    private void DismissPopupsOwnedBy(UiElement element)
+    {
+        IUiPopup[] popups = OpenPopups()
+            .Where(popup => IsSameOrDescendant(element, popup.PopupOwner) || IsSameOrDescendant(element, popup.PopupElement))
+            .ToArray();
+        if (popups.Length == 0)
+        {
+            return;
+        }
+
+        using (EnterPhase(UiRootPhase.PopupDismissal))
+        {
+            foreach (IUiPopup popup in popups)
+            {
+                popup.DismissPopup(UiPopupDismissReason.OwnerDetached);
+            }
+        }
+
+        invalidation |= UiInvalidation.Render | UiInvalidation.InputRegion;
+    }
+
+    private void DismissAllPopups(UiPopupDismissReason reason)
+    {
+        foreach (IUiPopup popup in OpenPopups().ToArray())
+        {
+            popup.DismissPopup(reason);
+        }
+    }
+
+    private static bool IsSameOrDescendant(UiElement ancestor, UiElement? element)
+    {
+        for (UiElement? current = element; current is not null; current = current.Parent)
+        {
+            if (ReferenceEquals(current, ancestor))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void VerifyAccess()
+    {
+        if (ownerThreadId != 0 && Environment.CurrentManagedThreadId != ownerThreadId)
+        {
+            throw new InvalidOperationException("Overlay UI roots are thread-affine. Mutate and render the UI tree from the owning overlay thread or use a root-owned deferred operation API.");
+        }
+    }
+
+    private void BindAccess()
+    {
+        if (ownerThreadId == 0)
+        {
+            ownerThreadId = Environment.CurrentManagedThreadId;
+        }
+    }
+
+    private readonly struct PhaseScope : IDisposable
+    {
+        private readonly OverlayUiRoot root;
+        private readonly UiRootPhase previous;
+
+        public PhaseScope(OverlayUiRoot root, UiRootPhase previous)
+        {
+            this.root = root;
+            this.previous = previous;
+        }
+
+        public void Dispose() => root.LeavePhase(previous);
+    }
+}
+
+internal static class UiVirtualKeys
+{
+    public const int Backspace = 0x08;
+    public const int Tab = 0x09;
+    public const int Enter = 0x0D;
+    public const int Escape = 0x1B;
+    public const int Space = 0x20;
+    public const int End = 0x23;
+    public const int Home = 0x24;
+    public const int Left = 0x25;
+    public const int Up = 0x26;
+    public const int Right = 0x27;
+    public const int Down = 0x28;
+    public const int Delete = 0x2E;
+    public const int A = 0x41;
+}

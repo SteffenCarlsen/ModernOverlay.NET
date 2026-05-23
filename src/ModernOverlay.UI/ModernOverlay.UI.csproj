@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net11.0-windows</TargetFramework>
+    <PackageId>ModernOverlay.UI</PackageId>
+    <Description>Retained interactive UI controls and layout for ModernOverlay.</Description>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ModernOverlay\ModernOverlay.csproj" />
+    <ProjectReference Include="..\ModernOverlay.Diagnostics\ModernOverlay.Diagnostics.csproj" />
+  </ItemGroup>
+
+</Project>

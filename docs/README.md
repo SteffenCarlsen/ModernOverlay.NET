@@ -31,6 +31,8 @@ Use this folder as the project manual. The docs are intentionally split by topic
 2. [Transparency validation](transparency-validation.md): current transparency implementation, caveats, and manual validation.
 3. [DirectComposition spike](directcomposition-spike.md): why DirectComposition is a future backend milestone.
 4. [Capture-backed overlay spike](capture-backed-overlay-spike.md): experimental output-duplication reconstruction idea.
+5. [ModernOverlay 1.1 interactive UI analysis](modernoverlay-1.1-interactive-ui-analysis.md): retained UI, dynamic placement, and control-system planning.
+6. [ModernOverlay 1.1 interactive UI architecture](modernoverlay-1.1-interactive-ui-architecture.md): accepted UI architecture direction, review alignment, and implementation order.
 
 ## Release State
 
@@ -43,3 +45,4 @@ Use this folder as the project manual. The docs are intentionally split by topic
 7. [Release validation checklist](release-validation-checklist.md): command gate and manual validation checklist.
 8. [Release publishing](release-publishing.md): tag-driven GitHub release and NuGet publishing setup.
 9. [Definition of done audit](definition-of-done-audit.md): MVP/alpha release-bar audit.
+10. [ModernOverlay 1.1 interactive UI tasks](modernoverlay-1.1-interactive-ui-tasks.md): separate checklist for the 1.1 UI feature track.

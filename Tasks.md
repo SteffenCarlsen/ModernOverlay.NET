@@ -6,6 +6,8 @@ This task list maps the current repository state against the [modernization spec
 
 The remaining work is no longer "build the first overlay library" work. It is mostly alpha release hygiene, current validation repair, broader environment evidence, exact backend prototypes, and 1.0 API/package stabilization.
 
+The version 1.1 interactive UI feature track is intentionally tracked separately in `docs/modernoverlay-1.1-interactive-ui-analysis.md` and `docs/modernoverlay-1.1-interactive-ui-tasks.md` so the alpha/1.0 stabilization list stays focused.
+
 ## Current Validation Snapshot
 
 - `dotnet test ModernOverlay.sln --configuration Release --verbosity minimal` currently builds all projects and passes 109/109 tests locally.

@@ -17,6 +17,7 @@ public sealed class OverlayWindow : IAsyncDisposable
     private readonly DrawContext drawContext;
     private readonly Queue<TimeSpan> recentFrameDurations = new();
     private OverlayInputMode inputMode;
+    private IOverlayInputRegionResolver? inputRegionResolver;
     private OverlayZOrder zOrder;
     private WindowBounds currentBounds;
     private WindowHandle currentTargetHwnd;
@@ -52,6 +53,9 @@ public sealed class OverlayWindow : IAsyncDisposable
         Hotkeys = new OverlayHotkeyManager(nativeWindow);
         nativeWindow.SetDpiChangedCallback(HandleDpiChanged);
         nativeWindow.SetPointerCallback(HandlePointerEvent);
+        nativeWindow.SetKeyboardCallback(HandleKeyboardEvent);
+        nativeWindow.SetTextInputCallback(HandleTextInputEvent);
+        nativeWindow.SetInputRegionCallback(ResolveInputRegion);
         renderBackend = RenderBackendRegistry.CreateBackend(options);
         currentDpiScale = ToDpiScale(nativeWindow.GetDpiScale());
         currentBounds = initialBounds;
@@ -75,6 +79,8 @@ public sealed class OverlayWindow : IAsyncDisposable
 
     public event OverlayLifecycleHandler? Unloaded;
 
+    public event OverlayLifecycleHandler? Disposed;
+
     public event OverlayDeviceHandler? DeviceLost;
 
     public event OverlayDeviceHandler? DeviceRestored;
@@ -97,6 +103,12 @@ public sealed class OverlayWindow : IAsyncDisposable
 
     public event OverlayPointerHandler? PointerWheel;
 
+    public event OverlayKeyboardHandler? KeyPressed;
+
+    public event OverlayKeyboardHandler? KeyReleased;
+
+    public event OverlayTextInputHandler? TextInput;
+
     public OverlayWindowOptions Options { get; }
 
     public FrameStats FrameStats { get; private set; }
@@ -108,6 +120,12 @@ public sealed class OverlayWindow : IAsyncDisposable
     public WindowHandle Hwnd => new(nativeWindow.Hwnd);
 
     public string BackendName => renderBackend.Resources.BackendName;
+
+    public WindowBounds BoundsPixels => currentBounds;
+
+    public DpiScale DpiScale => currentDpiScale;
+
+    public RectF BoundsDips => currentDpiScale.PixelsToDips(currentBounds);
 
     internal RenderBackendKind RenderBackendKind => renderBackend.Kind;
 
@@ -121,6 +139,11 @@ public sealed class OverlayWindow : IAsyncDisposable
             inputMode = value;
             nativeWindow.SetClickThrough(value == OverlayInputMode.ClickThrough);
         }
+    }
+
+    public void SetInputRegionResolver(IOverlayInputRegionResolver? resolver)
+    {
+        inputRegionResolver = resolver;
     }
 
     public OverlayZOrder ZOrder
@@ -368,9 +391,13 @@ public sealed class OverlayWindow : IAsyncDisposable
         lifetimeCancellation.Cancel();
         Hotkeys.Dispose();
         nativeWindow.SetDpiChangedCallback(null);
+        nativeWindow.SetKeyboardCallback(null);
+        nativeWindow.SetTextInputCallback(null);
+        nativeWindow.SetPointerCallback(null);
         nativeWindow.InvokeOnOwnerThread(renderBackend.Dispose);
         OverlayEventSource.Log.BackendDisposed(nativeWindow.Hwnd, BackendName, renderBackend.Generation.Value);
         OverlayEventSource.Log.OverlayDestroyed(nativeWindow.Hwnd);
+        Disposed?.Invoke(this);
         nativeWindow.Dispose();
         lifetimeCancellation.Dispose();
         return ValueTask.CompletedTask;
@@ -821,6 +848,49 @@ public sealed class OverlayWindow : IAsyncDisposable
             default:
                 throw new ArgumentOutOfRangeException(nameof(pointerEvent), "Unsupported pointer event kind.");
         }
+    }
+
+    private void HandleKeyboardEvent(Win32KeyboardEvent keyboardEvent)
+    {
+        var modifiers = (OverlayModifierKeys)(int)keyboardEvent.Modifiers;
+        var args = new OverlayKeyboardEventArgs(
+            keyboardEvent.VirtualKey,
+            keyboardEvent.IsSystemKey,
+            keyboardEvent.RepeatCount,
+            keyboardEvent.ScanCode,
+            keyboardEvent.IsExtendedKey,
+            keyboardEvent.WasDown,
+            keyboardEvent.IsTransitionState,
+            modifiers);
+
+        if (keyboardEvent.IsPressed)
+        {
+            KeyPressed?.Invoke(this, args);
+            return;
+        }
+
+        KeyReleased?.Invoke(this, args);
+    }
+
+    private void HandleTextInputEvent(Win32TextInputEvent textInputEvent)
+    {
+        TextInput?.Invoke(this, new OverlayTextInputEventArgs(textInputEvent.Text, textInputEvent.IsSystemCharacter));
+    }
+
+    private bool ResolveInputRegion(int pixelX, int pixelY)
+    {
+        if (inputMode != OverlayInputMode.SelectiveClickThrough)
+        {
+            return true;
+        }
+
+        if (inputRegionResolver is null)
+        {
+            return false;
+        }
+
+        var position = new PointF(pixelX / currentDpiScale.X, pixelY / currentDpiScale.Y);
+        return inputRegionResolver.ResolveInputRegion(position) == OverlayInputRegionResult.Interactive;
     }
 
     private (TimeSpan MovingAverage, TimeSpan Worst) RecordFrameDuration(TimeSpan frameDuration)

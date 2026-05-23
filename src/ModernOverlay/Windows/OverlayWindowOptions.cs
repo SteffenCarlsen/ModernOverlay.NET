@@ -4,6 +4,7 @@ public enum OverlayInputMode
 {
     ClickThrough,
     Interactive,
+    SelectiveClickThrough,
 }
 
 public enum OverlayZOrder

@@ -312,7 +312,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Implement `TextBlock`.
 - [ ] Add text, font, foreground, alignment, wrapping, trimming, max lines, and line spacing.
 - [ ] Use existing text measurement APIs for desired size.
-- [ ] Add `Label` as alias/subclass only if it adds target/access-key semantics.
+- [x] Add `Label` as alias/subclass only if it adds target/access-key semantics.
+  - `Label` subclasses `TextBlock` and adds target focus behavior on pointer press.
 - [ ] Add tests for measurement, wrapping, trimming, empty text, and render output.
 
 ### 18.2 Image

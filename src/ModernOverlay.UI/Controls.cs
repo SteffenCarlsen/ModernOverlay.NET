@@ -35,6 +35,36 @@ public class TextBlock : UiElement
     }
 }
 
+public sealed class Label : TextBlock
+{
+    private UiElement? target;
+
+    public Label()
+    {
+        ReceivesInput = true;
+    }
+
+    public UiElement? Target
+    {
+        get => target;
+        set => SetProperty(ref target, value, UiInvalidation.None);
+    }
+
+    protected override void OnPointerPressed(UiPointerEventArgs args)
+    {
+        if (args.Button != OverlayPointerButton.Left)
+        {
+            return;
+        }
+
+        if (Target is { Focusable: true })
+        {
+            Target.Focus();
+            args.Handled = true;
+        }
+    }
+}
+
 public sealed class Image : UiElement
 {
     private ImageHandle? source;

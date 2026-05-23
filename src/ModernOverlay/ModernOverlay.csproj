@@ -2,7 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net11.0-windows</TargetFramework>
-    <Description>Modern Windows overlay facade and drawing API.</Description>
+    <PackageId>ModernOverlay.NET</PackageId>
+    <Description>Modern Windows overlays with Direct2D drawing, target tracking, and diagnostics for .NET.</Description>
     <IsPackable>true</IsPackable>
     <BundledDirect2DBackendTargetFramework>net11.0-windows7.0</BundledDirect2DBackendTargetFramework>
     <BundledDirect2DBackendPath>..\ModernOverlay.Direct2D\bin\$(Configuration)\$(TargetFramework)\ModernOverlay.Direct2D.dll</BundledDirect2DBackendPath>

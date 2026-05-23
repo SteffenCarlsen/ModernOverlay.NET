@@ -24,7 +24,7 @@ The solution includes the spec-named samples `StickyWindowOverlay`, `Interactive
 For package-based consumption, the common path is one package:
 
 ```xml
-<PackageReference Include="ModernOverlay" Version="0.1.0-preview" />
+<PackageReference Include="ModernOverlay.NET" Version="1.0.0" />
 ```
 
 The `ModernOverlay` package includes the Direct2D backend assembly for the preview common path. The facade auto-discovers and registers that backend before creating the first overlay. `Direct2DOverlayBackend.Register()` remains available for tests, custom startup flows, and hosts that want explicit registration.
@@ -32,8 +32,8 @@ The `ModernOverlay` package includes the Direct2D backend assembly for the previ
 Advanced hosts can still reference the backend package directly:
 
 ```xml
-<PackageReference Include="ModernOverlay" Version="0.1.0-preview" />
-<PackageReference Include="ModernOverlay.Direct2D" Version="0.1.0-preview" />
+<PackageReference Include="ModernOverlay.NET" Version="1.0.0" />
+<PackageReference Include="ModernOverlay.NET.Direct2D" Version="1.0.0" />
 ```
 
 See [public API and package review](public-api-package-review.md) for the package split review and the options for a future all-in-one package.

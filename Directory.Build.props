@@ -12,14 +12,14 @@
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
     <RepositoryUrl>https://github.com/SteffenCarlsen/ModernOverlay.NET</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <Version>0.1.0-preview</Version>
+    <Version>1.0.0</Version>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/SteffenCarlsen/ModernOverlay.NET</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>windows;overlay;direct2d;win32;vortice;net11-preview</PackageTags>
-    <PackageReleaseNotes>Preview package: targets net11.0-windows on a .NET 11 preview SDK. APIs, packaging, and backend registration may change before GA. DirectComposition and UpdateLayeredWindow requests currently use the documented DWM/color-key fallback path. Capture exclusion and cooperative named-pipe ACL support are preview features, not bypass or privacy guarantees.</PackageReleaseNotes>
-    <Authors>ModernOverlay contributors</Authors>
-    <Company>ModernOverlay</Company>
+    <PackageReleaseNotes>Initial 1.0 release. Targets net11.0-windows on a .NET 11 preview SDK. DirectComposition and UpdateLayeredWindow request modes currently use the documented DWM/color-key fallback path. Capture exclusion and cooperative named-pipe ACL support are explicit cooperative features, not bypass or privacy guarantees.</PackageReleaseNotes>
+    <Authors>Steffen Carlsen</Authors>
+    <Company>Steffen Carlsen</Company>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

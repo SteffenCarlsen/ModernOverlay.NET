@@ -1,14 +1,14 @@
 # Release Publishing
 
-This repository publishes preview packages through a tag-driven GitHub Actions workflow and NuGet trusted publishing.
+This repository publishes packages through a tag-driven GitHub Actions workflow and NuGet trusted publishing.
 
 ## Version Source
 
 Release tags should use a SemVer value with a leading `v`, for example:
 
 ```powershell
-git tag v0.1.0-preview.1
-git push origin v0.1.0-preview.1
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
 The workflow strips the leading `v` and passes the result to MSBuild as `Version` and `PackageVersion`. NuGet package versions are immutable, so every published release must use a new version.
@@ -25,28 +25,28 @@ The workflow can create the GitHub release before NuGet publishing is enabled. N
 | Repository Owner | `SteffenCarlsen` |
 | Repository | `ModernOverlay.NET` |
 | Workflow File | `release.yml` |
-| Environment | Leave empty unless this workflow later adds a GitHub Actions environment. |
+| Environment | `release` |
 
-The workflow uses `NuGet/login@v1` to exchange the GitHub Actions OIDC token for a short-lived NuGet API key at publish time. No long-lived NuGet API key should be stored in repository secrets for this path.
+The workflow uses `NuGet/login@v1` with the `NUGET_USER` repository secret to exchange the GitHub Actions OIDC token for a short-lived NuGet API key at publish time. `NUGET_USER` must be the NuGet profile name, not an email address. No long-lived NuGet API key should be stored in repository secrets for this path.
 
 ## Published Packages
 
-The release workflow packs the solution and publishes the same alpha package set validated by the local release gate:
+The release workflow packs the solution and publishes the same package set validated by the local release gate:
 
 | Package | Published |
 |---|---|
-| `ModernOverlay` | Yes |
-| `ModernOverlay.Direct2D` | Yes |
-| `ModernOverlay.Win32` | Yes |
-| `ModernOverlay.Diagnostics` | Yes |
-| `ModernOverlay.Integration` | Yes |
+| `ModernOverlay.NET` | Yes |
+| `ModernOverlay.NET.Direct2D` | Yes |
+| `ModernOverlay.NET.Win32` | Yes |
+| `ModernOverlay.NET.Diagnostics` | Yes |
+| `ModernOverlay.NET.Integration` | Yes |
 | `ModernOverlay.Integration.Experimental` | No |
 
 Symbol packages are emitted as `.snupkg` files and pushed with the release packages when NuGet publishing is enabled.
 
 ## Release Gate
 
-Before tagging an alpha, run the local validation gate from the repository root:
+Before tagging a release, run the local validation gate from the repository root:
 
 ```powershell
 $env:MSBuildEnableWorkloadResolver='false'

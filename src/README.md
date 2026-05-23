@@ -6,11 +6,11 @@ The source tree is split by package and responsibility. The alpha package shape 
 
 | Project | Package | Purpose |
 |---|---|---|
-| `ModernOverlay` | `ModernOverlay` | Main facade, overlay lifecycle, drawing/window API namespaces, target tracking, public options, and render backend registry. |
-| `ModernOverlay.Direct2D` | `ModernOverlay.Direct2D` | Current Direct2D/DirectWrite/WIC renderer backend. The main package bundles this assembly for the preview common path. |
-| `ModernOverlay.Win32` | `ModernOverlay.Win32` | Low-level Win32 windowing, z-order, style, query, display-affinity, and native diagnostics helpers. |
-| `ModernOverlay.Diagnostics` | `ModernOverlay.Diagnostics` | EventSource logging bridge and diagnostics helpers. |
-| `ModernOverlay.Integration` | `ModernOverlay.Integration` | Optional cooperative named-pipe command protocol for owned hosts. |
+| `ModernOverlay` | `ModernOverlay.NET` | Main facade, overlay lifecycle, drawing/window API namespaces, target tracking, public options, and render backend registry. |
+| `ModernOverlay.Direct2D` | `ModernOverlay.NET.Direct2D` | Current Direct2D/DirectWrite/WIC renderer backend. The main package bundles this assembly for the preview common path. |
+| `ModernOverlay.Win32` | `ModernOverlay.NET.Win32` | Low-level Win32 windowing, z-order, style, query, display-affinity, and native diagnostics helpers. |
+| `ModernOverlay.Diagnostics` | `ModernOverlay.NET.Diagnostics` | EventSource logging bridge and diagnostics helpers. |
+| `ModernOverlay.Integration` | `ModernOverlay.NET.Integration` | Optional cooperative named-pipe command protocol for owned hosts. |
 | `ModernOverlay.Integration.Experimental` | source-only | Contract-only experimental provider boundary. It is not packed for alpha. |
 
 ## Common Development Paths

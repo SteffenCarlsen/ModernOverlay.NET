@@ -3,11 +3,11 @@ name: Release
 on:
   push:
     tags:
-      - "v*"
+      - "v*.*.*"
   workflow_dispatch:
     inputs:
       version:
-        description: SemVer package version, for example 0.1.0-preview.1
+        description: SemVer package version, for example 1.0.0
         required: true
         type: string
       publish_to_nuget:
@@ -27,6 +27,7 @@ jobs:
   release:
     name: Build, pack, and publish
     runs-on: windows-latest
+    environment: release
 
     env:
       DOTNET_NOLOGO: true
@@ -76,7 +77,7 @@ jobs:
 
       - name: Build
         shell: pwsh
-        run: dotnet build ModernOverlay.sln --configuration Release --no-restore -m:1 -p:Version=$env:PACKAGE_VERSION -p:PackageVersion=$env:PACKAGE_VERSION -bl:artifacts\release-build.binlog
+        run: dotnet build ModernOverlay.sln --configuration Release --no-restore -m:1 -p:Version=$env:PACKAGE_VERSION -p:PackageVersion=$env:PACKAGE_VERSION -p:ContinuousIntegrationBuild=true -bl:artifacts\release-build.binlog
 
       - name: Test non-integration
         shell: pwsh
@@ -84,23 +85,18 @@ jobs:
 
       - name: Pack
         shell: pwsh
-        run: dotnet pack ModernOverlay.sln --configuration Release --no-build -m:1 -p:Version=$env:PACKAGE_VERSION -p:PackageVersion=$env:PACKAGE_VERSION -bl:artifacts\release-pack.binlog
+        run: dotnet pack ModernOverlay.sln --configuration Release --no-build -m:1 --output artifacts\packages -p:Version=$env:PACKAGE_VERSION -p:PackageVersion=$env:PACKAGE_VERSION -p:ContinuousIntegrationBuild=true -bl:artifacts\release-pack.binlog
 
-      - name: Collect packages
+      - name: Summarize packages
         shell: pwsh
         run: |
-          $packages = Get-ChildItem -Path src -Recurse -File -Include *.nupkg,*.snupkg |
-            Where-Object { $_.FullName -notmatch '\\bin\\Debug\\' }
+          $packages = Get-ChildItem -Path artifacts\packages -File -Include *.nupkg,*.snupkg
 
           if ($packages.Count -eq 0) {
             throw 'No packages were produced by dotnet pack.'
           }
 
-          foreach ($package in $packages) {
-            Copy-Item -Path $package.FullName -Destination artifacts\packages -Force
-          }
-
-          Get-ChildItem -Path artifacts\packages -File | Sort-Object Name | ForEach-Object {
+          $packages | Sort-Object Name | ForEach-Object {
             "- $($_.Name)" >> $env:GITHUB_STEP_SUMMARY
           }
 
@@ -141,7 +137,7 @@ jobs:
         uses: NuGet/login@v1
         id: nuget_login
         with:
-          user: TaFFe
+          user: ${{ secrets.NUGET_USER }}
 
       - name: Publish packages to NuGet
         if: ${{ env.SHOULD_PUBLISH_TO_NUGET == 'true' }}

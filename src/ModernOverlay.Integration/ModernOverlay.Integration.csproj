@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net11.0-windows</TargetFramework>
+    <PackageId>ModernOverlay.NET.Integration</PackageId>
     <Description>Cooperative IPC integration primitives for ModernOverlay.</Description>
     <IsPackable>true</IsPackable>
   </PropertyGroup>

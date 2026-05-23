@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net11.0-windows</TargetFramework>
+    <PackageId>ModernOverlay.NET.Diagnostics</PackageId>
     <Description>Diagnostics primitives for ModernOverlay.</Description>
     <IsPackable>true</IsPackable>
     <NoWarn>$(NoWarn);NU1510</NoWarn>

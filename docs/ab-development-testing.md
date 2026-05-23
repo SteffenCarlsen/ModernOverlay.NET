@@ -55,7 +55,7 @@ If you want to test as a package consumer instead of a project-reference consume
 4. Reference only:
 
 ```xml
-<PackageReference Include="ModernOverlay" Version="0.1.0-preview" />
+<PackageReference Include="ModernOverlay.NET" Version="1.0.0" />
 ```
 
 Minimal package-consumer imports:

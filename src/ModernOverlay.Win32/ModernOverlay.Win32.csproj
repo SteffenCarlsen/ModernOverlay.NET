@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net11.0-windows</TargetFramework>
+    <PackageId>ModernOverlay.NET.Win32</PackageId>
     <Description>Win32 windowing foundation for ModernOverlay.</Description>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <IsPackable>true</IsPackable>

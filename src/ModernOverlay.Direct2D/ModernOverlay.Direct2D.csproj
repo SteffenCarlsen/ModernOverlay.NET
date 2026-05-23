@@ -2,7 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net11.0-windows</TargetFramework>
-    <Description>Direct2D dependency proof and renderer foundation for ModernOverlay.</Description>
+    <PackageId>ModernOverlay.NET.Direct2D</PackageId>
+    <Description>Direct2D renderer backend for ModernOverlay.</Description>
     <IsPackable>true</IsPackable>
   </PropertyGroup>
 

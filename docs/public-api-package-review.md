@@ -23,14 +23,14 @@ The common app path no longer requires an explicit `Direct2DOverlayBackend.Regis
 For the common package path:
 
 ```xml
-<PackageReference Include="ModernOverlay" Version="0.1.0-preview" />
+<PackageReference Include="ModernOverlay.NET" Version="1.0.0" />
 ```
 
 Advanced hosts may still reference the backend package explicitly:
 
 ```xml
-<PackageReference Include="ModernOverlay" Version="0.1.0-preview" />
-<PackageReference Include="ModernOverlay.Direct2D" Version="0.1.0-preview" />
+<PackageReference Include="ModernOverlay.NET" Version="1.0.0" />
+<PackageReference Include="ModernOverlay.NET.Direct2D" Version="1.0.0" />
 ```
 
 This keeps the one-package common scenario working while preserving the backend package as a separately testable artifact.

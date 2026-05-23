@@ -55,7 +55,7 @@ function Remove-OldBinlogs {
 
 function Remove-PackageArtifacts {
     $src = Join-Path $root 'src'
-    $packages = Get-ChildItem -Path $src -Recurse -Filter *.nupkg -File
+    $packages = Get-ChildItem -Path $src -Recurse -File -Include *.nupkg,*.snupkg
 
     foreach ($package in $packages) {
         if (!$package.FullName.StartsWith($src, [StringComparison]::OrdinalIgnoreCase)) {
@@ -72,11 +72,11 @@ function Assert-PackageBoundary {
 
     $packageNames = $releasePackages | ForEach-Object { $_.Name } | Sort-Object
     $expectedPackageIds = @(
-        'ModernOverlay',
-        'ModernOverlay.Diagnostics',
-        'ModernOverlay.Direct2D',
-        'ModernOverlay.Integration',
-        'ModernOverlay.Win32'
+        'ModernOverlay.NET',
+        'ModernOverlay.NET.Diagnostics',
+        'ModernOverlay.NET.Direct2D',
+        'ModernOverlay.NET.Integration',
+        'ModernOverlay.NET.Win32'
     )
 
     if ($packageNames.Count -ne $expectedPackageIds.Count) {
@@ -91,12 +91,12 @@ function Assert-PackageBoundary {
         }
     }
 
-    if ($packageNames | Where-Object { $_.StartsWith('ModernOverlay.Integration.Experimental.', [StringComparison]::Ordinal) }) {
+    if ($packageNames | Where-Object { $_.StartsWith('ModernOverlay.NET.Integration.Experimental.', [StringComparison]::Ordinal) }) {
         throw 'ModernOverlay.Integration.Experimental must remain source-only and must not be packed for alpha.'
     }
 
     $modernOverlayPackage = $releasePackages |
-        Where-Object { $_.Name.StartsWith('ModernOverlay.', [StringComparison]::Ordinal) -and $_.Name -notmatch '^ModernOverlay\.(Diagnostics|Direct2D|Integration|Win32)\.' } |
+        Where-Object { $_.Name.StartsWith('ModernOverlay.NET.', [StringComparison]::Ordinal) -and $_.Name -notmatch '^ModernOverlay\.NET\.(Diagnostics|Direct2D|Integration|Win32)\.' } |
         Select-Object -First 1
     if ($null -eq $modernOverlayPackage) {
         throw 'ModernOverlay package was not produced.'
@@ -129,7 +129,7 @@ function Assert-PackageBoundary {
             }
 
             if ($nuspec -notmatch 'net11\.0-windows' -or $nuspec -notmatch 'DWM/color-key fallback') {
-                throw "$($package.Name) release notes do not include the required alpha caveats."
+                throw "$($package.Name) release notes do not include the required release caveats."
             }
         }
         finally {
@@ -224,7 +224,7 @@ function Invoke-PackageConsumerSmoke {
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ModernOverlay" Version="0.1.0-preview" />
+    <PackageReference Include="ModernOverlay.NET" Version="1.0.0" />
   </ItemGroup>
 </Project>
 '@ | Set-Content -Path $projectFile -Encoding UTF8

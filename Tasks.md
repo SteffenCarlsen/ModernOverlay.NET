@@ -21,10 +21,11 @@ The remaining work is no longer "build the first overlay library" work. It is mo
 ## First Alpha Release
 
 - [ ] Configure NuGet.org trusted publishing and tag the first alpha once the release gate is green.
-  - Add a trusted publishing policy for owner `TaFFe`, repository `SteffenCarlsen/ModernOverlay.NET`, and workflow file `release.yml`.
-  - Push a unique SemVer tag such as `v0.1.0-preview.1`; NuGet package versions are immutable.
+  - Add a trusted publishing policy for owner `TaFFe`, repository `SteffenCarlsen/ModernOverlay.NET`, workflow file `release.yml`, and environment `release`.
+  - Add the GitHub Actions repository secret `NUGET_USER` with the NuGet profile name.
+  - Push a unique SemVer tag such as `v1.0.0`; NuGet package versions are immutable.
   - Confirm the release workflow creates a GitHub release and publishes the five intended alpha packages.
-  - Intended package set: `ModernOverlay`, `ModernOverlay.Direct2D`, `ModernOverlay.Win32`, `ModernOverlay.Diagnostics`, and `ModernOverlay.Integration`.
+  - Intended package set: `ModernOverlay.NET`, `ModernOverlay.NET.Direct2D`, `ModernOverlay.NET.Win32`, `ModernOverlay.NET.Diagnostics`, and `ModernOverlay.NET.Integration`.
   - Keep `ModernOverlay.Integration.Experimental` source-only for alpha.
   - Confirm `ModernOverlay` still bundles `ModernOverlay.Direct2D.dll` and XML for the common package path.
 

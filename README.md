@@ -1,5 +1,5 @@
 # ModernOverlay.NET
-<img width="590" height="380" alt="Showcase for ModernOverlay.NET" src="https://github.com/user-attachments/assets/205eb23b-d964-4876-9567-0b1112eef35d" />
+<img width="900" height="600" alt="Showcase for ModernOverlay.NET" src="https://github.com/user-attachments/assets/205eb23b-d964-4876-9567-0b1112eef35d" />
 
 ModernOverlay is a Windows-only overlay library for modern .NET. It replaces the useful parts of the [GameOverlay.NET](https://github.com/michel-pi/GameOverlay.Net) programming model with a new Vortice + Direct2D/DirectWrite/WIC + Win32 implementation.
 

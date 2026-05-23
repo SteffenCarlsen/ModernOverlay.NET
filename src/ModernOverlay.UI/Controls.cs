@@ -705,6 +705,9 @@ public sealed class TextBox : UiElement
     private int selectionLength;
     private int maxLength = int.MaxValue;
     private bool isReadOnly;
+    private bool selecting;
+    private int selectionAnchor;
+    private float horizontalOffset;
 
     public TextBox()
     {
@@ -748,7 +751,13 @@ public sealed class TextBox : UiElement
     public int CaretIndex
     {
         get => caretIndex;
-        set => SetProperty(ref caretIndex, Math.Clamp(value, 0, Text.Length), UiInvalidation.Render);
+        set
+        {
+            if (SetProperty(ref caretIndex, Math.Clamp(value, 0, Text.Length), UiInvalidation.Render))
+            {
+                EnsureCaretVisible();
+            }
+        }
     }
 
     public int SelectionStart
@@ -804,17 +813,34 @@ public sealed class TextBox : UiElement
         context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, border);
 
         RectF content = ContentBounds;
+        float fontSize = context.Theme.Theme.FontSize;
+        float charWidth = CharacterWidth(fontSize);
+        if (SelectionLength > 0 && Text.Length > 0)
+        {
+            float selectionX = content.X + SelectionStart * charWidth - horizontalOffset;
+            float selectionWidth = SelectionLength * charWidth;
+            RectF selection = new(
+                MathF.Max(content.X, selectionX),
+                content.Y,
+                MathF.Min(content.X + content.Width, selectionX + selectionWidth) - MathF.Max(content.X, selectionX),
+                fontSize * 1.35f);
+            if (!selection.IsEmpty)
+            {
+                context.Draw.Fill.Rectangle(selection, context.Theme.SurfaceHover);
+            }
+        }
+
         string displayText = Text.Length == 0 ? Placeholder : Text;
         BrushHandle textBrush = Text.Length == 0 ? context.Theme.MutedForeground : context.Theme.Foreground;
         if (displayText.Length > 0)
         {
-            context.Draw.Draw.Text(displayText, context.Theme.Font, IsReadOnly ? context.Theme.Disabled : textBrush, new PointF(content.X, content.Y));
+            float offset = Text.Length == 0 ? 0f : horizontalOffset;
+            context.Draw.Draw.Text(displayText, context.Theme.Font, IsReadOnly ? context.Theme.Disabled : textBrush, new PointF(content.X - offset, content.Y));
         }
 
         if (IsFocused && !IsReadOnly)
         {
-            float fontSize = context.Theme.Theme.FontSize;
-            float caretX = content.X + MathF.Min(content.Width, CaretIndex * fontSize * 0.56f);
+            float caretX = content.X + CaretIndex * charWidth - horizontalOffset;
             context.Draw.Draw.Line(new PointF(caretX, content.Y), new PointF(caretX, content.Y + fontSize * 1.3f), context.Theme.Accent);
         }
     }
@@ -827,15 +853,47 @@ public sealed class TextBox : UiElement
         }
 
         Focus();
-        float fontSize = Root?.ThemeResources.Theme.FontSize ?? UiTheme.Default.FontSize;
-        CaretIndex = (int)Math.Clamp(MathF.Round((args.Position.X - ContentBounds.X) / MathF.Max(1f, fontSize * 0.56f)), 0, Text.Length);
+        CaretIndex = CaretIndexFromPoint(args.Position);
+        selectionAnchor = CaretIndex;
         ClearSelection();
+        selecting = true;
+        CapturePointer();
+        args.Handled = true;
+    }
+
+    protected override void OnPointerMoved(UiPointerEventArgs args)
+    {
+        if (!selecting || !IsPointerCaptured)
+        {
+            return;
+        }
+
+        CaretIndex = CaretIndexFromPoint(args.Position);
+        SelectFromAnchor(selectionAnchor, CaretIndex);
+        args.Handled = true;
+    }
+
+    protected override void OnPointerReleased(UiPointerEventArgs args)
+    {
+        if (args.Button != OverlayPointerButton.Left || !selecting)
+        {
+            return;
+        }
+
+        selecting = false;
+        ReleasePointerCapture();
         args.Handled = true;
     }
 
     protected override void OnTextInput(UiTextInputEventArgs args)
     {
-        if (IsReadOnly || args.Text.Length == 0)
+        if (args.Text.Length == 0)
+        {
+            return;
+        }
+
+        args.Handled = true;
+        if (IsReadOnly)
         {
             return;
         }
@@ -847,35 +905,32 @@ public sealed class TextBox : UiElement
         }
 
         InsertText(filtered);
-        args.Handled = true;
     }
 
     protected override void OnKeyPressed(UiKeyboardEventArgs args)
     {
         bool control = (args.Modifiers & OverlayModifierKeys.Control) != 0;
+        bool shift = (args.Modifiers & OverlayModifierKeys.Shift) != 0;
         switch (args.VirtualKey)
         {
             case UiVirtualKeys.Left:
-                CaretIndex = Math.Max(0, CaretIndex - 1);
-                ClearSelection();
+                MoveCaret(Math.Max(0, CaretIndex - 1), shift);
                 args.Handled = true;
                 break;
             case UiVirtualKeys.Right:
-                CaretIndex = Math.Min(Text.Length, CaretIndex + 1);
-                ClearSelection();
+                MoveCaret(Math.Min(Text.Length, CaretIndex + 1), shift);
                 args.Handled = true;
                 break;
             case UiVirtualKeys.Home:
-                CaretIndex = 0;
-                ClearSelection();
+                MoveCaret(0, shift);
                 args.Handled = true;
                 break;
             case UiVirtualKeys.End:
-                CaretIndex = Text.Length;
-                ClearSelection();
+                MoveCaret(Text.Length, shift);
                 args.Handled = true;
                 break;
             case UiVirtualKeys.A when control:
+                selectionAnchor = 0;
                 SelectionStart = 0;
                 SelectionLength = Text.Length;
                 CaretIndex = Text.Length;
@@ -951,8 +1006,67 @@ public sealed class TextBox : UiElement
         return true;
     }
 
+    private void MoveCaret(int nextIndex, bool extendSelection)
+    {
+        if (extendSelection)
+        {
+            if (SelectionLength == 0)
+            {
+                selectionAnchor = CaretIndex;
+            }
+
+            CaretIndex = nextIndex;
+            SelectFromAnchor(selectionAnchor, CaretIndex);
+            return;
+        }
+
+        CaretIndex = nextIndex;
+        ClearSelection();
+    }
+
+    private int CaretIndexFromPoint(PointF point)
+    {
+        float fontSize = Root?.ThemeResources.Theme.FontSize ?? UiTheme.Default.FontSize;
+        float charWidth = CharacterWidth(fontSize);
+        return (int)Math.Clamp(MathF.Round((point.X - ContentBounds.X + horizontalOffset) / charWidth), 0, Text.Length);
+    }
+
+    private void SelectFromAnchor(int anchor, int caret)
+    {
+        selectionStart = Math.Min(anchor, caret);
+        selectionLength = Math.Abs(caret - anchor);
+        InvalidateRender();
+    }
+
+    private void EnsureCaretVisible()
+    {
+        float contentWidth = ContentBounds.Width;
+        if (contentWidth <= 0f)
+        {
+            return;
+        }
+
+        float fontSize = Root?.ThemeResources.Theme.FontSize ?? UiTheme.Default.FontSize;
+        float charWidth = CharacterWidth(fontSize);
+        float caretX = CaretIndex * charWidth;
+        if (caretX < horizontalOffset)
+        {
+            horizontalOffset = caretX;
+        }
+        else if (caretX > horizontalOffset + contentWidth)
+        {
+            horizontalOffset = caretX - contentWidth;
+        }
+
+        float maxOffset = MathF.Max(0f, Text.Length * charWidth - contentWidth);
+        horizontalOffset = Math.Clamp(horizontalOffset, 0f, maxOffset);
+    }
+
+    private static float CharacterWidth(float fontSize) => MathF.Max(1f, fontSize * 0.56f);
+
     private void ClearSelection()
     {
+        selectionAnchor = CaretIndex;
         selectionStart = CaretIndex;
         selectionLength = 0;
         InvalidateRender();

@@ -261,7 +261,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add public `OverlayWindow.KeyPressed`, `KeyReleased`, and `TextInput` events.
 - [x] Add public key event args without exposing raw Win32 details unless useful.
 - [x] Decide text-entry input ownership: focused text controls should own keyboard/text messages while editing.
-- [ ] Add text-entry activation handling so focused text controls own keyboard/text messages while editing.
+- [x] Add text-entry activation handling so focused text controls own keyboard/text messages while editing.
+  - Focused `TextBox` handles text-input events even when read-only or when characters are filtered, preventing text messages from bubbling to parents.
 - [ ] Define IME scope: `WM_IME_*` support, partial support, or explicit out-of-scope behavior for 1.1.
 - [ ] Define dead-key and keyboard-layout expectations.
 - [ ] Define surrogate pair / Unicode beyond BMP handling.
@@ -379,8 +380,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add text, caret index, selection start/length, placeholder, max length, read-only, password char if useful.
 - [x] Handle text input, backspace, delete, left/right/home/end, Ctrl+A, copy/paste only if clipboard support is accepted.
 - [x] Add mouse click caret placement.
-- [ ] Add drag selection if feasible.
-- [ ] Add horizontal scroll for long single-line text.
+- [x] Add drag selection if feasible.
+- [x] Add horizontal scroll for long single-line text.
 - [ ] Document IME, dead-key, Unicode, clipboard, and international input limitations before release.
 - [ ] Add tests for text input, caret movement, deletion, selection, focus, disabled/read-only state, and rendering.
 

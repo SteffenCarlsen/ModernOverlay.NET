@@ -89,6 +89,10 @@ The current local baseline was captured on Windows 10 IoT Enterprise LTSC `10.0.
 
 Read more: [performance guide](docs/performance-guide.md), [local baseline](docs/performance-baseline-20260522-local.md), [benchmarks index](benchmarks/README.md).
 
+## License
+
+ModernOverlay is licensed under the [MIT License](LICENSE).
+
 ## Minimal Examples
 
 Track an existing window by title:
@@ -150,6 +154,7 @@ tools\New-ModernOverlayPlayground.ps1 -From Basic -Name Basic-A
 | `samples/ImageOverlay` / `samples/ImageAndTextOverlay` | Image and text rendering. |
 | `samples/TextLayoutOverlay` | Reusable text layouts. |
 | `samples/DiagnosticsOverlay` | Frame, resource, target, and native diagnostics. |
+| `samples/ShowcaseOverlay` | Screenshot-oriented primitive gallery with live developer metrics. |
 | `samples/HotkeyOverlay` | Overlay hotkey handling. |
 | `samples/TransparencyValidationOverlay` | Manual transparency validation. |
 | `samples/IpcOverlayDemo` and `samples/SampleOwnedHost` | Cooperative named-pipe command protocol. |
@@ -162,7 +167,7 @@ Read more: [docs index](docs/README.md).
 2. Core usage: [window modes](docs/window-modes.md), [target tracking](docs/target-tracking.md), [DPI and multi-monitor](docs/dpi-and-multi-monitor.md), [drawing primitives](docs/drawing-primitives.md), [resource lifetime](docs/resource-lifetime.md).
 3. Runtime behavior: [device recreation](docs/device-recreation.md), [troubleshooting](docs/troubleshooting.md), [performance guide](docs/performance-guide.md).
 4. Integration and boundaries: [integration boundary](docs/integration-boundary.md), [transparency validation](docs/transparency-validation.md), [capture-backed overlay spike](docs/capture-backed-overlay-spike.md), [DirectComposition decision note](docs/directcomposition-spike.md).
-5. Release/project status: [task list](Tasks.md), [modernization spec](docs/modernization-spec.md), [feature completeness](docs/feature-completeness.md), [next action points](docs/next-action-points.md), [implementation history](docs/implementation-history.md), [development notes](docs/development-notes.md), [public API and package review](docs/public-api-package-review.md), [release validation checklist](docs/release-validation-checklist.md).
+5. Release/project status: [task list](Tasks.md), [modernization spec](docs/modernization-spec.md), [feature completeness](docs/feature-completeness.md), [next action points](docs/next-action-points.md), [implementation history](docs/implementation-history.md), [development notes](docs/development-notes.md), [public API and package review](docs/public-api-package-review.md), [release validation checklist](docs/release-validation-checklist.md), [release publishing](docs/release-publishing.md).
 
 ## Project Layout
 

@@ -1,0 +1,168 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: SemVer package version, for example 0.1.0-preview.1
+        required: true
+        type: string
+      publish_to_nuget:
+        description: Publish packages to NuGet using trusted publishing
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    name: Build, pack, and publish
+    runs-on: windows-latest
+
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET from global.json
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Resolve release version
+        shell: pwsh
+        run: |
+          if ('${{ github.event_name }}' -eq 'workflow_dispatch') {
+            $version = '${{ inputs.version }}'
+            $shouldPublish = '${{ inputs.publish_to_nuget }}'
+          }
+          else {
+            $version = '${{ github.ref_name }}'
+            $shouldPublish = 'true'
+          }
+
+          if ($version.StartsWith('v')) {
+            $version = $version.Substring(1)
+          }
+
+          if ($version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z][0-9A-Za-z.-]*)?(\+[0-9A-Za-z][0-9A-Za-z.-]*)?$') {
+            throw "Release version '$version' is not a valid SemVer 2.0 package version."
+          }
+
+          "PACKAGE_VERSION=$version" >> $env:GITHUB_ENV
+          "RELEASE_IS_PRERELEASE=$($version.Contains('-').ToString().ToLowerInvariant())" >> $env:GITHUB_ENV
+          "SHOULD_PUBLISH_TO_NUGET=$shouldPublish" >> $env:GITHUB_ENV
+          "Resolved package version $version"
+
+      - name: Prepare artifacts
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force -Path artifacts, artifacts\packages
+
+      - name: Restore
+        shell: pwsh
+        run: dotnet restore ModernOverlay.sln -bl:artifacts\release-restore.binlog
+
+      - name: Build
+        shell: pwsh
+        run: dotnet build ModernOverlay.sln --configuration Release --no-restore -m:1 -p:Version=$env:PACKAGE_VERSION -p:PackageVersion=$env:PACKAGE_VERSION -bl:artifacts\release-build.binlog
+
+      - name: Test non-integration
+        shell: pwsh
+        run: dotnet test ModernOverlay.sln --configuration Release --no-build --filter "TestCategory!=WindowsIntegration" --logger trx --results-directory artifacts\TestResults -bl:artifacts\release-test-unit.binlog
+
+      - name: Pack
+        shell: pwsh
+        run: dotnet pack ModernOverlay.sln --configuration Release --no-build -m:1 -p:Version=$env:PACKAGE_VERSION -p:PackageVersion=$env:PACKAGE_VERSION -bl:artifacts\release-pack.binlog
+
+      - name: Collect packages
+        shell: pwsh
+        run: |
+          $packages = Get-ChildItem -Path src -Recurse -File -Include *.nupkg,*.snupkg |
+            Where-Object { $_.FullName -notmatch '\\bin\\Debug\\' }
+
+          if ($packages.Count -eq 0) {
+            throw 'No packages were produced by dotnet pack.'
+          }
+
+          foreach ($package in $packages) {
+            Copy-Item -Path $package.FullName -Destination artifacts\packages -Force
+          }
+
+          Get-ChildItem -Path artifacts\packages -File | Sort-Object Name | ForEach-Object {
+            "- $($_.Name)" >> $env:GITHUB_STEP_SUMMARY
+          }
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = '${{ github.ref_name }}'
+          if ('${{ github.event_name }}' -eq 'workflow_dispatch') {
+            $tag = "v$env:PACKAGE_VERSION"
+          }
+
+          $releaseFiles = Get-ChildItem -Path artifacts\packages -File |
+            Where-Object { $_.Extension -in '.nupkg', '.snupkg' } |
+            Sort-Object Name |
+            ForEach-Object { $_.FullName }
+
+          if ($releaseFiles.Count -eq 0) {
+            throw 'No packages were available to attach to the GitHub release.'
+          }
+
+          $arguments = @(
+            'release', 'create', $tag,
+            $releaseFiles,
+            '--title', $tag,
+            '--generate-notes'
+          )
+
+          if ($env:RELEASE_IS_PRERELEASE -eq 'true') {
+            $arguments += '--prerelease'
+          }
+
+          gh @arguments
+
+      - name: NuGet login
+        if: ${{ env.SHOULD_PUBLISH_TO_NUGET == 'true' }}
+        uses: NuGet/login@v1
+        id: nuget_login
+        with:
+          user: TaFFe
+
+      - name: Publish packages to NuGet
+        if: ${{ env.SHOULD_PUBLISH_TO_NUGET == 'true' }}
+        shell: pwsh
+        run: |
+          $packages = Get-ChildItem -Path artifacts\packages -Filter *.nupkg -File | Sort-Object Name
+          foreach ($package in $packages) {
+            dotnet nuget push $package.FullName --api-key "${{ steps.nuget_login.outputs.NUGET_API_KEY }}" --source "https://api.nuget.org/v3/index.json" --skip-duplicate
+          }
+
+      - name: NuGet publishing skipped
+        if: ${{ env.SHOULD_PUBLISH_TO_NUGET != 'true' }}
+        shell: pwsh
+        run: |
+          'NuGet publishing was disabled for this manual run.' >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload release diagnostics
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-diagnostics
+          path: |
+            artifacts/**/*.binlog
+            artifacts/TestResults/**/*.trx

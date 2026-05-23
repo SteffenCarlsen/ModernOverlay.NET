@@ -41,4 +41,5 @@ Use this folder as the project manual. The docs are intentionally split by topic
 5. [Implementation history](implementation-history.md): public summary of important implementation decisions and tradeoffs.
 6. [Development notes](development-notes.md): repository maintenance and validation habits.
 7. [Release validation checklist](release-validation-checklist.md): command gate and manual validation checklist.
-8. [Definition of done audit](definition-of-done-audit.md): MVP/alpha release-bar audit.
+8. [Release publishing](release-publishing.md): tag-driven GitHub release and NuGet publishing setup.
+9. [Definition of done audit](definition-of-done-audit.md): MVP/alpha release-bar audit.

@@ -2,6 +2,8 @@
 
 ModernOverlay is currently a preview Windows-only library targeting `net11.0-windows`.
 
+Package publishing is prepared through the repository release workflow, but the first NuGet publish will happen only after NuGet trusted publishing is configured. See [release publishing](release-publishing.md).
+
 ## Requirements
 
 - Windows desktop.

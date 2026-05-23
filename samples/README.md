@@ -42,6 +42,7 @@ The playground generator makes a local editable `Program.cs` even when the origi
 | `ImageAndTextOverlay` | Spec-named alias for image plus text composition. |
 | `TextLayoutOverlay` | Reusable text layout handles and text measurement. |
 | `DiagnosticsOverlay` | Frame stats, resource counts, native failure status, and diagnostics-oriented display. |
+| `ShowcaseOverlay` | Screenshot-oriented primitive gallery with live developer metrics. |
 | `HotkeyOverlay` | Overlay hotkey registration and handling. |
 | `TransparencyValidationOverlay` | Local visual validation for current transparency modes and fallbacks. |
 | `IpcOverlayDemo` | Overlay-side cooperative named-pipe command host. |

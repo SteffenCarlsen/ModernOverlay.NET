@@ -90,7 +90,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         BindAccess();
         VerifyAccess();
         EnsureLayout();
-        return Root.ResolveInput(position) is not null || HasOpenOutsideDismissPopup()
+        return ResolveInputTarget(position) is not null || HasOpenOutsideDismissPopup()
             ? OverlayInputRegionResult.Interactive
             : OverlayInputRegionResult.PassThrough;
     }
@@ -383,13 +383,13 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         EnsureLayout();
         if (kind == OverlayPointerEventKind.Moved)
         {
-            UpdateHoveredElement(Root.ResolveInput(overlayArgs.Position), overlayArgs.Position);
+            UpdateHoveredElement(ResolveInputTarget(overlayArgs.Position), overlayArgs.Position);
         }
 
-        UiElement? target = CapturedElement ?? Root.ResolveInput(overlayArgs.Position);
+        UiElement? target = CapturedElement ?? ResolveInputTarget(overlayArgs.Position);
         if (kind == OverlayPointerEventKind.Pressed && DismissPopupsOutside(overlayArgs.Position))
         {
-            target = CapturedElement ?? Root.ResolveInput(overlayArgs.Position);
+            target = CapturedElement ?? ResolveInputTarget(overlayArgs.Position);
         }
 
         if (target is null)
@@ -562,6 +562,36 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
 
     private bool HasOpenOutsideDismissPopup()
         => OpenPopups().Any(popup => popup.DismissOnOutsidePointer);
+
+    private UiElement? ResolveInputTarget(PointF point)
+        => ResolvePopupInput(point) ?? Root.ResolveInput(point);
+
+    private UiElement? ResolvePopupInput(PointF point)
+    {
+        foreach (IUiPopup popup in OpenPopups()
+            .OrderByDescending(openPopup => openPopup.PopupElement.ZIndex)
+            .ThenByDescending(openPopup => openPopup.PopupElement.InsertionOrder))
+        {
+            if (!popup.ContainsPopupPoint(point))
+            {
+                continue;
+            }
+
+            UiElement popupElement = popup.PopupElement;
+            UiElement? target = popupElement.ResolveInput(point);
+            if (target is not null)
+            {
+                return target;
+            }
+
+            if (popupElement.ReceivesInput)
+            {
+                return popupElement;
+            }
+        }
+
+        return null;
+    }
 
     private IEnumerable<IUiPopup> OpenPopups()
         => Root.DescendantsAndSelf()

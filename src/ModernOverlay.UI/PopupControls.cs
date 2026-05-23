@@ -26,10 +26,106 @@ internal interface IUiPopup
     void DismissPopup(UiPopupDismissReason reason);
 }
 
+public enum UiPopupPlacementMode
+{
+    Absolute,
+    OwnerAnchor,
+}
+
+internal static class UiPopupPlacement
+{
+    public static RectF Resolve(
+        OverlayUiRoot? root,
+        SizeF size,
+        PointF absolutePlacement,
+        UiElement? owner,
+        UiPopupPlacementMode placementMode,
+        OverlayAnchor ownerAnchor,
+        OverlayAnchor popupAnchor,
+        PointF offset,
+        bool clampToOverlay)
+    {
+        PointF origin = absolutePlacement;
+        if (placementMode == UiPopupPlacementMode.OwnerAnchor && owner is not null)
+        {
+            PointF ownerPoint = AnchorPoint(owner.Bounds, ownerAnchor);
+            PointF popupPoint = AnchorOffset(size, popupAnchor);
+            origin = new PointF(ownerPoint.X - popupPoint.X + offset.X, ownerPoint.Y - popupPoint.Y + offset.Y);
+        }
+
+        RectF bounds = new(origin.X, origin.Y, size.Width, size.Height);
+        return clampToOverlay && root is not null ? Clamp(bounds, root.BoundsDips) : bounds;
+    }
+
+    public static RectF ResolveBelowOrAbove(OverlayUiRoot? root, RectF ownerBounds, SizeF size, float gap = 2f)
+    {
+        RectF below = new(ownerBounds.X, ownerBounds.Y + ownerBounds.Height + gap, ownerBounds.Width, size.Height);
+        if (root is null)
+        {
+            return below;
+        }
+
+        RectF overlay = root.BoundsDips;
+        if (below.Y + below.Height <= overlay.Height)
+        {
+            return Clamp(below, overlay);
+        }
+
+        RectF above = new(ownerBounds.X, ownerBounds.Y - size.Height - gap, ownerBounds.Width, size.Height);
+        return above.Y >= 0f || ownerBounds.Y > overlay.Height - ownerBounds.Y - ownerBounds.Height
+            ? Clamp(above, overlay)
+            : Clamp(below, overlay);
+    }
+
+    private static RectF Clamp(RectF bounds, RectF overlay)
+    {
+        float maxX = MathF.Max(0f, overlay.Width - bounds.Width);
+        float maxY = MathF.Max(0f, overlay.Height - bounds.Height);
+        return bounds with
+        {
+            X = Math.Clamp(bounds.X, 0f, maxX),
+            Y = Math.Clamp(bounds.Y, 0f, maxY),
+        };
+    }
+
+    private static PointF AnchorPoint(RectF bounds, OverlayAnchor anchor)
+        => anchor switch
+        {
+            OverlayAnchor.Top => new PointF(bounds.X + bounds.Width / 2f, bounds.Y),
+            OverlayAnchor.TopRight => new PointF(bounds.X + bounds.Width, bounds.Y),
+            OverlayAnchor.Left => new PointF(bounds.X, bounds.Y + bounds.Height / 2f),
+            OverlayAnchor.Center => new PointF(bounds.X + bounds.Width / 2f, bounds.Y + bounds.Height / 2f),
+            OverlayAnchor.Right => new PointF(bounds.X + bounds.Width, bounds.Y + bounds.Height / 2f),
+            OverlayAnchor.BottomLeft => new PointF(bounds.X, bounds.Y + bounds.Height),
+            OverlayAnchor.Bottom => new PointF(bounds.X + bounds.Width / 2f, bounds.Y + bounds.Height),
+            OverlayAnchor.BottomRight => new PointF(bounds.X + bounds.Width, bounds.Y + bounds.Height),
+            _ => new PointF(bounds.X, bounds.Y),
+        };
+
+    private static PointF AnchorOffset(SizeF size, OverlayAnchor anchor)
+        => anchor switch
+        {
+            OverlayAnchor.Top => new PointF(size.Width / 2f, 0f),
+            OverlayAnchor.TopRight => new PointF(size.Width, 0f),
+            OverlayAnchor.Left => new PointF(0f, size.Height / 2f),
+            OverlayAnchor.Center => new PointF(size.Width / 2f, size.Height / 2f),
+            OverlayAnchor.Right => new PointF(size.Width, size.Height / 2f),
+            OverlayAnchor.BottomLeft => new PointF(0f, size.Height),
+            OverlayAnchor.Bottom => new PointF(size.Width / 2f, size.Height),
+            OverlayAnchor.BottomRight => new PointF(size.Width, size.Height),
+            _ => new PointF(0f, 0f),
+        };
+}
+
 public class Popup : UiPanel, IUiPopup
 {
     private bool isOpen;
     private PointF placement;
+    private PointF placementOffset;
+    private UiPopupPlacementMode placementMode;
+    private OverlayAnchor ownerAnchor = OverlayAnchor.BottomLeft;
+    private OverlayAnchor popupAnchor = OverlayAnchor.TopLeft;
+    private bool clampToOverlay = true;
     private UiElement? owner;
 
     public Popup()
@@ -67,6 +163,36 @@ public class Popup : UiPanel, IUiPopup
         set => SetProperty(ref placement, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
     }
 
+    public PointF PlacementOffset
+    {
+        get => placementOffset;
+        set => SetProperty(ref placementOffset, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
+    }
+
+    public UiPopupPlacementMode PlacementMode
+    {
+        get => placementMode;
+        set => SetProperty(ref placementMode, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
+    }
+
+    public OverlayAnchor OwnerAnchor
+    {
+        get => ownerAnchor;
+        set => SetProperty(ref ownerAnchor, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
+    }
+
+    public OverlayAnchor PopupAnchor
+    {
+        get => popupAnchor;
+        set => SetProperty(ref popupAnchor, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
+    }
+
+    public bool ClampToOverlay
+    {
+        get => clampToOverlay;
+        set => SetProperty(ref clampToOverlay, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
+    }
+
     bool IUiPopup.IsPopupOpen => IsOpen;
 
     UiElement IUiPopup.PopupElement => this;
@@ -86,7 +212,7 @@ public class Popup : UiPanel, IUiPopup
     protected override void ArrangeCore(RectF finalRect)
     {
         SizeF desired = DesiredSize;
-        SetLayoutBounds(new RectF(Placement.X, Placement.Y, desired.Width, desired.Height));
+        SetLayoutBounds(UiPopupPlacement.Resolve(Root, desired, Placement, Owner, PlacementMode, OwnerAnchor, PopupAnchor, PlacementOffset, ClampToOverlay));
         base.ArrangeCore(Bounds);
     }
 
@@ -213,6 +339,11 @@ public sealed class ContextMenu : Menu, IUiPopup
     private const float ItemHeight = 26f;
     private bool isOpen;
     private PointF placement;
+    private PointF placementOffset;
+    private UiPopupPlacementMode placementMode;
+    private OverlayAnchor ownerAnchor = OverlayAnchor.BottomLeft;
+    private OverlayAnchor popupAnchor = OverlayAnchor.TopLeft;
+    private bool clampToOverlay = true;
     private int hotIndex = -1;
     private UiElement? owner;
 
@@ -238,6 +369,36 @@ public sealed class ContextMenu : Menu, IUiPopup
     {
         get => placement;
         set => SetProperty(ref placement, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
+    }
+
+    public PointF PlacementOffset
+    {
+        get => placementOffset;
+        set => SetProperty(ref placementOffset, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
+    }
+
+    public UiPopupPlacementMode PlacementMode
+    {
+        get => placementMode;
+        set => SetProperty(ref placementMode, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
+    }
+
+    public OverlayAnchor OwnerAnchor
+    {
+        get => ownerAnchor;
+        set => SetProperty(ref ownerAnchor, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
+    }
+
+    public OverlayAnchor PopupAnchor
+    {
+        get => popupAnchor;
+        set => SetProperty(ref popupAnchor, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
+    }
+
+    public bool ClampToOverlay
+    {
+        get => clampToOverlay;
+        set => SetProperty(ref clampToOverlay, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
     }
 
     public UiElement? Owner
@@ -266,7 +427,7 @@ public sealed class ContextMenu : Menu, IUiPopup
 
     protected override void ArrangeCore(RectF finalRect)
     {
-        SetLayoutBounds(new RectF(Placement.X, Placement.Y, DesiredSize.Width, DesiredSize.Height));
+        SetLayoutBounds(UiPopupPlacement.Resolve(Root, DesiredSize, Placement, Owner, PlacementMode, OwnerAnchor, PopupAnchor, PlacementOffset, ClampToOverlay));
     }
 
     protected override void RenderCore(UiRenderContext context)
@@ -336,6 +497,11 @@ public sealed class ToolTip : UiElement, IUiPopup
     private string text = string.Empty;
     private bool isOpen;
     private PointF placement;
+    private PointF placementOffset;
+    private UiPopupPlacementMode placementMode = UiPopupPlacementMode.OwnerAnchor;
+    private OverlayAnchor ownerAnchor = OverlayAnchor.TopRight;
+    private OverlayAnchor popupAnchor = OverlayAnchor.BottomLeft;
+    private bool clampToOverlay = true;
     private UiElement? owner;
 
     public ToolTip()
@@ -372,6 +538,36 @@ public sealed class ToolTip : UiElement, IUiPopup
         set => SetProperty(ref placement, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
     }
 
+    public PointF PlacementOffset
+    {
+        get => placementOffset;
+        set => SetProperty(ref placementOffset, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
+    }
+
+    public UiPopupPlacementMode PlacementMode
+    {
+        get => placementMode;
+        set => SetProperty(ref placementMode, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
+    }
+
+    public OverlayAnchor OwnerAnchor
+    {
+        get => ownerAnchor;
+        set => SetProperty(ref ownerAnchor, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
+    }
+
+    public OverlayAnchor PopupAnchor
+    {
+        get => popupAnchor;
+        set => SetProperty(ref popupAnchor, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
+    }
+
+    public bool ClampToOverlay
+    {
+        get => clampToOverlay;
+        set => SetProperty(ref clampToOverlay, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
+    }
+
     bool IUiPopup.IsPopupOpen => IsOpen;
 
     UiElement IUiPopup.PopupElement => this;
@@ -396,7 +592,7 @@ public sealed class ToolTip : UiElement, IUiPopup
 
     protected override void ArrangeCore(RectF finalRect)
     {
-        SetLayoutBounds(new RectF(Placement.X, Placement.Y, DesiredSize.Width, DesiredSize.Height));
+        SetLayoutBounds(UiPopupPlacement.Resolve(Root, DesiredSize, Placement, Owner, PlacementMode, OwnerAnchor, PopupAnchor, PlacementOffset, ClampToOverlay));
     }
 
     protected override void RenderCore(UiRenderContext context)

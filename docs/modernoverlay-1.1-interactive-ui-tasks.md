@@ -225,7 +225,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add `ReceivesInput` or equivalent per-element opt-in property.
 - [ ] Add optional custom input-region override per element.
 - [ ] Add input-region behavior for transparent backgrounds.
-- [ ] Add popup-layer input-region resolution before normal content.
+- [x] Add popup-layer input-region resolution before normal content.
+  - Open popup regions are resolved before normal root input so dropdown/content outside owner bounds can still receive pointer input.
 - [ ] Add tests for nested panels, clipping, z-index, popups, disabled elements, hidden/collapsed elements, and custom input regions.
 
 ## 13. Pointer Capture And Drag State
@@ -389,9 +390,12 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 
 ### 22.1 Popup Infrastructure
 
-- [ ] Implement popup host/layer.
-- [ ] Support placement relative to owner element.
-- [ ] Support popup clipping or screen/overlay clamping.
+- [x] Implement popup host/layer.
+  - Popups participate in the retained tree at `UiLayer.Popup`, and root input dispatch prioritizes open popup regions.
+- [x] Support placement relative to owner element.
+  - `Popup`, `ContextMenu`, and `ToolTip` can place by owner anchor plus popup anchor and offset while preserving existing absolute placement.
+- [x] Support popup clipping or screen/overlay clamping.
+  - Popup controls clamp to root bounds by default; `ComboBox` can flip above the owner when there is not enough room below.
 - [x] Close popups on outside click, Escape, owner removal, or root disposal.
 - [x] Route input to popup before normal content.
 - [ ] Add tests for popup placement, z-order, outside click, Escape, owner removal, and nested popups if allowed.

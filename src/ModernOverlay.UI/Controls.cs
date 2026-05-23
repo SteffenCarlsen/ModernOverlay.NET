@@ -1082,6 +1082,7 @@ public sealed class ComboBox : UiElement, IUiPopup
     private string placeholder = string.Empty;
     private readonly float itemHeight = 24f;
     private float maxDropDownHeight = 160f;
+    private bool clampDropDownToOverlay = true;
 
     public ComboBox()
     {
@@ -1142,6 +1143,12 @@ public sealed class ComboBox : UiElement, IUiPopup
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
             SetProperty(ref maxDropDownHeight, value, UiInvalidation.Render | UiInvalidation.InputRegion);
         }
+    }
+
+    public bool ClampDropDownToOverlay
+    {
+        get => clampDropDownToOverlay;
+        set => SetProperty(ref clampDropDownToOverlay, value, UiInvalidation.Render | UiInvalidation.InputRegion);
     }
 
     protected override SizeF MeasureCore(SizeF availableSize) => new(MathF.Min(availableSize.Width, MathF.Max(MinWidth, 160f)), Height);
@@ -1230,7 +1237,10 @@ public sealed class ComboBox : UiElement, IUiPopup
         get
         {
             float height = MathF.Min(MaxDropDownHeight, Items.Count * itemHeight);
-            return new RectF(Bounds.X, Bounds.Y + Bounds.Height + 2f, Bounds.Width, height);
+            SizeF size = new(Bounds.Width, height);
+            return ClampDropDownToOverlay
+                ? UiPopupPlacement.ResolveBelowOrAbove(Root, Bounds, size)
+                : new RectF(Bounds.X, Bounds.Y + Bounds.Height + 2f, size.Width, size.Height);
         }
     }
 

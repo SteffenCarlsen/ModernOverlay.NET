@@ -4,11 +4,10 @@
 [![Release](https://img.shields.io/github/actions/workflow/status/SteffenCarlsen/ModernOverlay.NET/release.yml?label=release&logo=github)](https://github.com/SteffenCarlsen/ModernOverlay.NET/actions/workflows/release.yml)
 [![NuGet](https://img.shields.io/nuget/v/ModernOverlay.NET.svg?logo=nuget&label=NuGet)](https://www.nuget.org/packages/ModernOverlay.NET/)
 [![Downloads](https://img.shields.io/nuget/dt/ModernOverlay.NET.svg?label=downloads)](https://www.nuget.org/packages/ModernOverlay.NET/)
-[![Open issues](https://img.shields.io/github/issues-raw/SteffenCarlsen/ModernOverlay.NET.svg?logo=github)](https://github.com/SteffenCarlsen/ModernOverlay.NET/issues)
-[![MIT License](https://img.shields.io/github/license/SteffenCarlsen/ModernOverlay.NET.svg)](LICENSE)
+[![Issues](https://img.shields.io/badge/issues-GitHub-555?logo=github)](https://github.com/SteffenCarlsen/ModernOverlay.NET/issues)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Windows](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows)
 ![.NET 11 Preview](https://img.shields.io/badge/.NET-11_preview-512BD4?logo=dotnet)
-![Release Candidate](https://img.shields.io/badge/status-release_ready-orange)
 
 <img width="900" height="600" alt="Showcase for ModernOverlay.NET" src="https://github.com/user-attachments/assets/205eb23b-d964-4876-9567-0b1112eef35d" />
 

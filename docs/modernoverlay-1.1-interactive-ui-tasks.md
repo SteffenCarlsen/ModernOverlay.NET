@@ -241,7 +241,7 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add focus manager to `OverlayUiRoot`.
 - [x] Add `Focusable` property.
 - [x] Add `Focus()`, `Blur()`, `MoveFocusNext()`, and `MoveFocusPrevious()`.
-- [ ] Add tab order using tree order plus optional `TabIndex`.
+- [x] Add tab order using tree order plus optional `TabIndex`.
 - [ ] Add escape/enter command conventions for windows and buttons.
 - [ ] Define how focus behaves when a focused element is disabled, hidden, removed, or moved to another root.
 - [ ] Add tests for focus set/clear, tab navigation, disabled elements, removed elements, and routed keyboard events.
@@ -351,11 +351,11 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Implement `Slider` on top of `RangeBase`.
 - [x] Support horizontal orientation first.
 - [x] Support vertical orientation if low cost.
-- [ ] Add minimum, maximum, value, step/frequency, small change, large change.
-  - Minimum, maximum, and value are implemented through `RangeBase`; step/frequency and small/large change remain open.
+- [x] Add minimum, maximum, value, step/frequency, small change, large change.
+  - Minimum, maximum, value, small change, and large change are implemented through `RangeBase`; separate tick/frequency visuals remain optional.
 - [x] Add pointer capture during thumb drag.
 - [x] Add click-to-track behavior.
-- [ ] Add keyboard arrows/home/end/page behavior.
+- [x] Add keyboard arrows/home/end/page behavior.
 - [ ] Add tests for value clamping, drag, capture, track click, keyboard changes, disabled state, and render output.
 
 ### 20.2 NumberBox

@@ -288,6 +288,8 @@ public abstract class RangeBase : UiElement
     private float minimum;
     private float maximum = 100f;
     private float value;
+    private float smallChange = 1f;
+    private float largeChange = 10f;
 
     public event EventHandler? ValueChanged;
 
@@ -328,6 +330,34 @@ public abstract class RangeBase : UiElement
         }
     }
 
+    public float SmallChange
+    {
+        get => smallChange;
+        set
+        {
+            if (value <= 0f || !float.IsFinite(value))
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), "SmallChange must be finite and greater than zero.");
+            }
+
+            SetProperty(ref smallChange, value, UiInvalidation.None);
+        }
+    }
+
+    public float LargeChange
+    {
+        get => largeChange;
+        set
+        {
+            if (value <= 0f || !float.IsFinite(value))
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), "LargeChange must be finite and greater than zero.");
+            }
+
+            SetProperty(ref largeChange, value, UiInvalidation.None);
+        }
+    }
+
     protected float ValueRatio
     {
         get
@@ -336,6 +366,8 @@ public abstract class RangeBase : UiElement
             return Math.Clamp((Value - Minimum) / range, 0f, 1f);
         }
     }
+
+    protected void ChangeValueBy(float delta) => Value += delta;
 }
 
 public sealed class ProgressBar : RangeBase
@@ -437,6 +469,39 @@ public sealed class Slider : RangeBase
             UpdateValueFromPoint(args.Position);
             ReleasePointerCapture();
             args.Handled = true;
+        }
+    }
+
+    protected override void OnKeyPressed(UiKeyboardEventArgs args)
+    {
+        switch (args.VirtualKey)
+        {
+            case UiVirtualKeys.Left:
+            case UiVirtualKeys.Down:
+                ChangeValueBy(-SmallChange);
+                args.Handled = true;
+                break;
+            case UiVirtualKeys.Right:
+            case UiVirtualKeys.Up:
+                ChangeValueBy(SmallChange);
+                args.Handled = true;
+                break;
+            case UiVirtualKeys.PageDown:
+                ChangeValueBy(-LargeChange);
+                args.Handled = true;
+                break;
+            case UiVirtualKeys.PageUp:
+                ChangeValueBy(LargeChange);
+                args.Handled = true;
+                break;
+            case UiVirtualKeys.Home:
+                Value = Minimum;
+                args.Handled = true;
+                break;
+            case UiVirtualKeys.End:
+                Value = Maximum;
+                args.Handled = true;
+                break;
         }
     }
 

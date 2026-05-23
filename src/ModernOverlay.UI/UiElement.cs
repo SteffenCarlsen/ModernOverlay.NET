@@ -8,6 +8,7 @@ public abstract class UiElement
     private bool isEnabled = true;
     private bool receivesInput;
     private bool focusable;
+    private int tabIndex;
     private float opacity = 1f;
     private int zIndex;
     private Thickness margin;
@@ -83,6 +84,12 @@ public abstract class UiElement
     {
         get => focusable;
         set => SetProperty(ref focusable, value, UiInvalidation.InputRegion | UiInvalidation.FocusState);
+    }
+
+    public int TabIndex
+    {
+        get => tabIndex;
+        set => SetProperty(ref tabIndex, value, UiInvalidation.FocusState);
     }
 
     public float Opacity

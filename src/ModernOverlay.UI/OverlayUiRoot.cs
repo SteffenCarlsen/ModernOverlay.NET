@@ -442,9 +442,11 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
     private void MoveFocus(bool forward)
     {
         VerifyAccess();
-        UiElement[] focusable = Root
-            .DescendantsAndSelf()
+        UiElement[] treeOrder = Root.DescendantsAndSelf().ToArray();
+        UiElement[] focusable = treeOrder
             .Where(element => element.Focusable && element.Visibility == UiVisibility.Visible && element.IsEffectivelyEnabled)
+            .OrderBy(element => element.TabIndex)
+            .ThenBy(element => Array.IndexOf(treeOrder, element))
             .ToArray();
         if (focusable.Length == 0)
         {
@@ -622,6 +624,8 @@ internal static class UiVirtualKeys
     public const int Up = 0x26;
     public const int Right = 0x27;
     public const int Down = 0x28;
+    public const int PageUp = 0x21;
+    public const int PageDown = 0x22;
     public const int Delete = 0x2E;
     public const int A = 0x41;
 }

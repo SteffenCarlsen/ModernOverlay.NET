@@ -6,13 +6,29 @@ public sealed class Canvas : UiPanel
 {
     private static readonly ConditionalWeakTable<UiElement, CanvasPlacement> Placements = [];
 
-    public static void SetLeft(UiElement element, float value) => GetPlacement(element).Left = Validate(value);
+    public static void SetLeft(UiElement element, float value) => SetCoordinate(element, placement => placement.Left = Validate(value));
 
-    public static void SetTop(UiElement element, float value) => GetPlacement(element).Top = Validate(value);
+    public static void SetTop(UiElement element, float value) => SetCoordinate(element, placement => placement.Top = Validate(value));
 
-    public static float GetLeft(UiElement element) => GetPlacement(element).Left;
+    public static void SetRight(UiElement element, float value) => SetCoordinate(element, placement => placement.Right = Validate(value));
 
-    public static float GetTop(UiElement element) => GetPlacement(element).Top;
+    public static void SetBottom(UiElement element, float value) => SetCoordinate(element, placement => placement.Bottom = Validate(value));
+
+    public static void ClearLeft(UiElement element) => SetCoordinate(element, placement => placement.Left = null);
+
+    public static void ClearTop(UiElement element) => SetCoordinate(element, placement => placement.Top = null);
+
+    public static void ClearRight(UiElement element) => SetCoordinate(element, placement => placement.Right = null);
+
+    public static void ClearBottom(UiElement element) => SetCoordinate(element, placement => placement.Bottom = null);
+
+    public static float GetLeft(UiElement element) => GetPlacement(element).Left ?? 0f;
+
+    public static float GetTop(UiElement element) => GetPlacement(element).Top ?? 0f;
+
+    public static float? GetRight(UiElement element) => GetPlacement(element).Right;
+
+    public static float? GetBottom(UiElement element) => GetPlacement(element).Bottom;
 
     protected override SizeF MeasureCore(SizeF availableSize)
     {
@@ -23,8 +39,8 @@ public sealed class Canvas : UiPanel
         {
             SizeF desired = child.Measure(childAvailable);
             CanvasPlacement placement = GetPlacement(child);
-            width = MathF.Max(width, placement.Left + desired.Width);
-            height = MathF.Max(height, placement.Top + desired.Height);
+            width = MathF.Max(width, placement.DesiredExtentX(desired.Width));
+            height = MathF.Max(height, placement.DesiredExtentY(desired.Height));
         }
 
         return new SizeF(width + Padding.Horizontal, height + Padding.Vertical);
@@ -36,11 +52,8 @@ public sealed class Canvas : UiPanel
         foreach (UiElement child in Children)
         {
             CanvasPlacement placement = GetPlacement(child);
-            child.Arrange(new RectF(
-                content.X + placement.Left,
-                content.Y + placement.Top,
-                MathF.Min(child.DesiredSize.Width, content.Width),
-                MathF.Min(child.DesiredSize.Height, content.Height)));
+            RectF childRect = placement.Arrange(content, child.DesiredSize);
+            child.Arrange(childRect);
         }
     }
 
@@ -48,6 +61,14 @@ public sealed class Canvas : UiPanel
     {
         ArgumentNullException.ThrowIfNull(element);
         return Placements.GetOrCreateValue(element);
+    }
+
+    private static void SetCoordinate(UiElement element, Action<CanvasPlacement> set)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        ArgumentNullException.ThrowIfNull(set);
+        set(GetPlacement(element));
+        element.Parent?.InvalidateMeasure();
     }
 
     private static float Validate(float value)
@@ -59,9 +80,40 @@ public sealed class Canvas : UiPanel
 
     private sealed class CanvasPlacement
     {
-        public float Left { get; set; }
+        public float? Left { get; set; }
 
-        public float Top { get; set; }
+        public float? Top { get; set; }
+
+        public float? Right { get; set; }
+
+        public float? Bottom { get; set; }
+
+        public float DesiredExtentX(float desiredWidth)
+            => Left.GetValueOrDefault() + desiredWidth + Right.GetValueOrDefault();
+
+        public float DesiredExtentY(float desiredHeight)
+            => Top.GetValueOrDefault() + desiredHeight + Bottom.GetValueOrDefault();
+
+        public RectF Arrange(RectF content, SizeF desiredSize)
+        {
+            float x = ResolveStart(content.X, content.Width, desiredSize.Width, Left, Right);
+            float y = ResolveStart(content.Y, content.Height, desiredSize.Height, Top, Bottom);
+            float width = ResolveSize(content.Width, desiredSize.Width, Left, Right);
+            float height = ResolveSize(content.Height, desiredSize.Height, Top, Bottom);
+            return new RectF(x, y, width, height);
+        }
+
+        private static float ResolveStart(float origin, float available, float desired, float? start, float? end)
+            => start.HasValue
+                ? origin + start.Value
+                : end.HasValue
+                    ? origin + MathF.Max(0f, available - end.Value - MathF.Min(desired, available))
+                    : origin;
+
+        private static float ResolveSize(float available, float desired, float? start, float? end)
+            => start.HasValue && end.HasValue
+                ? MathF.Max(0f, available - start.Value - end.Value)
+                : MathF.Min(desired, available);
     }
 }
 

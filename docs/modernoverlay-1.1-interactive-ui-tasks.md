@@ -125,9 +125,10 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 ### 7.1 Canvas
 
 - [x] Implement absolute `Canvas`.
-- [ ] Add attached coordinates or per-child placement records: left, top, right, bottom.
+- [x] Add attached coordinates or per-child placement records: left, top, right, bottom.
 - [x] Support explicit child size and natural desired size.
-- [ ] Define behavior when both left/right or top/bottom are set.
+- [x] Define behavior when both left/right or top/bottom are set.
+  - If both sides are set on an axis, `Canvas` stretches the child across the remaining space on that axis. If only right or bottom is set, the child keeps its desired size and is anchored to that edge.
 - [ ] Add tests for absolute placement, right/bottom anchoring, z-order, and clipping.
 
 ### 7.2 StackPanel

@@ -41,6 +41,8 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
     private float dragThreshold = 4f;
     private TimeSpan doubleClickTime = TimeSpan.FromMilliseconds(500);
     private float doubleClickDistance = 4f;
+    private TimeSpan caretBlinkInterval = TimeSpan.FromMilliseconds(530);
+    private long caretBlinkStartedTimestamp = System.Diagnostics.Stopwatch.GetTimestamp();
     private long layoutPasses;
     private long renderPasses;
     private long inputRegionChecks;
@@ -148,7 +150,37 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         }
     }
 
+    public TimeSpan CaretBlinkInterval
+    {
+        get => caretBlinkInterval;
+        set
+        {
+            if (value < TimeSpan.Zero)
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), "Caret blink interval cannot be negative.");
+            }
+
+            caretBlinkInterval = value;
+            RestartCaretBlink();
+        }
+    }
+
     internal bool IsInProtectedPhase => phase != UiRootPhase.Idle;
+
+    internal bool IsCaretVisible
+    {
+        get
+        {
+            if (CaretBlinkInterval == TimeSpan.Zero)
+            {
+                return true;
+            }
+
+            long timestamp = System.Diagnostics.Stopwatch.GetTimestamp();
+            long blinkSlot = (long)(Elapsed(timestamp, caretBlinkStartedTimestamp).Ticks / CaretBlinkInterval.Ticks);
+            return blinkSlot % 2 == 0;
+        }
+    }
 
     public void Render(DrawContext frame)
     {
@@ -209,6 +241,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
             }
 
             FocusedElement = element;
+            RestartCaretBlink();
             invalidation |= UiInvalidation.Render | UiInvalidation.FocusState;
         }
     }
@@ -248,6 +281,12 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
     public void MoveFocusNext() => MoveFocus(forward: true);
 
     public void MoveFocusPrevious() => MoveFocus(forward: false);
+
+    internal void RestartCaretBlink()
+    {
+        caretBlinkStartedTimestamp = System.Diagnostics.Stopwatch.GetTimestamp();
+        invalidation |= UiInvalidation.Render;
+    }
 
     public void ApplyTheme(UiTheme theme)
     {

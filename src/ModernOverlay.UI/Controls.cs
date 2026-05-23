@@ -786,6 +786,7 @@ public sealed class TextBox : UiElement
             if (SetProperty(ref caretIndex, Math.Clamp(value, 0, Text.Length), UiInvalidation.Render))
             {
                 EnsureCaretVisible();
+                Root?.RestartCaretBlink();
             }
         }
     }
@@ -868,7 +869,7 @@ public sealed class TextBox : UiElement
             context.Draw.Draw.Text(displayText, context.Theme.Font, IsReadOnly ? context.Theme.Disabled : textBrush, new PointF(content.X - offset, content.Y));
         }
 
-        if (IsFocused && !IsReadOnly)
+        if (IsFocused && !IsReadOnly && (Root?.IsCaretVisible ?? true))
         {
             float caretX = content.X + CaretIndex * charWidth - horizontalOffset;
             context.Draw.Draw.Line(new PointF(caretX, content.Y), new PointF(caretX, content.Y + fontSize * 1.3f), context.Theme.Accent);

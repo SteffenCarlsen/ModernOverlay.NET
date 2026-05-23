@@ -277,7 +277,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [ ] Define dead-key and keyboard-layout expectations.
 - [ ] Define surrogate pair / Unicode beyond BMP handling.
 - [ ] Define clipboard support scope and whether copy/paste ships in 1.1.
-- [ ] Define caret blink timing ownership in the UI root scheduler.
+- [x] Define caret blink timing ownership in the UI root scheduler.
+  - `OverlayUiRoot.CaretBlinkInterval` owns caret blink timing; `TextBox` restarts the blink on caret movement and renders the caret only when the root blink state is visible.
 - [ ] Add tests for Win32 message translation.
 - [ ] Add sample coverage for text input once `TextBox` exists.
 

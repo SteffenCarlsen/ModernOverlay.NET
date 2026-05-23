@@ -303,7 +303,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 ### 18.2 Image
 
 - [x] Decide whether `Image` control is in 1.1: include in 1.1 MVP.
-- [ ] Support `ImageHandle`, stretch modes, alignment, opacity, and source rect.
+- [x] Support `ImageHandle`, stretch modes, alignment, opacity, and source rect.
+  - Intrinsic image dimensions are not exposed by `ImageHandle`; `Image` uses `SourceRect` or explicit element size as natural size and otherwise draws into arranged content.
 - [ ] Add tests for desired size and render command output.
 
 ### 18.3 ProgressBar

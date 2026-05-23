@@ -35,6 +35,183 @@ public class TextBlock : UiElement
     }
 }
 
+public sealed class Image : UiElement
+{
+    private ImageHandle? source;
+    private RectF? sourceRect;
+    private int frameIndex;
+    private float imageOpacity = 1f;
+    private UiImageStretch stretch = UiImageStretch.Uniform;
+    private ImageInterpolationMode interpolationMode = ImageInterpolationMode.Linear;
+    private UiHorizontalAlignment imageHorizontalAlignment = UiHorizontalAlignment.Center;
+    private UiVerticalAlignment imageVerticalAlignment = UiVerticalAlignment.Center;
+
+    public Image()
+    {
+        ReceivesInput = false;
+        MinWidth = 0f;
+        MinHeight = 0f;
+    }
+
+    public ImageHandle? Source
+    {
+        get => source;
+        set => SetProperty(ref source, value, UiInvalidation.Measure | UiInvalidation.Render);
+    }
+
+    public RectF? SourceRect
+    {
+        get => sourceRect;
+        set
+        {
+            if (value is { } rect && (rect.Width < 0f || rect.Height < 0f || !float.IsFinite(rect.X) || !float.IsFinite(rect.Y) || !float.IsFinite(rect.Width) || !float.IsFinite(rect.Height)))
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), "SourceRect must be finite and non-negative.");
+            }
+
+            SetProperty(ref sourceRect, value, UiInvalidation.Measure | UiInvalidation.Render);
+        }
+    }
+
+    public int FrameIndex
+    {
+        get => frameIndex;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(value);
+            SetProperty(ref frameIndex, value, UiInvalidation.Render);
+        }
+    }
+
+    public float ImageOpacity
+    {
+        get => imageOpacity;
+        set
+        {
+            if (value is < 0f or > 1f || !float.IsFinite(value))
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), "Image opacity must be finite and between 0 and 1.");
+            }
+
+            SetProperty(ref imageOpacity, value, UiInvalidation.Render);
+        }
+    }
+
+    public UiImageStretch Stretch
+    {
+        get => stretch;
+        set => SetProperty(ref stretch, value, UiInvalidation.Measure | UiInvalidation.Render);
+    }
+
+    public ImageInterpolationMode InterpolationMode
+    {
+        get => interpolationMode;
+        set => SetProperty(ref interpolationMode, value, UiInvalidation.Render);
+    }
+
+    public UiHorizontalAlignment ImageHorizontalAlignment
+    {
+        get => imageHorizontalAlignment;
+        set => SetProperty(ref imageHorizontalAlignment, value, UiInvalidation.Render);
+    }
+
+    public UiVerticalAlignment ImageVerticalAlignment
+    {
+        get => imageVerticalAlignment;
+        set => SetProperty(ref imageVerticalAlignment, value, UiInvalidation.Render);
+    }
+
+    protected override SizeF MeasureCore(SizeF availableSize)
+    {
+        SizeF sourceSize = GetSourceSize();
+        if (sourceSize.Width <= 0f || sourceSize.Height <= 0f)
+        {
+            return new SizeF(Padding.Horizontal, Padding.Vertical);
+        }
+
+        SizeF contentAvailable = UiGeometry.Deflate(availableSize, Padding);
+        SizeF imageSize = Stretch switch
+        {
+            UiImageStretch.None => sourceSize,
+            UiImageStretch.Fill => contentAvailable,
+            UiImageStretch.Uniform => ScaleToFit(sourceSize, contentAvailable, fill: false),
+            UiImageStretch.UniformToFill => ScaleToFit(sourceSize, contentAvailable, fill: true),
+            _ => sourceSize,
+        };
+
+        return UiGeometry.Inflate(imageSize, Padding);
+    }
+
+    protected override void RenderCore(UiRenderContext context)
+    {
+        if (Source is null || ImageOpacity <= 0f)
+        {
+            return;
+        }
+
+        RectF destination = GetDestinationRect(ContentBounds);
+        if (destination.Width <= 0f || destination.Height <= 0f)
+        {
+            return;
+        }
+
+        context.Draw.Draw.Image(Source, FrameIndex, destination, SourceRect, ImageOpacity, InterpolationMode);
+    }
+
+    private RectF GetDestinationRect(RectF content)
+    {
+        SizeF sourceSize = GetSourceSize();
+        SizeF destinationSize = sourceSize.Width <= 0f || sourceSize.Height <= 0f
+            ? new SizeF(content.Width, content.Height)
+            : Stretch switch
+            {
+                UiImageStretch.None => new SizeF(MathF.Min(sourceSize.Width, content.Width), MathF.Min(sourceSize.Height, content.Height)),
+                UiImageStretch.Fill => new SizeF(content.Width, content.Height),
+                UiImageStretch.Uniform => ScaleToFit(sourceSize, new SizeF(content.Width, content.Height), fill: false),
+                UiImageStretch.UniformToFill => ScaleToFit(sourceSize, new SizeF(content.Width, content.Height), fill: true),
+                _ => new SizeF(content.Width, content.Height),
+            };
+
+        float x = AlignX(content, destinationSize.Width);
+        float y = AlignY(content, destinationSize.Height);
+        return new RectF(x, y, destinationSize.Width, destinationSize.Height);
+    }
+
+    private SizeF GetSourceSize()
+        => SourceRect is { } rect
+            ? new SizeF(rect.Width, rect.Height)
+            : new SizeF(float.IsNaN(Width) ? 0f : Width, float.IsNaN(Height) ? 0f : Height);
+
+    private static SizeF ScaleToFit(SizeF sourceSize, SizeF available, bool fill)
+    {
+        if (sourceSize.Width <= 0f || sourceSize.Height <= 0f || available.Width <= 0f || available.Height <= 0f)
+        {
+            return new SizeF(0f, 0f);
+        }
+
+        float xScale = available.Width / sourceSize.Width;
+        float yScale = available.Height / sourceSize.Height;
+        float scale = fill ? MathF.Max(xScale, yScale) : MathF.Min(xScale, yScale);
+        return new SizeF(sourceSize.Width * scale, sourceSize.Height * scale);
+    }
+
+    private float AlignX(RectF content, float width)
+        => ImageHorizontalAlignment switch
+        {
+            UiHorizontalAlignment.Center => content.X + (content.Width - width) / 2f,
+            UiHorizontalAlignment.Right => content.X + content.Width - width,
+            _ => content.X,
+        };
+
+    private float AlignY(RectF content, float height)
+        => ImageVerticalAlignment switch
+        {
+            UiVerticalAlignment.Center => content.Y + (content.Height - height) / 2f,
+            UiVerticalAlignment.Bottom => content.Y + content.Height - height,
+            _ => content.Y,
+        };
+}
+
 public class Button : UiElement
 {
     private string text = string.Empty;

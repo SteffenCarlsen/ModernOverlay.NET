@@ -53,6 +53,14 @@ public enum UiVerticalAlignment
     Bottom,
 }
 
+public enum UiImageStretch
+{
+    None,
+    Fill,
+    Uniform,
+    UniformToFill,
+}
+
 public enum UiLayer
 {
     Content = 0,

@@ -121,6 +121,12 @@ The layout engine should stay deterministic and DIP-based:
 
 The first implementation should avoid data binding, templates, animations, general scrolling, and virtualization.
 
+### Dynamic placement
+
+Window placement should be first-class data rather than ad hoc coordinate mutation. `Manual` placement stores explicit overlay-local DIP bounds. `Anchor` resolves against the overlay's current client size. `TargetAnchor` resolves against the overlay's current tracked target bounds after converting screen pixels into overlay-local DIPs. `Cursor` resolves against the last overlay-local pointer position and treats `Thickness` as a signed offset: left/top add to the pointer position, right/bottom subtract from it. `Persisted` restores saved manual placement through `IUiLayoutStore`; the core UI package intentionally does not ship a built-in JSON or file store.
+
+Target bounds should be sampled during render/input layout rather than pushed into the UI tree from target-tracking events. Target tracking can run outside the UI root's thread-affine render/input path, so polling the overlay's current target state during `EnsureLayout` keeps dynamic placement aligned with the existing thread model.
+
 ### Property changes and invalidation
 
 Plain CLR properties are acceptable, but the UI layer still needs a consistent property-change model. Every UI property should declare its invalidation category:

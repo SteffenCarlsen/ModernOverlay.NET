@@ -53,6 +53,8 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
     private long routedEvents;
     private List<UiElement> hoveredElements = [];
     private readonly bool registeredInputRegions;
+    private RectF? lastLayoutTargetBounds;
+    private PointF? lastPointerPosition;
 
     internal OverlayUiRoot(OverlayWindow overlay, OverlayUiOptions options)
     {
@@ -95,6 +97,10 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
     public UiTheme Theme => ThemeResources.Theme;
 
     public RectF BoundsDips => overlay.BoundsDips;
+
+    internal RectF? TargetBoundsDips => ToOverlayLocalDips(overlay.TargetBoundsPixels);
+
+    internal PointF? LastPointerPositionDips => lastPointerPosition;
 
     public OverlayUiMetrics Metrics
     {
@@ -417,7 +423,8 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
     private void EnsureLayout()
     {
         RectF bounds = overlay.BoundsDips;
-        if (bounds != lastLayoutBounds)
+        RectF? targetBounds = TargetBoundsDips;
+        if (bounds != lastLayoutBounds || targetBounds != lastLayoutTargetBounds)
         {
             invalidation |= UiInvalidation.Measure | UiInvalidation.Arrange | UiInvalidation.Render | UiInvalidation.InputRegion;
         }
@@ -456,6 +463,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         while ((invalidation & (UiInvalidation.Measure | UiInvalidation.Arrange)) != 0);
 
         lastLayoutBounds = bounds;
+        lastLayoutTargetBounds = targetBounds;
         if (!layoutStillInvalidAfterCap)
         {
             invalidation &= ~(UiInvalidation.Measure | UiInvalidation.Arrange);
@@ -568,6 +576,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
 
         BindAccess();
         VerifyAccess();
+        UpdatePointerPosition(overlayArgs.Position);
         EnsureLayout();
         if (kind == OverlayPointerEventKind.Moved)
         {
@@ -638,6 +647,17 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         }
 
         invalidation |= UiInvalidation.Render;
+    }
+
+    private void UpdatePointerPosition(PointF position)
+    {
+        if (lastPointerPosition == position)
+        {
+            return;
+        }
+
+        lastPointerPosition = position;
+        invalidation |= UiInvalidation.Measure | UiInvalidation.Arrange | UiInvalidation.Render | UiInvalidation.InputRegion;
     }
 
     private void UpdateHoveredElement(UiElement? next, PointF position)
@@ -986,6 +1006,30 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
 
     private static TimeSpan Elapsed(long currentTimestamp, long startTimestamp)
         => TimeSpan.FromSeconds((currentTimestamp - startTimestamp) / (double)System.Diagnostics.Stopwatch.Frequency);
+
+    private RectF? ToOverlayLocalDips(WindowBounds? bounds)
+    {
+        if (bounds is not { IsEmpty: false } targetBounds)
+        {
+            return null;
+        }
+
+        DpiScale dpi = overlay.DpiScale;
+        if (!IsUsableDpi(dpi))
+        {
+            return null;
+        }
+
+        WindowBounds overlayBounds = overlay.BoundsPixels;
+        return new RectF(
+            (targetBounds.X - overlayBounds.X) / dpi.X,
+            (targetBounds.Y - overlayBounds.Y) / dpi.Y,
+            targetBounds.Width / dpi.X,
+            targetBounds.Height / dpi.Y);
+    }
+
+    private static bool IsUsableDpi(DpiScale dpi)
+        => float.IsFinite(dpi.X) && dpi.X > 0f && float.IsFinite(dpi.Y) && dpi.Y > 0f;
 
     internal static void LogInvalidPlacement(UiElement element, string placementKind, string reason)
     {

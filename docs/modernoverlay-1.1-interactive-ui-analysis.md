@@ -201,6 +201,8 @@ Proposed placement kinds:
 
 The UI root should clamp panels into the visible overlay bounds unless the user opts out. Placement should be recomputed when overlay bounds, DPI, or target bounds change, but user-dragged panels should become manual/persisted placement unless configured otherwise.
 
+Implementation note: target bounds are screen-pixel data from the overlay target tracker and must be converted to overlay-local DIPs during layout. The UI root should sample that current overlay state from render/input layout instead of mutating the UI tree from target-tracking events, because target tracking can run outside the UI root's thread-affine path. Cursor placement should use the last overlay-local pointer position; `Thickness` acts as a signed offset where left/top add and right/bottom subtract.
+
 ## Initial Control Set
 
 Required 1.1 MVP controls and layout primitives:

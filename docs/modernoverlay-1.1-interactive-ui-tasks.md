@@ -170,7 +170,9 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - `UiWindow` exposes placement clamping toggles and preserves size while keeping the title/header visible when possible.
 - [x] Recompute anchored placements when overlay bounds or DPI changes.
   - `OverlayUiRoot` invalidates layout when root DIP bounds change so anchored windows are recalculated.
-- [ ] Recompute target-anchored placements when target bounds change.
+- [x] Recompute target-anchored placements when target bounds change.
+  - `OverlayUiRoot` reads the overlay's current target bounds during layout, converts them into overlay-local DIPs, and invalidates layout when those bounds differ from the last arranged target bounds.
+  - Cursor placements use the last pointer position in overlay-local DIPs and apply `Thickness` as `left/top` positive offset minus `right/bottom` offset.
 - [x] Convert dragged anchored panels to manual placement if configured.
 - [x] Add `IUiLayoutStore` or equivalent persistence abstraction.
 - [x] Decide not to ship a built-in JSON or file layout-store helper in the core 1.1 UI package.

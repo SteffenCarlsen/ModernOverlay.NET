@@ -123,6 +123,8 @@ public sealed class OverlayWindow : IAsyncDisposable
 
     public WindowBounds BoundsPixels => currentBounds;
 
+    public WindowBounds? TargetBoundsPixels => currentTargetBounds;
+
     public DpiScale DpiScale => currentDpiScale;
 
     public RectF BoundsDips => currentDpiScale.PixelsToDips(currentBounds);

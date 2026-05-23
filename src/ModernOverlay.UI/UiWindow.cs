@@ -475,6 +475,10 @@ public sealed class UiWindow : UiPanel
         {
             UiPlacementKind.Manual => new PointF(resolvedPlacement.Bounds.X, resolvedPlacement.Bounds.Y),
             UiPlacementKind.Anchor => ResolveAnchoredPoint(resolvedPlacement.Anchor, resolvedPlacement.Margin, windowSize),
+            UiPlacementKind.TargetAnchor when Root.TargetBoundsDips is { } targetBounds
+                => ResolveAnchoredPoint(targetBounds, resolvedPlacement.Anchor, resolvedPlacement.Margin, windowSize),
+            UiPlacementKind.Cursor when Root.LastPointerPositionDips is { } pointerPosition
+                => ResolveCursorPoint(pointerPosition, resolvedPlacement.Margin),
             UiPlacementKind.Persisted when !resolvedPlacement.Bounds.IsEmpty => new PointF(resolvedPlacement.Bounds.X, resolvedPlacement.Bounds.Y),
             UiPlacementKind.Persisted => ResolveAnchoredPoint(resolvedPlacement.Anchor, resolvedPlacement.Margin, windowSize),
             _ => null,
@@ -505,21 +509,29 @@ public sealed class UiWindow : UiPanel
     private PointF ResolveAnchoredPoint(OverlayAnchor anchor, Thickness margin, SizeF windowSize)
     {
         RectF overlay = Root?.BoundsDips ?? default;
+        return ResolveAnchoredPoint(new RectF(0f, 0f, overlay.Width, overlay.Height), anchor, margin, windowSize);
+    }
+
+    private static PointF ResolveAnchoredPoint(RectF anchorBounds, OverlayAnchor anchor, Thickness margin, SizeF windowSize)
+    {
         float x = anchor switch
         {
-            OverlayAnchor.Top or OverlayAnchor.Center or OverlayAnchor.Bottom => (overlay.Width - windowSize.Width) / 2f,
-            OverlayAnchor.TopRight or OverlayAnchor.Right or OverlayAnchor.BottomRight => overlay.Width - windowSize.Width - margin.Right,
-            _ => margin.Left,
+            OverlayAnchor.Top or OverlayAnchor.Center or OverlayAnchor.Bottom => anchorBounds.X + (anchorBounds.Width - windowSize.Width) / 2f,
+            OverlayAnchor.TopRight or OverlayAnchor.Right or OverlayAnchor.BottomRight => anchorBounds.X + anchorBounds.Width - windowSize.Width - margin.Right,
+            _ => anchorBounds.X + margin.Left,
         };
         float y = anchor switch
         {
-            OverlayAnchor.Left or OverlayAnchor.Center or OverlayAnchor.Right => (overlay.Height - windowSize.Height) / 2f,
-            OverlayAnchor.BottomLeft or OverlayAnchor.Bottom or OverlayAnchor.BottomRight => overlay.Height - windowSize.Height - margin.Bottom,
-            _ => margin.Top,
+            OverlayAnchor.Left or OverlayAnchor.Center or OverlayAnchor.Right => anchorBounds.Y + (anchorBounds.Height - windowSize.Height) / 2f,
+            OverlayAnchor.BottomLeft or OverlayAnchor.Bottom or OverlayAnchor.BottomRight => anchorBounds.Y + anchorBounds.Height - windowSize.Height - margin.Bottom,
+            _ => anchorBounds.Y + margin.Top,
         };
 
         return new PointF(x, y);
     }
+
+    private static PointF ResolveCursorPoint(PointF pointerPosition, Thickness offset)
+        => new(pointerPosition.X + offset.Left - offset.Right, pointerPosition.Y + offset.Top - offset.Bottom);
 
     private RectF ClampPlacement(RectF bounds)
     {

@@ -85,12 +85,33 @@ jobs:
 
       - name: Pack
         shell: pwsh
-        run: dotnet pack ModernOverlay.sln --configuration Release --no-build -m:1 --output artifacts\packages -p:Version=$env:PACKAGE_VERSION -p:PackageVersion=$env:PACKAGE_VERSION -p:ContinuousIntegrationBuild=true -bl:artifacts\release-pack.binlog
+        run: |
+          $projects = @(
+            'src\ModernOverlay.Diagnostics\ModernOverlay.Diagnostics.csproj',
+            'src\ModernOverlay.Win32\ModernOverlay.Win32.csproj',
+            'src\ModernOverlay\ModernOverlay.csproj',
+            'src\ModernOverlay.Direct2D\ModernOverlay.Direct2D.csproj',
+            'src\ModernOverlay.Integration\ModernOverlay.Integration.csproj'
+          )
+
+          foreach ($project in $projects) {
+            $logName = [IO.Path]::GetFileNameWithoutExtension($project)
+            dotnet pack $project `
+              --configuration Release `
+              --no-build `
+              -m:1 `
+              --output artifacts\packages `
+              -p:Version=$env:PACKAGE_VERSION `
+              -p:PackageVersion=$env:PACKAGE_VERSION `
+              -p:ContinuousIntegrationBuild=true `
+              -bl:"artifacts\release-pack-$logName.binlog"
+          }
 
       - name: Summarize packages
         shell: pwsh
         run: |
-          $packages = Get-ChildItem -Path artifacts\packages -File -Include *.nupkg,*.snupkg
+          $packages = Get-ChildItem -Path artifacts\packages -File |
+            Where-Object { $_.Extension -in '.nupkg', '.snupkg' }
 
           if ($packages.Count -eq 0) {
             throw 'No packages were produced by dotnet pack.'

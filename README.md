@@ -1,19 +1,19 @@
 # ModernOverlay
 
-ModernOverlay is a Windows-only overlay library for modern .NET. It replaces the useful parts of the GameOverlay.NET programming model with a new Vortice + Direct2D/DirectWrite/WIC + Win32 implementation.
+ModernOverlay is a Windows-only overlay library for modern .NET. It replaces the useful parts of the [GameOverlay.NET](https://github.com/michel-pi/GameOverlay.Net) programming model with a new Vortice + Direct2D/DirectWrite/WIC + Win32 implementation.
 
-This package is not a drop-in GameOverlay.NET replacement. The API intentionally uses new names, explicit lifetimes, safer target tracking, and first-class diagnostics.
+This package is not a drop-in [GameOverlay.NET](https://github.com/michel-pi/GameOverlay.Net) replacement, but feature-wise is heavily inspired by the library from Michel. The API intentionally uses new names, explicit lifetimes, safer target tracking, and first-class diagnostics.
 
 ## Preview Status
 
-This repository currently targets `net11.0-windows` on a .NET 11 preview SDK. APIs, package layout, backend registration, and packaging metadata may change before .NET 11 GA. There is no checked-in `net10.0-windows` target on `main`.
+This repository currently targets `net11.0-windows` on a .NET 11 preview SDK. APIs, package layout, backend registration, and packaging metadata may change before .NET 11 GA.
 
 Package-facing caveats for the MVP/alpha release:
 
 1. The common `ModernOverlay` package bundles the Direct2D backend assembly for the preview one-package path. `ModernOverlay.Direct2D` is still also emitted as a separate backend package.
 2. `ModernOverlay.Integration.Experimental` is source-only for alpha and should not be published until there is a real authorized experimental provider.
 3. `TransparencyMode.UpdateLayeredWindow` and `TransparencyMode.DirectComposition` are request modes that currently fall back to the DWM/color-key Direct2D HWND path with diagnostics. True CPU-copy layered alpha and DirectComposition/DXGI per-pixel alpha remain future backend work.
-4. The release bar is a hobbyist MVP/alpha: useful, buildable, sample-backed, and caveated. Windows 11, mixed-DPI, fullscreen, and extra GPU validation are follow-up hardening checks, not first-release blockers.
+4. The release bar is a hobbyist project aiming to be useful, buildable, sample-backed, and caveated.
 
 ## Quick Start
 
@@ -170,9 +170,3 @@ Read more: [docs index](docs/README.md).
 3. [tests](tests/README.md): test areas and common commands.
 4. [benchmarks](benchmarks/README.md): BenchmarkDotNet classes and dry-run command.
 5. [tools](tools/README.md): release validation command gate.
-
-## Safety Boundary
-
-ModernOverlay is standalone and cooperative by design. It does not implement stealth behavior, anti-cheat bypass, protected-process bypass, capture-protection bypass, or kernel-level integration.
-
-Read more: [integration boundary](docs/integration-boundary.md), [capture-backed overlay spike](docs/capture-backed-overlay-spike.md).

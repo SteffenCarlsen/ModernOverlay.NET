@@ -677,6 +677,9 @@ public sealed class ToolTip : UiElement, IUiPopup
 {
     private string text = string.Empty;
     private bool isOpen;
+    private TimeSpan initialDelay = TimeSpan.FromMilliseconds(650);
+    private TimeSpan showDuration = TimeSpan.Zero;
+    private bool opensOnHover = true;
     private PointF placement;
     private PointF placementOffset;
     private UiPopupPlacementMode placementMode = UiPopupPlacementMode.OwnerAnchor;
@@ -684,6 +687,11 @@ public sealed class ToolTip : UiElement, IUiPopup
     private OverlayAnchor popupAnchor = OverlayAnchor.BottomLeft;
     private bool clampToOverlay = true;
     private UiElement? owner;
+    private UiElement? subscribedOwner;
+    private bool hoverPending;
+    private bool ownerHovering;
+    private long hoverStartedTimestamp;
+    private long openedTimestamp;
 
     public ToolTip()
     {
@@ -700,16 +708,71 @@ public sealed class ToolTip : UiElement, IUiPopup
     public bool IsOpen
     {
         get => isOpen;
-        set => SetProperty(ref isOpen, value, UiInvalidation.Measure | UiInvalidation.Render | UiInvalidation.InputRegion);
+        set
+        {
+            if (SetProperty(ref isOpen, value, UiInvalidation.Measure | UiInvalidation.Render | UiInvalidation.InputRegion) && value)
+            {
+                openedTimestamp = System.Diagnostics.Stopwatch.GetTimestamp();
+            }
+        }
     }
 
     public UiElement? Owner
     {
         get => owner;
-        set => SetProperty(ref owner, value, UiInvalidation.None);
+        set
+        {
+            if (!SetProperty(ref owner, value, UiInvalidation.Arrange | UiInvalidation.InputRegion))
+            {
+                return;
+            }
+
+            SubscribeOwner(owner);
+            CancelHover(closeTooltip: true);
+        }
     }
 
-    public bool DismissOnOutsidePointer { get; set; } = true;
+    public TimeSpan InitialDelay
+    {
+        get => initialDelay;
+        set
+        {
+            if (value < TimeSpan.Zero)
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), "Tooltip initial delay cannot be negative.");
+            }
+
+            SetProperty(ref initialDelay, value, UiInvalidation.None);
+        }
+    }
+
+    public TimeSpan ShowDuration
+    {
+        get => showDuration;
+        set
+        {
+            if (value < TimeSpan.Zero)
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), "Tooltip show duration cannot be negative.");
+            }
+
+            SetProperty(ref showDuration, value, UiInvalidation.None);
+        }
+    }
+
+    public bool OpensOnHover
+    {
+        get => opensOnHover;
+        set
+        {
+            if (SetProperty(ref opensOnHover, value, UiInvalidation.None) && !value)
+            {
+                CancelHover(closeTooltip: true);
+            }
+        }
+    }
+
+    public bool DismissOnOutsidePointer { get; set; }
 
     public bool DismissOnEscape { get; set; } = true;
 
@@ -787,4 +850,108 @@ public sealed class ToolTip : UiElement, IUiPopup
         context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Border);
         context.Draw.Draw.Text(Text, context.Theme.Font, context.Theme.Foreground, new PointF(ContentBounds.X, ContentBounds.Y));
     }
+
+    protected override void OnAttached()
+    {
+        SubscribeOwner(Owner);
+    }
+
+    protected override void OnDetached()
+    {
+        UnsubscribeOwner(Owner);
+        CancelHover(closeTooltip: true);
+    }
+
+    internal void UpdateFrame(long timestamp)
+    {
+        if (!OpensOnHover || Owner is null || Owner.Root != Root || Text.Length == 0 || !Owner.IsVisible || !Owner.IsEffectivelyEnabled)
+        {
+            CancelHover(closeTooltip: true);
+            return;
+        }
+
+        if (IsOpen)
+        {
+            if (ShowDuration > TimeSpan.Zero && Elapsed(timestamp, openedTimestamp) >= ShowDuration)
+            {
+                CancelHover(closeTooltip: true);
+            }
+
+            return;
+        }
+
+        if (hoverPending && ownerHovering && Elapsed(timestamp, hoverStartedTimestamp) >= InitialDelay)
+        {
+            hoverPending = false;
+            IsOpen = true;
+        }
+    }
+
+    private void HandleOwnerPointerEntered(object? sender, UiPointerEventArgs args)
+    {
+        if (!OpensOnHover || Text.Length == 0)
+        {
+            return;
+        }
+
+        ownerHovering = true;
+        hoverPending = true;
+        hoverStartedTimestamp = System.Diagnostics.Stopwatch.GetTimestamp();
+        IsOpen = false;
+    }
+
+    private void HandleOwnerPointerExited(object? sender, UiPointerEventArgs args)
+    {
+        CancelHover(closeTooltip: true);
+    }
+
+    private void HandleOwnerPointerPressed(object? sender, UiPointerEventArgs args)
+    {
+        CancelHover(closeTooltip: true);
+    }
+
+    private void SubscribeOwner(UiElement? element)
+    {
+        if (ReferenceEquals(subscribedOwner, element))
+        {
+            return;
+        }
+
+        UnsubscribeOwner(subscribedOwner);
+        if (element is null)
+        {
+            return;
+        }
+
+        element.PointerEntered += HandleOwnerPointerEntered;
+        element.PointerExited += HandleOwnerPointerExited;
+        element.PointerPressed += HandleOwnerPointerPressed;
+        subscribedOwner = element;
+    }
+
+    private void UnsubscribeOwner(UiElement? element)
+    {
+        if (element is null || !ReferenceEquals(subscribedOwner, element))
+        {
+            return;
+        }
+
+        element.PointerEntered -= HandleOwnerPointerEntered;
+        element.PointerExited -= HandleOwnerPointerExited;
+        element.PointerPressed -= HandleOwnerPointerPressed;
+        subscribedOwner = null;
+    }
+
+    private void CancelHover(bool closeTooltip)
+    {
+        ownerHovering = false;
+        hoverPending = false;
+        if (closeTooltip)
+        {
+            IsOpen = false;
+        }
+    }
+
+    private static TimeSpan Elapsed(long currentTimestamp, long startTimestamp)
+        => TimeSpan.FromSeconds((currentTimestamp - startTimestamp) / (double)System.Diagnostics.Stopwatch.Frequency);
 }

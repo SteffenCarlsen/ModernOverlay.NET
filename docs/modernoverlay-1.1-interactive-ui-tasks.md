@@ -466,8 +466,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 ### 23.3 ToolTip
 
 - [x] Decide whether `ToolTip` is a required MVP control or a 1.2 follow-up: include in 1.1 MVP.
-- [ ] Implement delayed hover popup with placement/clamping.
-  - Basic manually opened `ToolTip` exists; delayed hover ownership and clamping remain open.
+- [x] Implement delayed hover popup with placement/clamping.
+  - `ToolTip` can subscribe to an owner element, open after `InitialDelay`, close on owner exit/press/unavailability, and reuse popup placement/clamping.
 
 ## 24. Scrolling And Virtualization
 

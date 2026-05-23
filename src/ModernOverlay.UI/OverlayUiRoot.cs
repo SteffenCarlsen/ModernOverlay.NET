@@ -73,6 +73,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         ArgumentNullException.ThrowIfNull(frame);
         BindAccess();
         VerifyAccess();
+        UpdateFrameTimers();
         EnsureLayout();
         using (EnterPhase(UiRootPhase.Render))
         {
@@ -557,6 +558,15 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         while (deferredOperations.TryDequeue(out Action? operation))
         {
             operation();
+        }
+    }
+
+    private void UpdateFrameTimers()
+    {
+        long timestamp = System.Diagnostics.Stopwatch.GetTimestamp();
+        foreach (ToolTip toolTip in Root.DescendantsAndSelf().OfType<ToolTip>().ToArray())
+        {
+            toolTip.UpdateFrame(timestamp);
         }
     }
 

@@ -4,6 +4,115 @@ public class UiControl : UiElement
 {
 }
 
+public class UiItemCollection : System.Collections.ObjectModel.Collection<object?>
+{
+    private readonly Selector owner;
+
+    internal UiItemCollection(Selector owner)
+    {
+        this.owner = owner;
+    }
+
+    protected override void InsertItem(int index, object? item)
+    {
+        base.InsertItem(index, item);
+        owner.NotifyItemsChanged();
+    }
+
+    protected override void SetItem(int index, object? item)
+    {
+        base.SetItem(index, item);
+        owner.NotifyItemsChanged();
+    }
+
+    protected override void RemoveItem(int index)
+    {
+        base.RemoveItem(index);
+        owner.NotifyItemsChanged();
+    }
+
+    protected override void ClearItems()
+    {
+        base.ClearItems();
+        owner.NotifyItemsChanged();
+    }
+}
+
+public abstract class Selector : UiControl
+{
+    private int selectedIndex = -1;
+    private Func<object?, string>? displayTextSelector;
+
+    protected Selector()
+    {
+        Items = new UiItemCollection(this);
+    }
+
+    public event EventHandler? SelectionChanged;
+
+    public UiItemCollection Items { get; }
+
+    public int SelectedIndex
+    {
+        get => selectedIndex;
+        set
+        {
+            int next = CoerceSelectedIndex(value);
+            if (SetProperty(ref selectedIndex, next, SelectionInvalidation))
+            {
+                SelectionChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+    }
+
+    public object? SelectedItem => IsSelectedIndexValid ? Items[SelectedIndex] : null;
+
+    public Func<object?, string>? DisplayTextSelector
+    {
+        get => displayTextSelector;
+        set => SetProperty(ref displayTextSelector, value, UiInvalidation.Measure | UiInvalidation.Render);
+    }
+
+    private protected virtual UiInvalidation SelectionInvalidation => UiInvalidation.Render;
+
+    protected bool IsSelectedIndexValid => SelectedIndex >= 0 && SelectedIndex < Items.Count;
+
+    protected string SelectedText => IsSelectedIndexValid ? GetItemText(SelectedIndex) : string.Empty;
+
+    protected string GetItemText(int index)
+        => index >= 0 && index < Items.Count ? GetItemText(Items[index]) : string.Empty;
+
+    protected void MoveSelection(int delta)
+    {
+        if (Items.Count == 0)
+        {
+            SelectedIndex = -1;
+            return;
+        }
+
+        int current = SelectedIndex < 0 ? 0 : SelectedIndex;
+        SelectedIndex = Math.Clamp(current + delta, 0, Items.Count - 1);
+    }
+
+    internal void NotifyItemsChanged()
+    {
+        int next = CoerceSelectedIndex(SelectedIndex);
+        if (selectedIndex != next)
+        {
+            selectedIndex = next;
+            SelectionChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        Root?.Invalidate(UiInvalidation.Measure | UiInvalidation.Render | UiInvalidation.InputRegion);
+    }
+
+    private string GetItemText(object? item)
+        => DisplayTextSelector?.Invoke(item) ?? item?.ToString() ?? string.Empty;
+
+    private int CoerceSelectedIndex(int value)
+        => Items.Count == 0 ? -1 : Math.Clamp(value, -1, Items.Count - 1);
+}
+
 public class ContentControl : UiPanel
 {
     private UiElement? content;

@@ -1236,9 +1236,8 @@ public sealed class TextBox : UiControl
     }
 }
 
-public sealed class ListBox : UiControl
+public sealed class ListBox : Selector
 {
-    private int selectedIndex = -1;
     private float itemHeight = 24f;
 
     public ListBox()
@@ -1249,25 +1248,6 @@ public sealed class ListBox : UiControl
         MinHeight = 72f;
         Height = 120f;
     }
-
-    public event EventHandler? SelectionChanged;
-
-    public IList<string> Items { get; } = [];
-
-    public int SelectedIndex
-    {
-        get => selectedIndex;
-        set
-        {
-            int next = Items.Count == 0 ? -1 : Math.Clamp(value, -1, Items.Count - 1);
-            if (SetProperty(ref selectedIndex, next, UiInvalidation.Render))
-            {
-                SelectionChanged?.Invoke(this, EventArgs.Empty);
-            }
-        }
-    }
-
-    public string? SelectedItem => SelectedIndex >= 0 && SelectedIndex < Items.Count ? Items[SelectedIndex] : null;
 
     public float ItemHeight
     {
@@ -1297,7 +1277,7 @@ public sealed class ListBox : UiControl
                 context.Draw.Fill.Rectangle(row, enabled ? ResolveAccentBrush(context) : ResolveBorderBrush(context));
             }
 
-            context.Draw.Draw.Text(Items[index], context.Theme.Font, enabled ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(row.X + 6f, row.Y + 4f));
+            context.Draw.Draw.Text(GetItemText(index), context.Theme.Font, enabled ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(row.X + 6f, row.Y + 4f));
         }
     }
 
@@ -1358,9 +1338,8 @@ public sealed class ListBox : UiControl
     }
 }
 
-public sealed class ComboBox : UiControl, IUiPopup
+public sealed class ComboBox : Selector, IUiPopup
 {
-    private int selectedIndex = -1;
     private bool isDropDownOpen;
     private string placeholder = string.Empty;
     private readonly float itemHeight = 24f;
@@ -1376,25 +1355,6 @@ public sealed class ComboBox : UiControl, IUiPopup
         Padding = new Thickness(8f, 5f);
         ZIndex = (int)UiLayer.Popup;
     }
-
-    public event EventHandler? SelectionChanged;
-
-    public IList<string> Items { get; } = [];
-
-    public int SelectedIndex
-    {
-        get => selectedIndex;
-        set
-        {
-            int next = Items.Count == 0 ? -1 : Math.Clamp(value, -1, Items.Count - 1);
-            if (SetProperty(ref selectedIndex, next, UiInvalidation.Render | UiInvalidation.InputRegion))
-            {
-                SelectionChanged?.Invoke(this, EventArgs.Empty);
-            }
-        }
-    }
-
-    public string? SelectedItem => SelectedIndex >= 0 && SelectedIndex < Items.Count ? Items[SelectedIndex] : null;
 
     public string Placeholder
     {
@@ -1436,6 +1396,8 @@ public sealed class ComboBox : UiControl, IUiPopup
 
     protected override SizeF MeasureCore(SizeF availableSize) => new(MathF.Min(availableSize.Width, MathF.Max(MinWidth, 160f)), Height);
 
+    private protected override UiInvalidation SelectionInvalidation => UiInvalidation.Render | UiInvalidation.InputRegion;
+
     protected override bool HitTestCore(PointF point)
         => UiGeometry.Contains(Bounds, point) || (IsDropDownOpen && UiGeometry.Contains(DropDownBounds, point));
 
@@ -1448,10 +1410,10 @@ public sealed class ComboBox : UiControl, IUiPopup
         bool enabled = IsEffectivelyEnabled;
         context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, enabled ? ResolveBackground(context) : ResolveDisabledBrush(context));
         context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, IsFocused && enabled ? ResolveFocusBrush(context) : ResolveBorderBrush(context));
-        string display = SelectedItem ?? Placeholder;
+        string display = IsSelectedIndexValid ? SelectedText : Placeholder;
         if (display.Length > 0)
         {
-            BrushHandle brush = !enabled ? ResolveDisabledBrush(context) : SelectedItem is null ? context.Theme.MutedForeground : ResolveForeground(context);
+            BrushHandle brush = !enabled ? ResolveDisabledBrush(context) : IsSelectedIndexValid ? ResolveForeground(context) : context.Theme.MutedForeground;
             context.Draw.Draw.Text(display, context.Theme.Font, brush, new PointF(ContentBounds.X, ContentBounds.Y));
         }
 
@@ -1552,7 +1514,7 @@ public sealed class ComboBox : UiControl, IUiPopup
                 context.Draw.Fill.Rectangle(row, enabled ? ResolveAccentBrush(context) : ResolveBorderBrush(context));
             }
 
-            context.Draw.Draw.Text(Items[index], context.Theme.Font, enabled ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(row.X + 8f, row.Y + 4f));
+            context.Draw.Draw.Text(GetItemText(index), context.Theme.Font, enabled ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(row.X + 8f, row.Y + 4f));
         }
     }
 }

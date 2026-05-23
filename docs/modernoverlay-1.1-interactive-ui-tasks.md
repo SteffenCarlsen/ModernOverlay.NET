@@ -298,8 +298,10 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Define control subscription/unsubscription behavior for `CanExecuteChanged`.
 - [x] Ensure command-enabled state automatically updates disabled visuals and input participation.
 - [ ] Add simple property changed helpers only if control state needs binding.
-- [ ] Decide whether full data binding is out of scope for 1.1.
-- [ ] Add change callbacks for value controls: checked, selected item, slider value, text changed.
+- [x] Decide whether full data binding is out of scope for 1.1.
+  - Full data binding is out of scope for 1.1; controls expose direct properties plus explicit changed events.
+- [x] Add change callbacks for value controls: checked, selected item, slider value, text changed.
+  - Toggle/check/radio controls expose `CheckedChanged`; selectors expose `SelectionChanged`; range and number controls expose `ValueChanged`; `TextBox` exposes `TextChanged`.
 - [ ] Add tests for command execution, disabled command state, and event callbacks.
 
 ## 17. Control Base Classes
@@ -312,7 +314,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add `ContentControl` for controls with one child/content object.
 - [x] Add `HeaderedContentControl` if windows/group boxes/tabs need it.
 - [x] Add `RangeBase` for slider/progress/number controls.
-- [ ] Add `Selector` for list/combo/radio groups.
+- [x] Add `Selector` for list/combo/radio groups.
+  - `Selector` now owns item collection, selected index/item, display-text callback, and selection-change notification for list/combo controls.
 - [ ] Add tests for common visual states, command state, and inherited behavior.
 
 ## 18. Text And Display Controls
@@ -436,6 +439,7 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 
 - [x] Implement `ListBox`.
 - [x] Support item source as simple strings/objects with display text callback.
+  - `ListBox` inherits `Selector`, accepts object items, and uses `DisplayTextSelector` or `ToString()`.
 - [x] Support selected index and selected item.
 - [x] Support keyboard up/down/home/end.
 - [x] Support simple wheel/keyboard list navigation without depending on a general `ScrollViewer`.
@@ -446,6 +450,7 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Decide whether `ComboBox` is in the first MVP: include in 1.1 MVP.
 - [x] Implement `ComboBox` after popup host and list selection are stable.
 - [x] Support selected index/item, placeholder, dropdown open/close, max dropdown height.
+  - `ComboBox` inherits `Selector`, accepts object items, and uses `DisplayTextSelector` or `ToString()`.
 - [x] Draw dropdown above normal controls.
 - [ ] Add tests for open/close, item selection, outside click close, Escape close, keyboard navigation, and z-order.
 

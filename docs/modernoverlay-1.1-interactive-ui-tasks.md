@@ -209,8 +209,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Translate `OverlayWindow.PointerPressed` to UI pointer down.
 - [x] Translate `OverlayWindow.PointerReleased` to UI pointer up and click.
 - [x] Translate `OverlayWindow.PointerWheel` to UI wheel.
-- [ ] Track pointer enter/leave.
-- [ ] Track hover target independent from captured target.
+- [x] Track pointer enter/leave.
+- [x] Track hover target independent from captured target.
 - [ ] Add double-click detection if useful for window title bars and list items.
 - [ ] Add tests for event routing, handled behavior, enter/leave, click, double-click if included, and wheel.
 

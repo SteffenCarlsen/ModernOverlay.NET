@@ -26,6 +26,10 @@ public abstract class UiElement
 
     public event EventHandler<UiPointerEventArgs>? PointerMoved;
 
+    public event EventHandler<UiPointerEventArgs>? PointerEntered;
+
+    public event EventHandler<UiPointerEventArgs>? PointerExited;
+
     public event EventHandler<UiPointerEventArgs>? PointerPressed;
 
     public event EventHandler<UiPointerEventArgs>? PointerReleased;
@@ -346,6 +350,18 @@ public abstract class UiElement
         PointerMoved?.Invoke(this, args);
     }
 
+    internal void RaisePointerEntered(UiPointerEventArgs args)
+    {
+        OnPointerEntered(args);
+        PointerEntered?.Invoke(this, args);
+    }
+
+    internal void RaisePointerExited(UiPointerEventArgs args)
+    {
+        OnPointerExited(args);
+        PointerExited?.Invoke(this, args);
+    }
+
     internal void RaisePointerPressed(UiPointerEventArgs args)
     {
         OnPointerPressed(args);
@@ -395,6 +411,14 @@ public abstract class UiElement
     protected virtual bool HitTestCore(PointF point) => UiGeometry.Contains(Bounds, point);
 
     protected virtual void OnPointerMoved(UiPointerEventArgs args)
+    {
+    }
+
+    protected virtual void OnPointerEntered(UiPointerEventArgs args)
+    {
+    }
+
+    protected virtual void OnPointerExited(UiPointerEventArgs args)
     {
     }
 

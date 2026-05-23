@@ -22,7 +22,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
     private UiRootPhase phase;
     private bool disposed;
     private UiElement? pressedElement;
-    private UiElement? hoveredElement;
+    private List<UiElement> hoveredElements = [];
     private readonly bool registeredInputRegions;
 
     internal OverlayUiRoot(OverlayWindow overlay, OverlayUiOptions options)
@@ -220,11 +220,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
             pressedElement = null;
         }
 
-        if (IsSameOrDescendant(element, hoveredElement))
-        {
-            hoveredElement?.IsMouseOver = false;
-            hoveredElement = null;
-        }
+        ClearHoveredDescendants(element);
     }
 
     internal void NotifyElementStateChanged(UiElement element)
@@ -263,10 +259,9 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
             pressedElement = null;
         }
 
-        if (treeUnavailable && IsSameOrDescendant(element, hoveredElement))
+        if (treeUnavailable)
         {
-            hoveredElement?.IsMouseOver = false;
-            hoveredElement = null;
+            ClearHoveredDescendants(element);
         }
 
         invalidation |= UiInvalidation.Render | UiInvalidation.InputRegion | UiInvalidation.FocusState;
@@ -381,7 +376,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         EnsureLayout();
         if (kind == OverlayPointerEventKind.Moved)
         {
-            UpdateHoveredElement(Root.ResolveInput(overlayArgs.Position));
+            UpdateHoveredElement(Root.ResolveInput(overlayArgs.Position), overlayArgs.Position);
         }
 
         UiElement? target = CapturedElement ?? Root.ResolveInput(overlayArgs.Position);
@@ -424,18 +419,28 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         invalidation |= UiInvalidation.Render;
     }
 
-    private void UpdateHoveredElement(UiElement? next)
+    private void UpdateHoveredElement(UiElement? next, PointF position)
     {
-        if (ReferenceEquals(hoveredElement, next))
+        List<UiElement> nextPath = BuildElementPath(next);
+        if (hoveredElements.SequenceEqual(nextPath))
         {
             return;
         }
 
-        hoveredElement?.IsMouseOver = false;
+        var args = new UiPointerEventArgs(OverlayPointerEventKind.Moved, OverlayPointerButton.None, position);
+        foreach (UiElement exited in hoveredElements.Where(element => !nextPath.Contains(element)).ToArray())
+        {
+            exited.IsMouseOver = false;
+            exited.RaisePointerExited(args);
+        }
 
-        hoveredElement = next;
-        hoveredElement?.IsMouseOver = true;
+        foreach (UiElement entered in nextPath.Where(element => !hoveredElements.Contains(element)).Reverse().ToArray())
+        {
+            entered.IsMouseOver = true;
+            entered.RaisePointerEntered(args);
+        }
 
+        hoveredElements = nextPath;
         invalidation |= UiInvalidation.Render;
     }
 
@@ -641,6 +646,37 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         }
 
         return false;
+    }
+
+    private void ClearHoveredDescendants(UiElement element)
+    {
+        UiElement[] removed = hoveredElements
+            .Where(hovered => IsSameOrDescendant(element, hovered))
+            .ToArray();
+        if (removed.Length == 0)
+        {
+            return;
+        }
+
+        foreach (UiElement hovered in removed)
+        {
+            hovered.IsMouseOver = false;
+        }
+
+        hoveredElements = hoveredElements
+            .Where(hovered => !removed.Contains(hovered))
+            .ToList();
+    }
+
+    private static List<UiElement> BuildElementPath(UiElement? element)
+    {
+        var path = new List<UiElement>();
+        for (UiElement? current = element; current is not null; current = current.Parent)
+        {
+            path.Add(current);
+        }
+
+        return path;
     }
 
     private static bool IsUnavailableForTreeInput(UiElement element)

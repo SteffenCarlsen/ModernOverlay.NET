@@ -308,7 +308,7 @@ public class Button : UiElement
         ReleasePointerCapture();
         if (!args.IsDragGesture && UiGeometry.Contains(Bounds, args.Position) && CanExecute())
         {
-            InvokeClick(args.Position, args.Button);
+            InvokeClick(args.Position, args.Button, args.ClickCount);
             args.Handled = true;
         }
     }
@@ -317,16 +317,16 @@ public class Button : UiElement
     {
         if ((args.VirtualKey is UiVirtualKeys.Enter or UiVirtualKeys.Space) && CanExecute())
         {
-            InvokeClick(new PointF(Bounds.X, Bounds.Y), OverlayPointerButton.None);
+            InvokeClick(new PointF(Bounds.X, Bounds.Y), OverlayPointerButton.None, clickCount: 1);
             args.Handled = true;
         }
     }
 
     protected bool CanExecute() => IsEnabled && (Command?.CanExecute(CommandParameter) ?? true);
 
-    protected virtual void InvokeClick(PointF position, OverlayPointerButton button)
+    protected virtual void InvokeClick(PointF position, OverlayPointerButton button, int clickCount = 1)
     {
-        Click?.Invoke(this, new UiClickEventArgs(position, button));
+        Click?.Invoke(this, new UiClickEventArgs(position, button, clickCount));
         Command?.Execute(CommandParameter);
     }
 
@@ -355,10 +355,10 @@ public class ToggleButton : Button
         }
     }
 
-    protected override void InvokeClick(PointF position, OverlayPointerButton button)
+    protected override void InvokeClick(PointF position, OverlayPointerButton button, int clickCount = 1)
     {
         IsChecked = !IsChecked;
-        base.InvokeClick(position, button);
+        base.InvokeClick(position, button, clickCount);
     }
 
     protected override void RenderCore(UiRenderContext context)
@@ -413,16 +413,16 @@ public sealed class RadioButton : ToggleButton
         set => SetProperty(ref groupName, value, UiInvalidation.None);
     }
 
-    protected override void InvokeClick(PointF position, OverlayPointerButton button)
+    protected override void InvokeClick(PointF position, OverlayPointerButton button, int clickCount = 1)
     {
         if (IsChecked)
         {
-            base.InvokeClick(position, button);
+            base.InvokeClick(position, button, clickCount);
             return;
         }
 
         ClearPeers();
-        base.InvokeClick(position, button);
+        base.InvokeClick(position, button, clickCount);
     }
 
     protected override void RenderCore(UiRenderContext context)

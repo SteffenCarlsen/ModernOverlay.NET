@@ -33,7 +33,14 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
     private UiElement? pressedElement;
     private PointF pressedPosition;
     private bool pressedExceededDragThreshold;
+    private int pressedClickCount = 1;
+    private UiElement? lastClickElement;
+    private OverlayPointerButton lastClickButton;
+    private PointF lastClickPosition;
+    private long lastClickTimestamp;
     private float dragThreshold = 4f;
+    private TimeSpan doubleClickTime = TimeSpan.FromMilliseconds(500);
+    private float doubleClickDistance = 4f;
     private long layoutPasses;
     private long renderPasses;
     private long inputRegionChecks;
@@ -110,6 +117,34 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
             }
 
             dragThreshold = value;
+        }
+    }
+
+    public TimeSpan DoubleClickTime
+    {
+        get => doubleClickTime;
+        set
+        {
+            if (value < TimeSpan.Zero)
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), "Double-click time cannot be negative.");
+            }
+
+            doubleClickTime = value;
+        }
+    }
+
+    public float DoubleClickDistance
+    {
+        get => doubleClickDistance;
+        set
+        {
+            if (value < 0f || !float.IsFinite(value))
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), "Double-click distance must be finite and non-negative.");
+            }
+
+            doubleClickDistance = value;
         }
     }
 
@@ -479,7 +514,13 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         }
 
         bool isDragGesture = (kind is OverlayPointerEventKind.Moved or OverlayPointerEventKind.Released) && pressedExceededDragThreshold;
-        var args = new UiPointerEventArgs(kind, overlayArgs.Button, overlayArgs.Position, overlayArgs.WheelDelta, overlayArgs.IsHorizontalWheel, isDragGesture);
+        int clickCount = kind switch
+        {
+            OverlayPointerEventKind.Pressed => GetNextClickCount(target, overlayArgs),
+            OverlayPointerEventKind.Released => pressedClickCount,
+            _ => 0,
+        };
+        var args = new UiPointerEventArgs(kind, overlayArgs.Button, overlayArgs.Position, overlayArgs.WheelDelta, overlayArgs.IsHorizontalWheel, isDragGesture, clickCount);
         using (EnterPhase(UiRootPhase.EventDispatch))
         {
             if (kind == OverlayPointerEventKind.Pressed)
@@ -487,6 +528,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
                 pressedElement = target;
                 pressedPosition = overlayArgs.Position;
                 pressedExceededDragThreshold = false;
+                pressedClickCount = clickCount;
                 target.IsPressed = true;
                 if (target.Focusable)
                 {
@@ -504,8 +546,17 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
                     pressed.IsPressed = false;
                 }
 
+                if (!pressedExceededDragThreshold && pressedElement is not null)
+                {
+                    lastClickElement = pressedElement;
+                    lastClickButton = overlayArgs.Button;
+                    lastClickPosition = overlayArgs.Position;
+                    lastClickTimestamp = System.Diagnostics.Stopwatch.GetTimestamp();
+                }
+
                 pressedElement = null;
                 pressedExceededDragThreshold = false;
+                pressedClickCount = 1;
             }
         }
 
@@ -822,6 +873,33 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         float deltaY = position.Y - pressedPosition.Y;
         return deltaX * deltaX + deltaY * deltaY >= threshold * threshold;
     }
+
+    private int GetNextClickCount(UiElement target, OverlayPointerEventArgs args)
+    {
+        if (args.Button == OverlayPointerButton.None || lastClickElement is null || !ReferenceEquals(lastClickElement, target))
+        {
+            return 1;
+        }
+
+        if (lastClickButton != args.Button)
+        {
+            return 1;
+        }
+
+        long timestamp = System.Diagnostics.Stopwatch.GetTimestamp();
+        if (Elapsed(timestamp, lastClickTimestamp) > DoubleClickTime)
+        {
+            return 1;
+        }
+
+        float deltaX = args.Position.X - lastClickPosition.X;
+        float deltaY = args.Position.Y - lastClickPosition.Y;
+        float maxDistance = DoubleClickDistance;
+        return deltaX * deltaX + deltaY * deltaY <= maxDistance * maxDistance ? 2 : 1;
+    }
+
+    private static TimeSpan Elapsed(long currentTimestamp, long startTimestamp)
+        => TimeSpan.FromSeconds((currentTimestamp - startTimestamp) / (double)System.Diagnostics.Stopwatch.Frequency);
 
     private void VerifyAccess()
     {

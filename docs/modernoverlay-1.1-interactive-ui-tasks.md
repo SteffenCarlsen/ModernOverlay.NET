@@ -220,7 +220,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Translate `OverlayWindow.PointerWheel` to UI wheel.
 - [x] Track pointer enter/leave.
 - [x] Track hover target independent from captured target.
-- [ ] Add double-click detection if useful for window title bars and list items.
+- [x] Add double-click detection if useful for window title bars and list items.
+  - `OverlayUiRoot` classifies same-target/same-button clicks within configurable time and distance; routed pointer and button click args expose `ClickCount` and `IsDoubleClick`.
 - [ ] Add tests for event routing, handled behavior, enter/leave, click, double-click if included, and wheel.
 
 ## 12. Input Regions

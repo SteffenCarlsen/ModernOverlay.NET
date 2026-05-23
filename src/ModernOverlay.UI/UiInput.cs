@@ -10,14 +10,17 @@ public sealed class UiPointerEventArgs : EventArgs
         PointF position,
         int wheelDelta = 0,
         bool isHorizontalWheel = false,
-        bool isDragGesture = false)
+        bool isDragGesture = false,
+        int clickCount = 0)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(clickCount);
         Kind = kind;
         Button = button;
         Position = position;
         WheelDelta = wheelDelta;
         IsHorizontalWheel = isHorizontalWheel;
         IsDragGesture = isDragGesture;
+        ClickCount = clickCount;
     }
 
     public OverlayPointerEventKind Kind { get; }
@@ -32,20 +35,30 @@ public sealed class UiPointerEventArgs : EventArgs
 
     public bool IsDragGesture { get; }
 
+    public int ClickCount { get; }
+
+    public bool IsDoubleClick => ClickCount == 2;
+
     public bool Handled { get; set; }
 }
 
 public sealed class UiClickEventArgs : EventArgs
 {
-    public UiClickEventArgs(PointF position, OverlayPointerButton button)
+    public UiClickEventArgs(PointF position, OverlayPointerButton button, int clickCount = 1)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(clickCount);
         Position = position;
         Button = button;
+        ClickCount = clickCount;
     }
 
     public PointF Position { get; }
 
     public OverlayPointerButton Button { get; }
+
+    public int ClickCount { get; }
+
+    public bool IsDoubleClick => ClickCount == 2;
 }
 
 public sealed class UiKeyboardEventArgs : EventArgs

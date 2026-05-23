@@ -3,6 +3,13 @@ namespace ModernOverlay.UI;
 public class TextBlock : UiElement
 {
     private string text = string.Empty;
+    private FontHandle? font;
+    private BrushHandle? foreground;
+    private UiHorizontalAlignment textAlignment = UiHorizontalAlignment.Left;
+    private UiTextWrapping textWrapping = UiTextWrapping.NoWrap;
+    private UiTextTrimming textTrimming = UiTextTrimming.None;
+    private int maxLines = int.MaxValue;
+    private float lineSpacing = 1.35f;
 
     public TextBlock()
     {
@@ -15,12 +22,75 @@ public class TextBlock : UiElement
         set => SetProperty(ref text, value ?? string.Empty, UiInvalidation.Measure | UiInvalidation.Render);
     }
 
+    public FontHandle? Font
+    {
+        get => font;
+        set => SetProperty(ref font, value, UiInvalidation.Measure | UiInvalidation.Render | UiInvalidation.Resource);
+    }
+
+    public BrushHandle? Foreground
+    {
+        get => foreground;
+        set => SetProperty(ref foreground, value, UiInvalidation.Render | UiInvalidation.Resource);
+    }
+
+    public UiHorizontalAlignment TextAlignment
+    {
+        get => textAlignment;
+        set => SetProperty(ref textAlignment, value, UiInvalidation.Render);
+    }
+
+    public UiTextWrapping TextWrapping
+    {
+        get => textWrapping;
+        set => SetProperty(ref textWrapping, value, UiInvalidation.Measure | UiInvalidation.Render);
+    }
+
+    public UiTextTrimming TextTrimming
+    {
+        get => textTrimming;
+        set => SetProperty(ref textTrimming, value, UiInvalidation.Measure | UiInvalidation.Render);
+    }
+
+    public int MaxLines
+    {
+        get => maxLines;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
+            SetProperty(ref maxLines, value, UiInvalidation.Measure | UiInvalidation.Render);
+        }
+    }
+
+    public float LineSpacing
+    {
+        get => lineSpacing;
+        set
+        {
+            if (value <= 0f || !float.IsFinite(value))
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), "LineSpacing must be finite and greater than zero.");
+            }
+
+            SetProperty(ref lineSpacing, value, UiInvalidation.Measure | UiInvalidation.Render);
+        }
+    }
+
     protected override SizeF MeasureCore(SizeF availableSize)
     {
-        float fontSize = Root?.ThemeResources.Theme.FontSize ?? UiTheme.Default.FontSize;
-        float width = MathF.Min(availableSize.Width, Text.Length * fontSize * 0.56f);
-        float height = fontSize * 1.35f;
-        return new SizeF(width + Padding.Horizontal, height + Padding.Vertical);
+        float resolvedFontSize = ResolveFontSize();
+        float charWidth = CharacterWidth(resolvedFontSize);
+        int lineCapacity = TextWrapping == UiTextWrapping.Wrap && availableSize.Width > Padding.Horizontal
+            ? Math.Max(1, (int)MathF.Floor((availableSize.Width - Padding.Horizontal) / charWidth))
+            : Math.Max(1, Text.Length);
+        int lineCount = Text.Length == 0 ? 1 : Math.Max(1, (int)MathF.Ceiling(Text.Length / (float)lineCapacity));
+        lineCount = Math.Min(lineCount, MaxLines);
+        float naturalWidth = TextWrapping == UiTextWrapping.Wrap
+            ? Math.Min(availableSize.Width, Math.Min(Text.Length, lineCapacity) * charWidth + Padding.Horizontal)
+            : Text.Length * charWidth + Padding.Horizontal;
+        float width = MathF.Min(availableSize.Width, naturalWidth);
+        float height = resolvedFontSize * LineSpacing * lineCount + Padding.Vertical;
+        return new SizeF(width, height);
     }
 
     protected override void RenderCore(UiRenderContext context)
@@ -31,8 +101,82 @@ public class TextBlock : UiElement
         }
 
         RectF content = ContentBounds;
-        context.Draw.Draw.Text(Text, context.Theme.Font, IsEffectivelyEnabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(content.X, content.Y));
+        float resolvedFontSize = ResolveFontSize(context.Theme.Theme);
+        float charWidth = CharacterWidth(resolvedFontSize);
+        BrushHandle brush = ResolveForeground(context);
+        string[] lines = BuildLines(content.Width, charWidth);
+        float lineHeight = resolvedFontSize * LineSpacing;
+        for (int index = 0; index < lines.Length; index++)
+        {
+            string line = lines[index];
+            if (line.Length == 0)
+            {
+                continue;
+            }
+
+            float lineWidth = line.Length * charWidth;
+            float x = TextAlignment switch
+            {
+                UiHorizontalAlignment.Center => content.X + MathF.Max(0f, content.Width - lineWidth) / 2f,
+                UiHorizontalAlignment.Right => content.X + MathF.Max(0f, content.Width - lineWidth),
+                _ => content.X,
+            };
+            context.Draw.Draw.Text(line, Font ?? context.Theme.Font, brush, new PointF(x, content.Y + index * lineHeight));
+        }
     }
+
+    private string[] BuildLines(float availableWidth, float charWidth)
+    {
+        if (Text.Length == 0)
+        {
+            return [];
+        }
+
+        int lineCapacity = TextWrapping == UiTextWrapping.Wrap && availableWidth > 0f
+            ? Math.Max(1, (int)MathF.Floor(availableWidth / charWidth))
+            : int.MaxValue;
+        var lines = new List<string>();
+        for (int offset = 0; offset < Text.Length && lines.Count < MaxLines; offset += lineCapacity)
+        {
+            int length = Math.Min(lineCapacity, Text.Length - offset);
+            bool hasMoreText = offset + length < Text.Length;
+            bool isLastAllowedLine = lines.Count == MaxLines - 1;
+            string line = Text.Substring(offset, length);
+            if ((TextWrapping == UiTextWrapping.NoWrap || isLastAllowedLine) && hasMoreText)
+            {
+                line = TrimLine(line, lineCapacity);
+                lines.Add(line);
+                break;
+            }
+
+            lines.Add(line);
+            if (TextWrapping == UiTextWrapping.NoWrap)
+            {
+                break;
+            }
+        }
+
+        return lines.ToArray();
+    }
+
+    private string TrimLine(string line, int lineCapacity)
+    {
+        if (TextTrimming != UiTextTrimming.CharacterEllipsis || lineCapacity <= 1 || line.Length == 0)
+        {
+            return line;
+        }
+
+        int take = Math.Min(line.Length, lineCapacity - 1);
+        return line[..take] + "\u2026";
+    }
+
+    private BrushHandle ResolveForeground(UiRenderContext context)
+        => IsEffectivelyEnabled ? Foreground ?? context.Theme.Foreground : context.Theme.Disabled;
+
+    private float ResolveFontSize(UiTheme? theme = null)
+        => Font?.Options.Size ?? (theme ?? Root?.ThemeResources.Theme ?? UiTheme.Default).FontSize;
+
+    private static float CharacterWidth(float fontSize) => MathF.Max(1f, fontSize * 0.56f);
 }
 
 public sealed class Label : TextBlock

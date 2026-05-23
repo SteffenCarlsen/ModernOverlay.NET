@@ -61,6 +61,18 @@ public enum UiImageStretch
     UniformToFill,
 }
 
+public enum UiTextWrapping
+{
+    NoWrap,
+    Wrap,
+}
+
+public enum UiTextTrimming
+{
+    None,
+    CharacterEllipsis,
+}
+
 public enum UiLayer
 {
     Content = 0,

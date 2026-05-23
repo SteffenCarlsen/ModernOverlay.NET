@@ -313,7 +313,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 ### 18.1 TextBlock / Label
 
 - [x] Implement `TextBlock`.
-- [ ] Add text, font, foreground, alignment, wrapping, trimming, max lines, and line spacing.
+- [x] Add text, font, foreground, alignment, wrapping, trimming, max lines, and line spacing.
+  - `TextBlock` supports caller-owned font/foreground handles, horizontal text alignment, basic wrap/no-wrap layout, character ellipsis trimming, max lines, and line spacing.
 - [ ] Use existing text measurement APIs for desired size.
 - [x] Add `Label` as alias/subclass only if it adds target/access-key semantics.
   - `Label` subclasses `TextBlock` and adds target focus behavior on pointer press.

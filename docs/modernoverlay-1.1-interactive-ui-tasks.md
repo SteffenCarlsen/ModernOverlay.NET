@@ -161,11 +161,13 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 
 - [x] Implement `UiPlacement` records for manual, anchor, target anchor, cursor, and persisted placement.
 - [x] Implement `OverlayAnchor` values: top-left, top, top-right, left, center, right, bottom-left, bottom, bottom-right.
-- [ ] Add placement margins and offsets.
-- [ ] Add placement constraints: clamp to overlay, allow overflow, preserve size, preserve visible header.
-- [ ] Recompute anchored placements when overlay bounds or DPI changes.
+- [x] Add placement margins and offsets.
+- [x] Add placement constraints: clamp to overlay, allow overflow, preserve size, preserve visible header.
+  - `UiWindow` exposes placement clamping toggles and preserves size while keeping the title/header visible when possible.
+- [x] Recompute anchored placements when overlay bounds or DPI changes.
+  - `OverlayUiRoot` invalidates layout when root DIP bounds change so anchored windows are recalculated.
 - [ ] Recompute target-anchored placements when target bounds change.
-- [ ] Convert dragged anchored panels to manual placement if configured.
+- [x] Convert dragged anchored panels to manual placement if configured.
 - [x] Add `IUiLayoutStore` or equivalent persistence abstraction.
 - [ ] Add optional JSON layout-store helper only if the dependency footprint stays small.
 - [ ] Add tests for every placement kind, DPI changes, target-bound changes, clamping, and persisted fallback.

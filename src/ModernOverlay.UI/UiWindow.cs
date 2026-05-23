@@ -24,7 +24,13 @@ public sealed class UiWindow : UiPanel
     private PointF dragOffset;
     private PointF resizeOrigin;
     private SizeF resizeStartSize;
+    private UiPlacement? placement;
     private UiPlacement? restorePlacement;
+    private bool layoutRestored;
+    private string? activePersistenceKey;
+    private bool clampPlacementToOverlay = true;
+    private bool preserveVisibleHeader = true;
+    private bool convertPlacementToManualOnDrag = true;
     private string? layoutKey;
     private IUiLayoutStore? layoutStore;
 
@@ -121,16 +127,58 @@ public sealed class UiWindow : UiPanel
         set => SetProperty(ref minimizeBehavior, value, UiInvalidation.Measure | UiInvalidation.Render);
     }
 
+    public UiPlacement? Placement
+    {
+        get => placement;
+        set
+        {
+            if (SetProperty(ref placement, value, UiInvalidation.Measure | UiInvalidation.Arrange | UiInvalidation.InputRegion))
+            {
+                layoutRestored = false;
+            }
+        }
+    }
+
+    public bool ClampPlacementToOverlay
+    {
+        get => clampPlacementToOverlay;
+        set => SetProperty(ref clampPlacementToOverlay, value, UiInvalidation.Measure | UiInvalidation.Arrange | UiInvalidation.InputRegion);
+    }
+
+    public bool PreserveVisibleHeader
+    {
+        get => preserveVisibleHeader;
+        set => SetProperty(ref preserveVisibleHeader, value, UiInvalidation.Measure | UiInvalidation.Arrange | UiInvalidation.InputRegion);
+    }
+
+    public bool ConvertPlacementToManualOnDrag
+    {
+        get => convertPlacementToManualOnDrag;
+        set => SetProperty(ref convertPlacementToManualOnDrag, value, UiInvalidation.None);
+    }
+
     public string? LayoutKey
     {
         get => layoutKey;
-        set => SetProperty(ref layoutKey, value, UiInvalidation.None);
+        set
+        {
+            if (SetProperty(ref layoutKey, value, UiInvalidation.Measure | UiInvalidation.Arrange | UiInvalidation.InputRegion))
+            {
+                layoutRestored = false;
+            }
+        }
     }
 
     public IUiLayoutStore? LayoutStore
     {
         get => layoutStore;
-        set => SetProperty(ref layoutStore, value, UiInvalidation.None);
+        set
+        {
+            if (SetProperty(ref layoutStore, value, UiInvalidation.Measure | UiInvalidation.Arrange | UiInvalidation.InputRegion))
+            {
+                layoutRestored = false;
+            }
+        }
     }
 
     public void Restore()
@@ -148,17 +196,29 @@ public sealed class UiWindow : UiPanel
 
     protected override SizeF MeasureCore(SizeF availableSize)
     {
+        UiPlacement? activePlacement = ResolveActivePlacement();
+        if (activePlacement is { } resolvedPlacement)
+        {
+            ApplyPlacementSize(resolvedPlacement);
+        }
+
         SizeF contentSize = new(0f, 0f);
         if (Content is not null && !IsMinimized)
         {
             contentSize = Content.Measure(UiGeometry.Deflate(availableSize, Padding));
         }
 
-        return new SizeF(
+        SizeF windowSize = new(
             MathF.Max(MinWidth, MathF.Max(Width, contentSize.Width + Padding.Horizontal)),
             IsMinimized && MinimizeBehavior == MinimizeBehavior.CollapseToTitleBar
                 ? HeaderHeight
                 : MathF.Max(MinHeight, MathF.Max(Height, contentSize.Height + HeaderHeight + Padding.Vertical)));
+        if (activePlacement is { } placementToApply)
+        {
+            ApplyPlacement(placementToApply, windowSize);
+        }
+
+        return windowSize;
     }
 
     protected override void ArrangeCore(RectF finalRect)
@@ -244,6 +304,7 @@ public sealed class UiWindow : UiPanel
 
         if (CanDrag && UiGeometry.Contains(HeaderBounds, args.Position))
         {
+            ConvertPlacementForManualMove();
             dragging = true;
             dragOffset = new PointF(args.Position.X - Bounds.X, args.Position.Y - Bounds.Y);
             CapturePointer();
@@ -323,16 +384,154 @@ public sealed class UiWindow : UiPanel
         restorePlacement = UiPlacement.Manual(Canvas.GetLeft(this), Canvas.GetTop(this), Bounds.Width, Bounds.Height);
     }
 
+    private UiPlacement? ResolveActivePlacement()
+    {
+        if (Placement is { Kind: UiPlacementKind.Persisted, PersistenceKey: { } persistenceKey } persisted)
+        {
+            activePersistenceKey = persistenceKey;
+            if (!layoutRestored && LayoutStore?.TryLoad(persistenceKey, out UiPlacement saved) == true)
+            {
+                placement = saved;
+                layoutRestored = true;
+                return saved;
+            }
+
+            layoutRestored = true;
+            return persisted;
+        }
+
+        if (Placement is { } explicitPlacement)
+        {
+            activePersistenceKey = null;
+            return explicitPlacement;
+        }
+
+        if (!layoutRestored
+            && LayoutStore is not null
+            && !string.IsNullOrWhiteSpace(LayoutKey)
+            && LayoutStore.TryLoad(LayoutKey, out UiPlacement stored))
+        {
+            placement = stored;
+            activePersistenceKey = LayoutKey;
+            layoutRestored = true;
+            return stored;
+        }
+
+        activePersistenceKey = null;
+        layoutRestored = true;
+        return null;
+    }
+
+    private void ApplyPlacementSize(UiPlacement resolvedPlacement)
+    {
+        if (resolvedPlacement.Kind is not (UiPlacementKind.Manual or UiPlacementKind.Persisted)
+            || resolvedPlacement.Bounds.IsEmpty)
+        {
+            return;
+        }
+
+        if (float.IsFinite(resolvedPlacement.Bounds.Width) && resolvedPlacement.Bounds.Width > 0f)
+        {
+            Width = resolvedPlacement.Bounds.Width;
+        }
+
+        if (float.IsFinite(resolvedPlacement.Bounds.Height) && resolvedPlacement.Bounds.Height > 0f)
+        {
+            Height = resolvedPlacement.Bounds.Height;
+        }
+    }
+
+    private void ApplyPlacement(UiPlacement resolvedPlacement, SizeF windowSize)
+    {
+        if (Parent is not Canvas || Root is null || dragging || resizing)
+        {
+            return;
+        }
+
+        if (IsMinimized && MinimizeBehavior == MinimizeBehavior.Dock)
+        {
+            return;
+        }
+
+        PointF? point = resolvedPlacement.Kind switch
+        {
+            UiPlacementKind.Manual => new PointF(resolvedPlacement.Bounds.X, resolvedPlacement.Bounds.Y),
+            UiPlacementKind.Anchor => ResolveAnchoredPoint(resolvedPlacement.Anchor, resolvedPlacement.Margin, windowSize),
+            UiPlacementKind.Persisted when !resolvedPlacement.Bounds.IsEmpty => new PointF(resolvedPlacement.Bounds.X, resolvedPlacement.Bounds.Y),
+            UiPlacementKind.Persisted => ResolveAnchoredPoint(resolvedPlacement.Anchor, resolvedPlacement.Margin, windowSize),
+            _ => null,
+        };
+        if (point is not { } nextPoint)
+        {
+            return;
+        }
+
+        RectF placed = ClampPlacement(new RectF(nextPoint.X, nextPoint.Y, windowSize.Width, windowSize.Height));
+        Canvas.SetLeft(this, placed.X);
+        Canvas.SetTop(this, placed.Y);
+    }
+
+    private PointF ResolveAnchoredPoint(OverlayAnchor anchor, Thickness margin, SizeF windowSize)
+    {
+        RectF overlay = Root?.BoundsDips ?? default;
+        float x = anchor switch
+        {
+            OverlayAnchor.Top or OverlayAnchor.Center or OverlayAnchor.Bottom => (overlay.Width - windowSize.Width) / 2f,
+            OverlayAnchor.TopRight or OverlayAnchor.Right or OverlayAnchor.BottomRight => overlay.Width - windowSize.Width - margin.Right,
+            _ => margin.Left,
+        };
+        float y = anchor switch
+        {
+            OverlayAnchor.Left or OverlayAnchor.Center or OverlayAnchor.Right => (overlay.Height - windowSize.Height) / 2f,
+            OverlayAnchor.BottomLeft or OverlayAnchor.Bottom or OverlayAnchor.BottomRight => overlay.Height - windowSize.Height - margin.Bottom,
+            _ => margin.Top,
+        };
+
+        return new PointF(x, y);
+    }
+
+    private RectF ClampPlacement(RectF bounds)
+    {
+        if (!ClampPlacementToOverlay || Root is null)
+        {
+            return bounds;
+        }
+
+        RectF overlay = Root.BoundsDips;
+        float maxX = MathF.Max(0f, overlay.Width - bounds.Width);
+        float yVisibleHeight = PreserveVisibleHeader ? MathF.Min(HeaderHeight, bounds.Height) : bounds.Height;
+        float maxY = MathF.Max(0f, overlay.Height - yVisibleHeight);
+        return bounds with
+        {
+            X = Math.Clamp(bounds.X, 0f, maxX),
+            Y = Math.Clamp(bounds.Y, 0f, maxY),
+        };
+    }
+
+    private void ConvertPlacementForManualMove()
+    {
+        if (!ConvertPlacementToManualOnDrag || Placement is null)
+        {
+            return;
+        }
+
+        placement = UiPlacement.Manual(Bounds.X, Bounds.Y, Bounds.Width, Bounds.Height);
+        layoutRestored = true;
+    }
+
     private void SavePlacement()
     {
-        if (LayoutStore is null || string.IsNullOrWhiteSpace(LayoutKey))
+        string? key = !string.IsNullOrWhiteSpace(LayoutKey)
+            ? LayoutKey
+            : activePersistenceKey;
+        if (LayoutStore is null || string.IsNullOrWhiteSpace(key))
         {
             return;
         }
 
         float x = Parent is Canvas ? Canvas.GetLeft(this) : Bounds.X;
         float y = Parent is Canvas ? Canvas.GetTop(this) : Bounds.Y;
-        LayoutStore.Save(LayoutKey, UiPlacement.Manual(x, y, Bounds.Width, Bounds.Height));
+        LayoutStore.Save(key, UiPlacement.Manual(x, y, Bounds.Width, Bounds.Height));
     }
 
     private void BringToFront()

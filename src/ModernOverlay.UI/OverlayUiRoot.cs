@@ -19,6 +19,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
     private readonly Queue<Action> deferredOperations = [];
     private int ownerThreadId;
     private UiInvalidation invalidation = UiInvalidation.Measure | UiInvalidation.Arrange | UiInvalidation.Render | UiInvalidation.InputRegion;
+    private RectF lastLayoutBounds;
     private UiRootPhase phase;
     private bool disposed;
     private UiElement? pressedElement;
@@ -269,12 +270,17 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
 
     private void EnsureLayout()
     {
+        RectF bounds = overlay.BoundsDips;
+        if (bounds != lastLayoutBounds)
+        {
+            invalidation |= UiInvalidation.Measure | UiInvalidation.Arrange | UiInvalidation.Render | UiInvalidation.InputRegion;
+        }
+
         if ((invalidation & (UiInvalidation.Measure | UiInvalidation.Arrange)) == 0)
         {
             return;
         }
 
-        RectF bounds = overlay.BoundsDips;
         var available = new SizeF(bounds.Width, bounds.Height);
         using (EnterPhase(UiRootPhase.Measure))
         {
@@ -286,6 +292,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
             Root.Arrange(new RectF(0f, 0f, available.Width, available.Height));
         }
 
+        lastLayoutBounds = bounds;
         invalidation &= ~(UiInvalidation.Measure | UiInvalidation.Arrange);
     }
 

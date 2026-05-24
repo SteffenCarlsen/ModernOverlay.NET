@@ -37,6 +37,7 @@ The playground generator makes a local editable `Program.cs` even when the origi
 | `InputModeOverlay` | Click-through versus interactive pointer mode. |
 | `InteractiveOverlay` | Spec-named alias for interactive input behavior. |
 | `InteractiveUiOverlay` | Retained `ModernOverlay.UI` controls with selective click-through, explicit `ui.Render(frame)`, popups, theme changes, and bounds/DPI movement. |
+| `UiAbTestOverlay` | Full-screen retained UI A/B surface for manual component, layout, popup, theme, focus, window chrome, and selective click-through checks; runs until closed. |
 | `ShapesOverlay` | Lines, rectangles, circles, helpers, and geometry-style drawing. |
 | `GeometryOverlay` | Spec-named alias for shape/geometry drawing. |
 | `ImageOverlay` | Image loading and drawing. |

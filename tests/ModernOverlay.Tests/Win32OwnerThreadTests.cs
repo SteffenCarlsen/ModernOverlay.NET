@@ -43,9 +43,8 @@ public sealed class Win32OwnerThreadTests
             ClickThrough: true,
             TopMost: false,
             ToolWindow: true));
-        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using var stopper = new FrameLoopStopper(stopAfterRenderAttempts: 3, timeout: TimeSpan.FromSeconds(5));
         int resolveAttempts = 0;
-        int renderAttempts = 0;
 
         window.RunFrameLoop(
             () =>
@@ -55,17 +54,40 @@ public sealed class Win32OwnerThreadTests
                     ? TimeSpan.FromMilliseconds(1)
                     : TimeSpan.FromMilliseconds(2);
             },
-            () =>
-            {
-                renderAttempts++;
-                if (renderAttempts == 3)
-                {
-                    cancellation.Cancel();
-                }
-            },
-            cancellation.Token);
+            stopper.RenderFrame,
+            stopper.Token);
 
-        Assert.IsTrue(renderAttempts >= 3);
+        Assert.IsTrue(stopper.RenderAttempts >= 3);
         Assert.IsTrue(resolveAttempts > 1);
+    }
+
+    private sealed class FrameLoopStopper : IDisposable
+    {
+        private readonly CancellationTokenSource cancellation;
+        private readonly int stopAfterRenderAttempts;
+
+        public FrameLoopStopper(int stopAfterRenderAttempts, TimeSpan timeout)
+        {
+            this.stopAfterRenderAttempts = stopAfterRenderAttempts;
+            cancellation = new CancellationTokenSource(timeout);
+        }
+
+        public CancellationToken Token => cancellation.Token;
+
+        public int RenderAttempts { get; private set; }
+
+        public void RenderFrame()
+        {
+            RenderAttempts++;
+            if (RenderAttempts == stopAfterRenderAttempts)
+            {
+                cancellation.Cancel();
+            }
+        }
+
+        public void Dispose()
+        {
+            cancellation.Dispose();
+        }
     }
 }

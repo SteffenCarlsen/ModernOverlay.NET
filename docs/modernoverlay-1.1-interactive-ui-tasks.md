@@ -291,7 +291,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Route move/up/wheel to captured element when capture is active.
 - [x] Track drag threshold to distinguish click from drag.
   - `OverlayUiRoot.DragThreshold` marks routed pointer move/release events as drag gestures after meaningful movement, and buttons suppress click activation on dragged releases.
-- [ ] Add tests for capture, capture release, element removal during capture, and click suppression after drag.
+- [x] Add tests for capture, capture release, element removal during capture, and click suppression after drag.
+  - `OverlayUiPointerCaptureTests` covers captured routing outside bounds, explicit release, owner removal/disable/hide cleanup, and button click suppression after drag threshold.
 
 ## 14. Focus And Keyboard Input
 
@@ -669,7 +670,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - Covered by `OverlayUiInputRoutingTests` and `OverlayUiElementModelTests`.
 - [x] Add routed input tests.
   - Covered by `OverlayUiInputRoutingTests`.
-- [ ] Add pointer capture tests.
+- [x] Add pointer capture tests.
+  - Covered by `OverlayUiPointerCaptureTests`.
 - [ ] Add popup/focus/capture interaction tests.
 - [ ] Add focus/keyboard routing tests.
 - [ ] Add text input tests after core keyboard/text plumbing exists.

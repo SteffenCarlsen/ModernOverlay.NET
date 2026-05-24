@@ -1814,6 +1814,7 @@ public sealed class ComboBox : Selector, IUiPopup
     private float maxDropDownHeight = 160f;
     private bool clampDropDownToOverlay = true;
     private RectF headerBounds;
+    private int hoveredDropDownIndex = -1;
 
     /// <summary>
     /// Initializes a combo box.
@@ -1843,7 +1844,13 @@ public sealed class ComboBox : Selector, IUiPopup
     public bool IsDropDownOpen
     {
         get => isDropDownOpen;
-        set => SetProperty(ref isDropDownOpen, value, UiInvalidation.Arrange | UiInvalidation.Render | UiInvalidation.InputRegion);
+        set
+        {
+            if (SetProperty(ref isDropDownOpen, value, UiInvalidation.Arrange | UiInvalidation.Render | UiInvalidation.InputRegion) && !value)
+            {
+                hoveredDropDownIndex = -1;
+            }
+        }
     }
 
     /// <summary>
@@ -1968,6 +1975,26 @@ public sealed class ComboBox : Selector, IUiPopup
         args.Handled = true;
     }
 
+    protected override void OnPointerMoved(UiPointerEventArgs args)
+    {
+        if (!IsDropDownOpen)
+        {
+            return;
+        }
+
+        int next = DropDownIndexAt(args.Position);
+        if (hoveredDropDownIndex != next)
+        {
+            hoveredDropDownIndex = next;
+            InvalidateRender();
+        }
+
+        if (next >= 0)
+        {
+            args.Handled = true;
+        }
+    }
+
     protected override void OnKeyPressed(UiKeyboardEventArgs args)
     {
         switch (args.VirtualKey)
@@ -2030,9 +2057,32 @@ public sealed class ComboBox : Selector, IUiPopup
             {
                 context.Draw.Fill.Rectangle(row, enabled ? ResolveAccentBrush(context) : ResolveBorderBrush(context));
             }
+            else if (index == hoveredDropDownIndex && itemEnabled)
+            {
+                context.Draw.Fill.Rectangle(row, enabled ? context.Theme.SurfaceHover : ResolveBorderBrush(context));
+            }
 
             BrushHandle itemBrush = enabled && itemEnabled ? ResolveForeground(context) : ResolveDisabledBrush(context);
-            context.Draw.Draw.Text(GetItemText(index), context.Theme.Font, itemBrush, new PointF(row.X + 8f, row.Y + 4f));
+            string itemText = GetItemText(index);
+            PointF origin = new(row.X + 8f, row.Y + 4f);
+            context.Draw.Draw.Text(itemText, context.Theme.Font, itemBrush, origin);
+            if (index == hoveredDropDownIndex && itemEnabled && enabled)
+            {
+                context.Draw.Draw.Text(itemText, context.Theme.Font, itemBrush, new PointF(origin.X + 0.75f, origin.Y));
+            }
         }
+    }
+
+    private int DropDownIndexAt(PointF point)
+    {
+        if (!UiGeometry.Contains(DropDownBounds, point))
+        {
+            return -1;
+        }
+
+        RectF dropDown = DropDownBounds;
+        int visibleCount = UiGeometry.VisibleUniformBandCount(dropDown.Height, itemHeight, Items.Count);
+        int index = UiGeometry.UniformBandIndex(point.Y, dropDown.Y, itemHeight, visibleCount);
+        return IsItemEnabled(index) ? index : -1;
     }
 }

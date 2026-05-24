@@ -1,3 +1,4 @@
+using ModernOverlay.Rendering;
 using ModernOverlay.UI;
 using ModernOverlay.Win32;
 using System.Reflection;
@@ -52,6 +53,24 @@ public sealed class OverlayUiComboBoxTests
 
         Assert.IsTrue(comboBox.IsDropDownOpen);
         Assert.IsTrue(comboBox.Bounds.Height > comboBox.Height);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task HoveredDropDownItemRendersWithEmphasizedText()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        UiComboBox comboBox = CreateComboBox("Manual", "Auto", "Hybrid");
+        ui.Root.Children.Add(comboBox);
+        ui.Render(new DrawContext());
+
+        Click(overlay, 20, 20);
+        DispatchPointer(overlay, Win32PointerEventKind.Moved, Win32PointerButton.None, 20, 71);
+        var sink = new RecordingDrawCommandSink();
+        ui.Render(new DrawContext(sink));
+
+        Assert.AreEqual(2, sink.TextRuns.Count(text => text == "Auto"));
     }
 
     [TestMethod]
@@ -192,5 +211,89 @@ public sealed class OverlayUiComboBoxTests
         MethodInfo method = typeof(OverlayWindow).GetMethod("HandleKeyboardEvent", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new MissingMethodException(nameof(OverlayWindow), "HandleKeyboardEvent");
         method.Invoke(overlay, [new Win32KeyboardEvent(virtualKey, true, false, 1, 0, false, false, false, Win32ModifierKeys.None)]);
+    }
+
+    private sealed class RecordingDrawCommandSink : IDrawCommandSink
+    {
+        public List<string> TextRuns { get; } = [];
+
+        public int CommandCount { get; private set; }
+
+        public int PrimitiveCount { get; private set; }
+
+        public int TransientTextLayoutCount { get; }
+
+        public int NativeResourceCount => 0;
+
+        public void Clear(ColorRgba color) => CommandCount++;
+
+        public void PushClip(RectF clip) => CommandCount++;
+
+        public void PopClip() => CommandCount++;
+
+        public void PushTransform(Matrix3x2F transform) => CommandCount++;
+
+        public void PopTransform() => CommandCount++;
+
+        public void DrawLine(PointF start, PointF end, BrushHandle brush, float strokeWidth, StrokeStyleHandle? strokeStyle)
+            => AddPrimitive();
+
+        public void DrawRectangle(RectF rect, BrushHandle brush, float strokeWidth, StrokeStyleHandle? strokeStyle)
+            => AddPrimitive();
+
+        public void FillRectangle(RectF rect, BrushHandle brush)
+            => AddPrimitive();
+
+        public void DrawRoundedRectangle(RectF rect, float radiusX, float radiusY, BrushHandle brush, float strokeWidth, StrokeStyleHandle? strokeStyle)
+            => AddPrimitive();
+
+        public void FillRoundedRectangle(RectF rect, float radiusX, float radiusY, BrushHandle brush)
+            => AddPrimitive();
+
+        public void DrawCircle(PointF center, float radius, BrushHandle brush, float strokeWidth, StrokeStyleHandle? strokeStyle)
+            => AddPrimitive();
+
+        public void FillCircle(PointF center, float radius, BrushHandle brush)
+            => AddPrimitive();
+
+        public void DrawEllipse(RectF bounds, BrushHandle brush, float strokeWidth, StrokeStyleHandle? strokeStyle)
+            => AddPrimitive();
+
+        public void FillEllipse(RectF bounds, BrushHandle brush)
+            => AddPrimitive();
+
+        public void DrawTriangle(PointF a, PointF b, PointF c, BrushHandle brush, float strokeWidth, StrokeStyleHandle? strokeStyle)
+            => AddPrimitive();
+
+        public void FillTriangle(PointF a, PointF b, PointF c, BrushHandle brush)
+            => AddPrimitive();
+
+        public void DrawGeometry(GeometryPath geometry, BrushHandle brush, float strokeWidth, StrokeStyleHandle? strokeStyle)
+            => AddPrimitive();
+
+        public void FillGeometry(GeometryPath geometry, BrushHandle brush)
+            => AddPrimitive();
+
+        public void DrawImage(ImageHandle image, int frameIndex, RectF destination, RectF? source, float opacity, ImageInterpolationMode interpolationMode)
+            => AddPrimitive();
+
+        public void DrawText(string text, FontHandle font, BrushHandle brush, PointF origin)
+        {
+            TextRuns.Add(text);
+            AddPrimitive();
+        }
+
+        public void DrawTextLayout(TextLayoutHandle layout, BrushHandle brush, PointF origin)
+            => AddPrimitive();
+
+        public SizeF MeasureText(string text, FontHandle font) => new(text.Length * 7f, 14f);
+
+        public SizeF MeasureTextLayout(TextLayoutHandle layout) => new(layout.Text.Length * 7f, 14f);
+
+        private void AddPrimitive()
+        {
+            CommandCount++;
+            PrimitiveCount++;
+        }
     }
 }

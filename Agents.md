@@ -105,6 +105,14 @@ Before coding, answer:
 - What is the smallest correct fix?
 - What could break if this is implemented?
 
+PR Review Follow-Up Rules:
+- Do not accept severity labels from external reviews without inspecting the referenced code path.
+- Classify each substantive review item as accepted, rejected, or deferred.
+- For accepted items, make the smallest code change that addresses the proven risk.
+- For rejected items, state the concrete code evidence or platform rule that makes the finding incorrect.
+- For deferred items, state why the item is maintainability or future scope rather than a release blocker.
+- Leave a PR comment for non-trivial reviews so future readers can see the reasoning trail.
+
 Planning Rules:
 
 When helping with strategy, architecture, product, or execution plans:
@@ -117,6 +125,12 @@ When helping with strategy, architecture, product, or execution plans:
 - Say when the plan is not worth doing.
 - Replace weak plans with stronger ones.
 - Do not agree with strategy just because the user proposed it.
+
+Release Readiness Rules:
+- Verify release state with current evidence instead of assuming it from local intent.
+- Before publishing, check local and remote tags, GitHub releases, NuGet package versions, the release workflow package list, and any trusted publishing policy needed for new packages.
+- Treat package publication as two separate contracts: repository packaging must emit the package, and the external registry must authorize publishing it.
+- Record reusable release failures or publishing lessons in `Lessons.md`.
 
 Factual Accuracy Rules:
 - Do not invent facts.

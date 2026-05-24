@@ -1,9 +1,15 @@
 namespace ModernOverlay.UI;
 
+/// <summary>
+/// Base class for interactive controls.
+/// </summary>
 public class UiControl : UiElement
 {
 }
 
+/// <summary>
+/// Represents the item collection used by selector controls.
+/// </summary>
 public class UiItemCollection : System.Collections.ObjectModel.Collection<object?>
 {
     private readonly Selector owner;
@@ -38,6 +44,9 @@ public class UiItemCollection : System.Collections.ObjectModel.Collection<object
     }
 }
 
+/// <summary>
+/// Base class for controls that select one item from a collection.
+/// </summary>
 public abstract class Selector : UiControl
 {
     private int selectedIndex = -1;
@@ -48,10 +57,19 @@ public abstract class Selector : UiControl
         Items = new UiItemCollection(this);
     }
 
+    /// <summary>
+    /// Occurs when the selected item changes.
+    /// </summary>
     public event EventHandler? SelectionChanged;
 
+    /// <summary>
+    /// Gets the selectable items.
+    /// </summary>
     public UiItemCollection Items { get; }
 
+    /// <summary>
+    /// Gets or sets the selected item index, or -1 when no item is selected.
+    /// </summary>
     public int SelectedIndex
     {
         get => selectedIndex;
@@ -65,8 +83,14 @@ public abstract class Selector : UiControl
         }
     }
 
+    /// <summary>
+    /// Gets the selected item, or <see langword="null"/> when no item is selected.
+    /// </summary>
     public object? SelectedItem => IsSelectedIndexValid ? Items[SelectedIndex] : null;
 
+    /// <summary>
+    /// Gets or sets a function used to convert items to display text.
+    /// </summary>
     public Func<object?, string>? DisplayTextSelector
     {
         get => displayTextSelector;
@@ -113,12 +137,18 @@ public abstract class Selector : UiControl
         => Items.Count == 0 ? -1 : Math.Clamp(value, -1, Items.Count - 1);
 }
 
+/// <summary>
+/// Base class for controls that host a single content element.
+/// </summary>
 public class ContentControl : UiPanel
 {
     private UiElement? content;
     private UiHorizontalAlignment contentHorizontalAlignment = UiHorizontalAlignment.Stretch;
     private UiVerticalAlignment contentVerticalAlignment = UiVerticalAlignment.Stretch;
 
+    /// <summary>
+    /// Gets or sets the hosted content element.
+    /// </summary>
     public UiElement? Content
     {
         get => content;
@@ -144,12 +174,18 @@ public class ContentControl : UiPanel
         }
     }
 
+    /// <summary>
+    /// Gets or sets horizontal alignment for the hosted content.
+    /// </summary>
     public UiHorizontalAlignment ContentHorizontalAlignment
     {
         get => contentHorizontalAlignment;
         set => SetProperty(ref contentHorizontalAlignment, value, UiInvalidation.Arrange);
     }
 
+    /// <summary>
+    /// Gets or sets vertical alignment for the hosted content.
+    /// </summary>
     public UiVerticalAlignment ContentVerticalAlignment
     {
         get => contentVerticalAlignment;
@@ -197,10 +233,16 @@ public class ContentControl : UiPanel
     }
 }
 
+/// <summary>
+/// Base class for content controls that expose a header string.
+/// </summary>
 public class HeaderedContentControl : ContentControl
 {
     private string header = string.Empty;
 
+    /// <summary>
+    /// Gets or sets the header text.
+    /// </summary>
     public string Header
     {
         get => header;

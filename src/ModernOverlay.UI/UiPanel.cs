@@ -2,6 +2,9 @@ using System.Collections;
 
 namespace ModernOverlay.UI;
 
+/// <summary>
+/// Represents the ordered child collection for a <see cref="UiPanel"/>.
+/// </summary>
 public class UiElementCollection : IEnumerable<UiElement>
 {
     private readonly UiPanel owner;
@@ -13,10 +16,24 @@ public class UiElementCollection : IEnumerable<UiElement>
         this.owner = owner;
     }
 
+    /// <summary>
+    /// Gets the number of child elements.
+    /// </summary>
     public int Count => items.Count;
 
+    /// <summary>
+    /// Gets the child element at the specified index.
+    /// </summary>
+    /// <param name="index">The zero-based child index.</param>
+    /// <returns>The child element at <paramref name="index"/>.</returns>
     public UiElement this[int index] => items[index];
 
+    /// <summary>
+    /// Adds an element to the collection.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="element">The element to add.</param>
+    /// <returns>The added element.</returns>
     public T Add<T>(T element)
         where T : UiElement
     {
@@ -25,6 +42,11 @@ public class UiElementCollection : IEnumerable<UiElement>
         return element;
     }
 
+    /// <summary>
+    /// Removes an element from the collection.
+    /// </summary>
+    /// <param name="element">The element to remove.</param>
+    /// <returns><see langword="true"/> when the element was removed; otherwise, <see langword="false"/>.</returns>
     public bool Remove(UiElement element)
     {
         ArgumentNullException.ThrowIfNull(element);
@@ -33,8 +55,15 @@ public class UiElementCollection : IEnumerable<UiElement>
         return removed;
     }
 
+    /// <summary>
+    /// Removes all child elements.
+    /// </summary>
     public void Clear() => owner.MutateChildren(ClearCore);
 
+    /// <summary>
+    /// Returns an enumerator over the child elements in insertion order.
+    /// </summary>
+    /// <returns>An enumerator over the child elements.</returns>
     public IEnumerator<UiElement> GetEnumerator() => items.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -87,15 +116,30 @@ public class UiElementCollection : IEnumerable<UiElement>
     }
 }
 
+/// <summary>
+/// Base class for UI elements that contain child elements.
+/// </summary>
 public class UiPanel : UiControl
 {
+    /// <summary>
+    /// Initializes a new panel.
+    /// </summary>
     public UiPanel()
     {
         Children = new UiElementCollection(this);
     }
 
+    /// <summary>
+    /// Gets the panel child collection.
+    /// </summary>
     public UiElementCollection Children { get; }
 
+    /// <summary>
+    /// Adds a child element to this panel.
+    /// </summary>
+    /// <typeparam name="T">The child element type.</typeparam>
+    /// <param name="element">The child element to add.</param>
+    /// <returns>The added child element.</returns>
     public T Add<T>(T element)
         where T : UiElement
         => Children.Add(element);

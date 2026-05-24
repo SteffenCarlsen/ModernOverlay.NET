@@ -2,32 +2,91 @@ using System.Runtime.CompilerServices;
 
 namespace ModernOverlay.UI;
 
+/// <summary>
+/// Arranges child elements by explicit attached coordinates.
+/// </summary>
 public sealed class Canvas : UiPanel
 {
     private static readonly ConditionalWeakTable<UiElement, CanvasPlacement> Placements = [];
 
+    /// <summary>
+    /// Sets the left attached coordinate for an element.
+    /// </summary>
+    /// <param name="element">The element to position.</param>
+    /// <param name="value">The left coordinate in DIPs.</param>
     public static void SetLeft(UiElement element, float value) => SetCoordinate(element, placement => placement.Left = Validate(value));
 
+    /// <summary>
+    /// Sets the top attached coordinate for an element.
+    /// </summary>
+    /// <param name="element">The element to position.</param>
+    /// <param name="value">The top coordinate in DIPs.</param>
     public static void SetTop(UiElement element, float value) => SetCoordinate(element, placement => placement.Top = Validate(value));
 
+    /// <summary>
+    /// Sets the right attached coordinate for an element.
+    /// </summary>
+    /// <param name="element">The element to position.</param>
+    /// <param name="value">The right coordinate in DIPs.</param>
     public static void SetRight(UiElement element, float value) => SetCoordinate(element, placement => placement.Right = Validate(value));
 
+    /// <summary>
+    /// Sets the bottom attached coordinate for an element.
+    /// </summary>
+    /// <param name="element">The element to position.</param>
+    /// <param name="value">The bottom coordinate in DIPs.</param>
     public static void SetBottom(UiElement element, float value) => SetCoordinate(element, placement => placement.Bottom = Validate(value));
 
+    /// <summary>
+    /// Clears the left attached coordinate for an element.
+    /// </summary>
+    /// <param name="element">The element to update.</param>
     public static void ClearLeft(UiElement element) => SetCoordinate(element, placement => placement.Left = null);
 
+    /// <summary>
+    /// Clears the top attached coordinate for an element.
+    /// </summary>
+    /// <param name="element">The element to update.</param>
     public static void ClearTop(UiElement element) => SetCoordinate(element, placement => placement.Top = null);
 
+    /// <summary>
+    /// Clears the right attached coordinate for an element.
+    /// </summary>
+    /// <param name="element">The element to update.</param>
     public static void ClearRight(UiElement element) => SetCoordinate(element, placement => placement.Right = null);
 
+    /// <summary>
+    /// Clears the bottom attached coordinate for an element.
+    /// </summary>
+    /// <param name="element">The element to update.</param>
     public static void ClearBottom(UiElement element) => SetCoordinate(element, placement => placement.Bottom = null);
 
+    /// <summary>
+    /// Gets the left attached coordinate for an element.
+    /// </summary>
+    /// <param name="element">The element to inspect.</param>
+    /// <returns>The left coordinate in DIPs, or 0 when unset.</returns>
     public static float GetLeft(UiElement element) => GetPlacement(element).Left ?? 0f;
 
+    /// <summary>
+    /// Gets the top attached coordinate for an element.
+    /// </summary>
+    /// <param name="element">The element to inspect.</param>
+    /// <returns>The top coordinate in DIPs, or 0 when unset.</returns>
     public static float GetTop(UiElement element) => GetPlacement(element).Top ?? 0f;
 
+    /// <summary>
+    /// Gets the right attached coordinate for an element.
+    /// </summary>
+    /// <param name="element">The element to inspect.</param>
+    /// <returns>The right coordinate in DIPs, or <see langword="null"/> when unset.</returns>
     public static float? GetRight(UiElement element) => GetPlacement(element).Right;
 
+    /// <summary>
+    /// Gets the bottom attached coordinate for an element.
+    /// </summary>
+    /// <param name="element">The element to inspect.</param>
+    /// <returns>The bottom coordinate in DIPs, or <see langword="null"/> when unset.</returns>
     public static float? GetBottom(UiElement element) => GetPlacement(element).Bottom;
 
     protected override SizeF MeasureCore(SizeF availableSize)
@@ -117,17 +176,26 @@ public sealed class Canvas : UiPanel
     }
 }
 
+/// <summary>
+/// Arranges child elements in a vertical or horizontal stack.
+/// </summary>
 public sealed class StackPanel : UiPanel
 {
     private UiOrientation orientation;
     private float spacing;
 
+    /// <summary>
+    /// Gets or sets the stacking direction.
+    /// </summary>
     public UiOrientation Orientation
     {
         get => orientation;
         set => SetProperty(ref orientation, value, UiInvalidation.Measure);
     }
 
+    /// <summary>
+    /// Gets or sets spacing between visible children in DIPs.
+    /// </summary>
     public float Spacing
     {
         get => spacing;
@@ -201,19 +269,35 @@ public sealed class StackPanel : UiPanel
     }
 }
 
+/// <summary>
+/// Arranges child elements by docking them to the remaining layout edges.
+/// </summary>
 public sealed class DockPanel : UiPanel
 {
     private static readonly ConditionalWeakTable<UiElement, DockPlacement> Placements = [];
     private bool fillLastChild = true;
 
+    /// <summary>
+    /// Gets or sets whether the last child fills the remaining space.
+    /// </summary>
     public bool FillLastChild
     {
         get => fillLastChild;
         set => SetProperty(ref fillLastChild, value, UiInvalidation.Measure | UiInvalidation.Arrange);
     }
 
+    /// <summary>
+    /// Sets the dock edge for a child element.
+    /// </summary>
+    /// <param name="element">The child element.</param>
+    /// <param name="dock">The dock edge.</param>
     public static void SetDock(UiElement element, Dock dock) => GetPlacement(element).Dock = dock;
 
+    /// <summary>
+    /// Gets the dock edge for a child element.
+    /// </summary>
+    /// <param name="element">The child element.</param>
+    /// <returns>The configured dock edge.</returns>
     public static Dock GetDock(UiElement element) => GetPlacement(element).Dock;
 
     protected override SizeF MeasureCore(SizeF availableSize)
@@ -298,10 +382,16 @@ public sealed class DockPanel : UiPanel
     }
 }
 
+/// <summary>
+/// Arranges child elements in rows that wrap when available width is exceeded.
+/// </summary>
 public sealed class WrapPanel : UiPanel
 {
     private float spacing;
 
+    /// <summary>
+    /// Gets or sets spacing between child elements in DIPs.
+    /// </summary>
     public float Spacing
     {
         get => spacing;
@@ -367,28 +457,77 @@ public sealed class WrapPanel : UiPanel
     }
 }
 
+/// <summary>
+/// Arranges child elements in rows and columns.
+/// </summary>
 public sealed class Grid : UiPanel
 {
     private static readonly ConditionalWeakTable<UiElement, GridPlacement> Placements = [];
 
+    /// <summary>
+    /// Gets the grid row definitions.
+    /// </summary>
     public IList<GridDefinition> Rows { get; } = [];
 
+    /// <summary>
+    /// Gets the grid column definitions.
+    /// </summary>
     public IList<GridDefinition> Columns { get; } = [];
 
+    /// <summary>
+    /// Sets the row index for a child element.
+    /// </summary>
+    /// <param name="element">The child element.</param>
+    /// <param name="row">The zero-based row index.</param>
     public static void SetRow(UiElement element, int row) => SetPlacement(element, placement => placement.Row = ValidateIndex(row));
 
+    /// <summary>
+    /// Sets the column index for a child element.
+    /// </summary>
+    /// <param name="element">The child element.</param>
+    /// <param name="column">The zero-based column index.</param>
     public static void SetColumn(UiElement element, int column) => SetPlacement(element, placement => placement.Column = ValidateIndex(column));
 
+    /// <summary>
+    /// Gets the row index for a child element.
+    /// </summary>
+    /// <param name="element">The child element.</param>
+    /// <returns>The zero-based row index.</returns>
     public static int GetRow(UiElement element) => GetPlacement(element).Row;
 
+    /// <summary>
+    /// Gets the column index for a child element.
+    /// </summary>
+    /// <param name="element">The child element.</param>
+    /// <returns>The zero-based column index.</returns>
     public static int GetColumn(UiElement element) => GetPlacement(element).Column;
 
+    /// <summary>
+    /// Sets the row span for a child element.
+    /// </summary>
+    /// <param name="element">The child element.</param>
+    /// <param name="rowSpan">The number of rows to span.</param>
     public static void SetRowSpan(UiElement element, int rowSpan) => SetPlacement(element, placement => placement.RowSpan = ValidateSpan(rowSpan));
 
+    /// <summary>
+    /// Sets the column span for a child element.
+    /// </summary>
+    /// <param name="element">The child element.</param>
+    /// <param name="columnSpan">The number of columns to span.</param>
     public static void SetColumnSpan(UiElement element, int columnSpan) => SetPlacement(element, placement => placement.ColumnSpan = ValidateSpan(columnSpan));
 
+    /// <summary>
+    /// Gets the row span for a child element.
+    /// </summary>
+    /// <param name="element">The child element.</param>
+    /// <returns>The row span.</returns>
     public static int GetRowSpan(UiElement element) => GetPlacement(element).RowSpan;
 
+    /// <summary>
+    /// Gets the column span for a child element.
+    /// </summary>
+    /// <param name="element">The child element.</param>
+    /// <returns>The column span.</returns>
     public static int GetColumnSpan(UiElement element) => GetPlacement(element).ColumnSpan;
 
     protected override SizeF MeasureCore(SizeF availableSize)

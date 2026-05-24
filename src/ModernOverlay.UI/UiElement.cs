@@ -2,6 +2,9 @@ using ModernOverlay.Diagnostics;
 
 namespace ModernOverlay.UI;
 
+/// <summary>
+/// Base class for retained UI elements.
+/// </summary>
 public abstract class UiElement
 {
     private string? name;
@@ -35,88 +38,160 @@ public abstract class UiElement
 
     internal int InsertionOrder { get; set; }
 
+    /// <summary>
+    /// Occurs when a pointer move routes to the element.
+    /// </summary>
     public event EventHandler<UiPointerEventArgs>? PointerMoved;
 
+    /// <summary>
+    /// Occurs when the pointer enters the element.
+    /// </summary>
     public event EventHandler<UiPointerEventArgs>? PointerEntered;
 
+    /// <summary>
+    /// Occurs when the pointer exits the element.
+    /// </summary>
     public event EventHandler<UiPointerEventArgs>? PointerExited;
 
+    /// <summary>
+    /// Occurs when a pointer press routes to the element.
+    /// </summary>
     public event EventHandler<UiPointerEventArgs>? PointerPressed;
 
+    /// <summary>
+    /// Occurs when a pointer release routes to the element.
+    /// </summary>
     public event EventHandler<UiPointerEventArgs>? PointerReleased;
 
+    /// <summary>
+    /// Occurs when a pointer wheel event routes to the element.
+    /// </summary>
     public event EventHandler<UiPointerEventArgs>? PointerWheel;
 
+    /// <summary>
+    /// Occurs when a key press routes to the focused element.
+    /// </summary>
     public event EventHandler<UiKeyboardEventArgs>? KeyPressed;
 
+    /// <summary>
+    /// Occurs when a key release routes to the focused element.
+    /// </summary>
     public event EventHandler<UiKeyboardEventArgs>? KeyReleased;
 
+    /// <summary>
+    /// Occurs when text input routes to the focused element.
+    /// </summary>
     public event EventHandler<UiTextInputEventArgs>? TextInput;
 
+    /// <summary>
+    /// Occurs when the element is attached to a UI root.
+    /// </summary>
     public event EventHandler? Attached;
 
+    /// <summary>
+    /// Occurs when the element is detached from a UI root.
+    /// </summary>
     public event EventHandler? Detached;
 
+    /// <summary>
+    /// Gets or sets an optional element name for diagnostics and lookup by application code.
+    /// </summary>
     public string? Name
     {
         get => name;
         set => SetProperty(ref name, value, UiInvalidation.None);
     }
 
+    /// <summary>
+    /// Gets or sets arbitrary application data associated with the element.
+    /// </summary>
     public object? Tag
     {
         get => tag;
         set => SetProperty(ref tag, value, UiInvalidation.None);
     }
 
+    /// <summary>
+    /// Gets the parent panel, or <see langword="null"/> when the element is detached.
+    /// </summary>
     public UiPanel? Parent { get; private set; }
 
+    /// <summary>
+    /// Gets the owning UI root, or <see langword="null"/> when the element is detached.
+    /// </summary>
     public OverlayUiRoot? Root { get; private set; }
 
+    /// <summary>
+    /// Gets or sets whether the element is visible, hidden, or collapsed.
+    /// </summary>
     public UiVisibility Visibility
     {
         get => visibility;
         set => SetProperty(ref visibility, value, UiInvalidation.Measure | UiInvalidation.Render | UiInvalidation.InputRegion | UiInvalidation.FocusState);
     }
 
+    /// <summary>
+    /// Gets or sets whether the element is visible; setting <see langword="false"/> collapses the element.
+    /// </summary>
     public bool IsVisible
     {
         get => Visibility == UiVisibility.Visible;
         set => Visibility = value ? UiVisibility.Visible : UiVisibility.Collapsed;
     }
 
+    /// <summary>
+    /// Gets or sets whether the element can render as enabled and participate in input.
+    /// </summary>
     public bool IsEnabled
     {
         get => isEnabled;
         set => SetProperty(ref isEnabled, value, UiInvalidation.Render | UiInvalidation.InputRegion | UiInvalidation.FocusState);
     }
 
+    /// <summary>
+    /// Gets whether this element and all ancestors are enabled.
+    /// </summary>
     public bool IsEffectivelyEnabled => IsEnabled && (Parent?.IsEffectivelyEnabled ?? true);
 
+    /// <summary>
+    /// Gets or sets whether this element can be returned by hit testing.
+    /// </summary>
     public bool ReceivesInput
     {
         get => receivesInput;
         set => SetProperty(ref receivesInput, value, UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets a custom input-region predicate for selective click-through.
+    /// </summary>
     public UiInputRegionHandler? InputRegion
     {
         get => inputRegion;
         set => SetProperty(ref inputRegion, value, UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets whether the element can receive keyboard focus.
+    /// </summary>
     public bool Focusable
     {
         get => focusable;
         set => SetProperty(ref focusable, value, UiInvalidation.InputRegion | UiInvalidation.FocusState);
     }
 
+    /// <summary>
+    /// Gets or sets the tab-order index used by focus navigation.
+    /// </summary>
     public int TabIndex
     {
         get => tabIndex;
         set => SetProperty(ref tabIndex, value, UiInvalidation.FocusState);
     }
 
+    /// <summary>
+    /// Gets or sets element opacity from 0 to 1.
+    /// </summary>
     public float Opacity
     {
         get => opacity;
@@ -131,148 +206,232 @@ public abstract class UiElement
         }
     }
 
+    /// <summary>
+    /// Gets or sets the z-order within the parent panel.
+    /// </summary>
     public int ZIndex
     {
         get => zIndex;
         set => SetProperty(ref zIndex, value, UiInvalidation.Render | UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets the outer layout margin.
+    /// </summary>
     public Thickness Margin
     {
         get => margin;
         set => SetProperty(ref margin, value, UiInvalidation.Measure);
     }
 
+    /// <summary>
+    /// Gets or sets inner padding used by the element.
+    /// </summary>
     public Thickness Padding
     {
         get => padding;
         set => SetProperty(ref padding, value, UiInvalidation.Measure);
     }
 
+    /// <summary>
+    /// Gets or sets the explicit width in DIPs, or <see cref="float.NaN"/> for automatic width.
+    /// </summary>
     public float Width
     {
         get => width;
         set => SetLayoutDimension(ref width, value, allowAuto: true);
     }
 
+    /// <summary>
+    /// Gets or sets the explicit height in DIPs, or <see cref="float.NaN"/> for automatic height.
+    /// </summary>
     public float Height
     {
         get => height;
         set => SetLayoutDimension(ref height, value, allowAuto: true);
     }
 
+    /// <summary>
+    /// Gets or sets the minimum layout width in DIPs.
+    /// </summary>
     public float MinWidth
     {
         get => constraints.MinWidth;
         set => SetConstraints(constraints.WithMinWidth(value));
     }
 
+    /// <summary>
+    /// Gets or sets the minimum layout height in DIPs.
+    /// </summary>
     public float MinHeight
     {
         get => constraints.MinHeight;
         set => SetConstraints(constraints.WithMinHeight(value));
     }
 
+    /// <summary>
+    /// Gets or sets the maximum layout width in DIPs.
+    /// </summary>
     public float MaxWidth
     {
         get => constraints.MaxWidth;
         set => SetConstraints(constraints.WithMaxWidth(value));
     }
 
+    /// <summary>
+    /// Gets or sets the maximum layout height in DIPs.
+    /// </summary>
     public float MaxHeight
     {
         get => constraints.MaxHeight;
         set => SetConstraints(constraints.WithMaxHeight(value));
     }
 
+    /// <summary>
+    /// Gets or sets combined min/max layout constraints.
+    /// </summary>
     public UiConstraints Constraints
     {
         get => constraints;
         set => SetConstraints(value);
     }
 
+    /// <summary>
+    /// Gets or sets horizontal alignment within the assigned layout slot.
+    /// </summary>
     public UiHorizontalAlignment HorizontalAlignment
     {
         get => horizontalAlignment;
         set => SetProperty(ref horizontalAlignment, value, UiInvalidation.Arrange);
     }
 
+    /// <summary>
+    /// Gets or sets vertical alignment within the assigned layout slot.
+    /// </summary>
     public UiVerticalAlignment VerticalAlignment
     {
         get => verticalAlignment;
         set => SetProperty(ref verticalAlignment, value, UiInvalidation.Arrange);
     }
 
+    /// <summary>
+    /// Gets or sets the background brush override.
+    /// </summary>
     public BrushHandle? Background
     {
         get => background;
         set => SetProperty(ref background, value, UiInvalidation.Render | UiInvalidation.Resource);
     }
 
+    /// <summary>
+    /// Gets or sets the foreground brush override.
+    /// </summary>
     public BrushHandle? Foreground
     {
         get => foreground;
         set => SetProperty(ref foreground, value, UiInvalidation.Render | UiInvalidation.Resource);
     }
 
+    /// <summary>
+    /// Gets or sets the border brush override.
+    /// </summary>
     public BrushHandle? BorderBrush
     {
         get => borderBrush;
         set => SetProperty(ref borderBrush, value, UiInvalidation.Render | UiInvalidation.Resource);
     }
 
+    /// <summary>
+    /// Gets or sets the accent brush override.
+    /// </summary>
     public BrushHandle? AccentBrush
     {
         get => accentBrush;
         set => SetProperty(ref accentBrush, value, UiInvalidation.Render | UiInvalidation.Resource);
     }
 
+    /// <summary>
+    /// Gets or sets the disabled-state brush override.
+    /// </summary>
     public BrushHandle? DisabledBrush
     {
         get => disabledBrush;
         set => SetProperty(ref disabledBrush, value, UiInvalidation.Render | UiInvalidation.Resource);
     }
 
+    /// <summary>
+    /// Gets or sets the hover background brush override.
+    /// </summary>
     public BrushHandle? HoverBackground
     {
         get => hoverBackground;
         set => SetProperty(ref hoverBackground, value, UiInvalidation.Render | UiInvalidation.Resource);
     }
 
+    /// <summary>
+    /// Gets or sets the pressed background brush override.
+    /// </summary>
     public BrushHandle? PressedBackground
     {
         get => pressedBackground;
         set => SetProperty(ref pressedBackground, value, UiInvalidation.Render | UiInvalidation.Resource);
     }
 
+    /// <summary>
+    /// Gets or sets the focus brush override.
+    /// </summary>
     public BrushHandle? FocusBrush
     {
         get => focusBrush;
         set => SetProperty(ref focusBrush, value, UiInvalidation.Render | UiInvalidation.Resource);
     }
 
+    /// <summary>
+    /// Gets or sets the popup background brush override.
+    /// </summary>
     public BrushHandle? PopupBackground
     {
         get => popupBackground;
         set => SetProperty(ref popupBackground, value, UiInvalidation.Render | UiInvalidation.Resource);
     }
 
+    /// <summary>
+    /// Gets or sets the window chrome background brush override.
+    /// </summary>
     public BrushHandle? WindowChromeBackground
     {
         get => windowChromeBackground;
         set => SetProperty(ref windowChromeBackground, value, UiInvalidation.Render | UiInvalidation.Resource);
     }
 
+    /// <summary>
+    /// Gets whether the pointer is currently over the element.
+    /// </summary>
     public bool IsMouseOver { get; internal set; }
 
+    /// <summary>
+    /// Gets whether the element is currently pressed.
+    /// </summary>
     public bool IsPressed { get; internal set; }
 
+    /// <summary>
+    /// Gets whether the element currently owns keyboard focus.
+    /// </summary>
     public bool IsFocused => Root?.FocusedElement == this;
 
+    /// <summary>
+    /// Gets whether keyboard focus is on this element or one of its descendants.
+    /// </summary>
     public bool IsKeyboardFocusWithin => Root?.IsKeyboardFocusWithin(this) == true;
 
+    /// <summary>
+    /// Gets whether this element owns pointer capture.
+    /// </summary>
     public bool IsPointerCaptured => Root?.CapturedElement == this;
 
+    /// <summary>
+    /// Gets the effective visual state used by built-in controls.
+    /// </summary>
     public UiVisualState VisualState
         => !IsEffectivelyEnabled
             ? UiVisualState.Disabled
@@ -282,18 +441,39 @@ public abstract class UiElement
                     ? UiVisualState.Hover
                     : IsFocused ? UiVisualState.Focused : UiVisualState.Normal;
 
+    /// <summary>
+    /// Gets the size requested during the last measure pass.
+    /// </summary>
     public SizeF DesiredSize { get; private set; }
 
+    /// <summary>
+    /// Gets the arranged bounds in overlay-local DIPs.
+    /// </summary>
     public RectF Bounds { get; private set; }
 
+    /// <summary>
+    /// Gets arranged bounds deflated by <see cref="Padding"/>.
+    /// </summary>
     public RectF ContentBounds => UiGeometry.Deflate(Bounds, Padding);
 
+    /// <summary>
+    /// Invalidates measure, arrange, render, and input-region state.
+    /// </summary>
     public void InvalidateMeasure() => Root?.Invalidate(UiInvalidation.Measure | UiInvalidation.Arrange | UiInvalidation.Render | UiInvalidation.InputRegion);
 
+    /// <summary>
+    /// Invalidates arrange, render, and input-region state.
+    /// </summary>
     public void InvalidateArrange() => Root?.Invalidate(UiInvalidation.Arrange | UiInvalidation.Render | UiInvalidation.InputRegion);
 
+    /// <summary>
+    /// Invalidates render state.
+    /// </summary>
     public void InvalidateRender() => Root?.Invalidate(UiInvalidation.Render);
 
+    /// <summary>
+    /// Moves keyboard focus to this element.
+    /// </summary>
     public void Focus()
     {
         if (!Focusable)
@@ -304,6 +484,9 @@ public abstract class UiElement
         Root?.Focus(this);
     }
 
+    /// <summary>
+    /// Clears keyboard focus if this element currently owns it.
+    /// </summary>
     public void Blur()
     {
         if (Root?.FocusedElement == this)
@@ -312,12 +495,24 @@ public abstract class UiElement
         }
     }
 
+    /// <summary>
+    /// Moves keyboard focus to the next focusable element in the root.
+    /// </summary>
     public void MoveFocusNext() => Root?.MoveFocusNext();
 
+    /// <summary>
+    /// Moves keyboard focus to the previous focusable element in the root.
+    /// </summary>
     public void MoveFocusPrevious() => Root?.MoveFocusPrevious();
 
+    /// <summary>
+    /// Captures pointer events for this element.
+    /// </summary>
     public void CapturePointer() => Root?.CapturePointer(this);
 
+    /// <summary>
+    /// Releases pointer capture if this element owns it.
+    /// </summary>
     public void ReleasePointerCapture() => Root?.ReleasePointerCapture(this);
 
     internal void Attach(UiPanel parent, OverlayUiRoot? root)

@@ -36,6 +36,7 @@ The playground generator makes a local editable `Program.cs` even when the origi
 | `StickyWindowOverlay` | Spec-named alias for sticky-window style target tracking. |
 | `InputModeOverlay` | Click-through versus interactive pointer mode. |
 | `InteractiveOverlay` | Spec-named alias for interactive input behavior. |
+| `InteractiveUiOverlay` | Retained `ModernOverlay.UI` controls with selective click-through and explicit `ui.Render(frame)`. |
 | `ShapesOverlay` | Lines, rectangles, circles, helpers, and geometry-style drawing. |
 | `GeometryOverlay` | Spec-named alias for shape/geometry drawing. |
 | `ImageOverlay` | Image loading and drawing. |

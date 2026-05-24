@@ -567,19 +567,19 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 
 ## 30. Samples
 
-- [ ] Add `samples/InteractiveUiOverlay`.
-- [ ] Demonstrate anchored and manual panels.
-- [ ] Demonstrate draggable/resizable `UiWindow`.
-- [ ] Demonstrate text block, button, checkbox, radio buttons, slider, progress bar, list/combo, textbox, tabs, segmented control, and color picker.
+- [x] Add `samples/InteractiveUiOverlay`.
+- [x] Demonstrate anchored and manual panels.
+- [x] Demonstrate draggable/resizable `UiWindow`.
+- [x] Demonstrate text block, button, checkbox, radio buttons, slider, progress bar, list/combo, textbox, tabs, segmented control, and color picker.
 - [ ] Demonstrate popup z-order.
 - [ ] Demonstrate keyboard focus and tab navigation.
-- [ ] Demonstrate layout persistence with an in-memory `IUiLayoutStore` sample store.
-- [ ] Add a quick-start UI sample with one window, a few controls, selective click-through, and explicit `ui.Render(frame)`.
+- [x] Demonstrate layout persistence with an in-memory `IUiLayoutStore` sample store.
+- [x] Add a quick-start UI sample with one window, a few controls, selective click-through, and explicit `ui.Render(frame)`.
 - [ ] Add a stress/integration UI sample with multiple floating windows, popup/menu/context menu, text input, tab navigation, DPI movement, theme change, and persistence restore.
-- [ ] Keep both samples neutral with no game-specific content.
+- [x] Keep both samples neutral with no game-specific content.
 - [ ] Add sample compile tests.
-- [ ] Add `tools\Start-ModernOverlaySample.ps1` support for the new sample.
-- [ ] Update `samples/README.md`.
+- [x] Add `tools\Start-ModernOverlaySample.ps1` support for the new sample.
+- [x] Update `samples/README.md`.
 
 ## 31. Documentation
 

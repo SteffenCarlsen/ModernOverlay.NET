@@ -79,7 +79,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 
 - [x] Define UI property invalidation categories: layout, arrange, render, input-region, focus/state, and resource.
 - [x] Implement internal property-set helper APIs so controls do not repeat handwritten invalidation logic in every setter.
-- [ ] Define which properties are inherited through the UI tree, limited initially to theme and enabled/visibility-style state where needed.
+- [x] Define which properties are inherited through the UI tree, limited initially to theme and enabled/visibility-style state where needed.
+  - 1.1 limits inheritance to theme/resource context and effective enabled/visibility-style state where needed for input, focus, and rendering. Arbitrary inherited styling and data-binding-style property inheritance are out of scope.
 - [x] Ensure visual-state changes invalidate render and update input/focus state consistently.
   - `UiElement.VisualState` exposes normal, hover, pressed, disabled, and focused state; pointer, focus, enabled, and visibility updates already invalidate render/input/focus state through the root.
 - [x] Ensure property changes during protected phases are render-safe and schedule deferred consequences when needed.
@@ -440,12 +441,17 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Close popups on outside click, Escape, owner removal, or root disposal.
 - [x] Route input to popup before normal content.
 - [ ] Add tests for popup placement, z-order, outside click, Escape, owner removal, and nested popups if allowed.
-- [ ] Define popup ownership rules.
-- [ ] Define whether opening a popup steals keyboard focus; default should preserve owner focus.
-- [ ] Define whether popup children can be focusable and how focus moves into them.
-- [ ] Define pointer capture behavior for controls inside popups.
+- [x] Define popup ownership rules.
+  - Popups have an owner element and are hosted in the owning `OverlayUiRoot` popup layer; owner close, hide, disable, detach, or root disposal closes owned popups before normal input continues.
+- [x] Define whether opening a popup steals keyboard focus; default should preserve owner focus.
+  - Opening a popup preserves owner focus by default. Focus moves into the popup only when the user interacts with a focusable popup child or an explicitly focusable popup scenario opts in.
+- [x] Define whether popup children can be focusable and how focus moves into them.
+  - Popup children may be focusable when explicitly configured. Clicking a non-focusable popup surface preserves owner focus; clicking or tabbing to a focusable popup child moves focus to that child through the normal root focus manager.
+- [x] Define pointer capture behavior for controls inside popups.
+  - Pointer capture from popup children is tracked by the owning `OverlayUiRoot`, not by a popup-local root, so capture release and owner cleanup share the same rules as normal controls.
 - [x] Define dismissal order for outside click, Escape, owner close, owner hide, owner disable, and root disposal.
-- [ ] Define nested popup policy for menus/context menus and reject arbitrary nested popups if unsupported in 1.1.
+- [x] Define nested popup policy for menus/context menus and reject arbitrary nested popups if unsupported in 1.1.
+  - Nested popups are allowed only for menu/context-menu submenu scenarios implemented by the 1.1 controls; arbitrary nested popups remain unsupported and should be rejected or flattened until a general policy exists.
 - [ ] Add tests for focus preservation, focusable popup children, capture inside popup, owner close while popup has capture, and nested popup policy.
 
 ### 22.2 ListBox
@@ -551,7 +557,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - Retained input routing already excludes disabled elements; common controls now render disabled text, borders, selection, range, popup, tab, segmented, color, and window states with theme disabled colors.
 - [ ] Add minimum hit-target guidance.
 - [ ] Add text contrast guidance for default theme.
-- [ ] Decide whether UI Automation support is out of scope for 1.1.
+- [x] Decide whether UI Automation support is out of scope for 1.1.
+  - UI Automation providers, screen-reader tree exposure, and accessibility patterns are out of scope for 1.1; keyboard navigation, visible focus, disabled visuals, hit-target guidance, contrast guidance, and honest limitation docs remain in scope.
 - [ ] Document accessibility limitations honestly.
 
 ## 29. Diagnostics

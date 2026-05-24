@@ -25,6 +25,7 @@ This note records the implementation architecture after the initial task-breakdo
 - Ship both `TabControl` and `SegmentedControl`.
 - Include `Menu`, `ContextMenu`, `GroupBox`, and `ToolTip` in the MVP; defer `SearchBox`.
 - Focused text input controls should own keyboard/text message input while editing.
+- Treat UI Automation provider support as out of scope for 1.1; the MVP accessibility baseline is keyboard navigation, visible focus, disabled state, hit-target/text-contrast guidance, and documented limitations.
 
 ## External Review Alignment
 
@@ -249,6 +250,16 @@ Controls that commonly show multiple items in 1.1 should provide local keyboard 
 - automatic enabled/disabled visual refresh when `CanExecuteChanged` fires.
 
 Full data binding remains out of scope for 1.1, but command state must still flow into controls predictably.
+
+### Accessibility scope
+
+The 1.1 UI layer should provide a practical usability baseline without claiming platform accessibility parity:
+
+- keyboard navigation for focusable controls is required;
+- visible focus and disabled visuals are required;
+- minimum hit-target and default-theme contrast guidance should be documented before release;
+- UI Automation providers, screen-reader tree exposure, and accessibility patterns are out of scope for 1.1;
+- the public docs should state those limitations directly.
 
 ### Persistence
 

@@ -37,6 +37,7 @@ The following decisions define the 1.1 MVP scope:
 18. Focused text input controls should own keyboard/text message input while editing.
 19. Defer `ScrollViewer` and general virtualization until after the first UI MVP.
 20. Add a lightweight property-change/invalidation model, deferred mutation policy, popup/focus/capture rules, text input scope, resource lifetime semantics, and command-state rules before implementing controls.
+21. Keep UI Automation provider support out of scope for 1.1 while still requiring keyboard navigation, visible focus, disabled states, and documented accessibility limitations.
 
 These decisions push 1.1 from a narrow control spike into a complete retained overlay UI layer. The implementation should still be sliced vertically, but the acceptance bar is the full MVP surface.
 
@@ -287,7 +288,7 @@ Popup infrastructure, keyboard/text input, focus handling, selective click-throu
 
 - Add a quick-start `InteractiveUiOverlay` sample.
 - Add a stress/integration UI sample.
-- Document safety boundary, input modes, dynamic placement, and known limitations.
+- Document safety boundary, input modes, dynamic placement, accessibility scope, and known limitations.
 - Publish the UI layer as a separate package.
 
 ## Resolved Architecture Decisions

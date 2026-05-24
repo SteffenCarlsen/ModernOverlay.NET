@@ -184,3 +184,8 @@ Read more: [docs index](docs/README.md).
 3. [tests](tests/README.md): test areas and common commands.
 4. [benchmarks](benchmarks/README.md): BenchmarkDotNet classes and dry-run command.
 5. [tools](tools/README.md): release validation command gate.
+
+## A personal note on AI usage from myself
+The project has served as a learning experience for myself in using AI Agents "the correct way", in particular Codex. I wanted to implement some of the ideas I previously had as (bad) PoCs in other projects and try to make them feature complete; without sacrificing all of my free time completing it. All of the code has gone through numerous levels of review and quality assurance, from analysis breakdowns to task handling, milestone defintions to full implementations and the automated testing. With that being said, pretty much 99.9% of the project has been made using Codex with GPT 5.5 (high) and reviewed by Junie, Claude Sonnet 4.6 and GPT 5.4 in loop until relative agreement.
+
+I've tried to keep most of the intermediate documentation from the AI's available in the repo, not only so that others can get inspired and try to use agents in a similar way, but also for myself to look back at the state of Agentic AI from May 2025 in the future.

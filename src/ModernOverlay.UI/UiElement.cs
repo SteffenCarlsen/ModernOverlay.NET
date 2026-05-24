@@ -613,7 +613,7 @@ public abstract class UiElement
 
     internal UiElement? ResolveInput(PointF point)
     {
-        if (!CanParticipateInInput() || !UiGeometry.Contains(Bounds, point))
+        if (!CanParticipateInInput() || !UiGeometry.ContainsInputBand(Bounds, point))
         {
             return null;
         }
@@ -697,7 +697,7 @@ public abstract class UiElement
     {
     }
 
-    protected virtual bool HitTestCore(PointF point) => UiGeometry.Contains(Bounds, point);
+    protected virtual bool HitTestCore(PointF point) => UiGeometry.ContainsInputBand(Bounds, point);
 
     protected virtual bool ResolveInputRegion(PointF point)
         => InputRegion?.Invoke(this, point) ?? HitTestCore(point);

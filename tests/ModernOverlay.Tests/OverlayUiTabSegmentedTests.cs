@@ -58,6 +58,21 @@ public sealed class OverlayUiTabSegmentedTests
 
     [TestMethod]
     [TestCategory("WindowsIntegration")]
+    public async Task TabPointerBottomEdgeStillHitsHeader()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        UiTabControl tabs = CreateTabs(out _, out _, out _);
+        ui.Root.Children.Add(tabs);
+        ui.Render(new DrawContext());
+
+        ClickUi(ui, new PointF(70f, 40f));
+
+        Assert.AreEqual(1, tabs.SelectedIndex);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
     public async Task TabKeyboardNavigationSkipsDisabledTabs()
     {
         await using OverlayWindow overlay = await CreateOverlayAsync();
@@ -140,6 +155,31 @@ public sealed class OverlayUiTabSegmentedTests
         ClickUi(ui, new PointF(70f, 20f));
 
         Assert.AreEqual(0, segmented.SelectedIndex);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task SegmentedControlPointerOuterEdgesStillHitRenderedSegments()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        SegmentedControl segmented = new()
+        {
+            Width = 180f,
+        };
+        Canvas.SetLeft(segmented, 10f);
+        Canvas.SetTop(segmented, 10f);
+        segmented.Items.Add("A");
+        segmented.Items.Add("B");
+        segmented.Items.Add("C");
+        ui.Root.Children.Add(segmented);
+        ui.Render(new DrawContext());
+
+        ClickUi(ui, new PointF(80f, 40f));
+        Assert.AreEqual(1, segmented.SelectedIndex);
+
+        ClickUi(ui, new PointF(190f, 25f));
+        Assert.AreEqual(2, segmented.SelectedIndex);
     }
 
     private static async ValueTask<OverlayWindow> CreateOverlayAsync()

@@ -141,7 +141,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Implement render clipping behavior for elements and panels.
 - [x] Add layout diagnostics for repeated invalidation loops.
   - `OverlayUiRoot` caps repeated same-frame layout passes and emits `UiLayoutLoop` before leaving layout invalidation for a later frame.
-- [ ] Add tests for measure/arrange order, constraints, min/max, margin, padding, alignment, collapsed/hidden behavior, and clipping.
+- [x] Add tests for measure/arrange order, constraints, min/max, margin, padding, alignment, collapsed/hidden behavior, and clipping.
+  - `OverlayUiLayoutTests.LayoutEngineMeasuresArrangesAndClipsVisibleElements` covers the root layout pass, constraint-clamped measure input, margin/padding, explicit min/max size, alignment, hidden/collapsed behavior, and element clip calls.
 
 ## 7. Layout Panels
 
@@ -152,7 +153,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Support explicit child size and natural desired size.
 - [x] Define behavior when both left/right or top/bottom are set.
   - If both sides are set on an axis, `Canvas` stretches the child across the remaining space on that axis. If only right or bottom is set, the child keeps its desired size and is anchored to that edge.
-- [ ] Add tests for absolute placement, right/bottom anchoring, z-order, and clipping.
+- [x] Add tests for absolute placement, right/bottom anchoring, z-order, and clipping.
+  - `OverlayUiLayoutTests.CanvasSupportsAbsoluteRightBottomAndStretchAnchoring` covers absolute coordinates, right/bottom anchoring, and dual-edge stretch; z-order input behavior is covered by `OverlayUiElementModelTests.InputHitTestingUsesZIndexThenReverseInsertionOrder`, and clipping is covered by the layout render-path test.
 
 ### 7.2 StackPanel
 
@@ -160,13 +162,15 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add `Spacing`.
 - [x] Support child margins.
 - [x] Respect child alignment on the cross axis.
-- [ ] Add tests for vertical stacking, horizontal stacking, spacing, margin, collapsed children, and cross-axis alignment.
+- [x] Add tests for vertical stacking, horizontal stacking, spacing, margin, collapsed children, and cross-axis alignment.
+  - `OverlayUiLayoutTests.StackPanelSupportsOrientationSpacingMarginsCollapsedChildrenAndCrossAxisAlignment` covers vertical and horizontal layout, spacing, margin, collapsed children, right alignment, and bottom alignment.
 
 ### 7.3 DockPanel
 
 - [x] Implement `DockPanel` for framed windows and toolbars.
 - [x] Add left, top, right, bottom, fill-last-child behavior.
-- [ ] Add tests for dock ordering and fill behavior.
+- [x] Add tests for dock ordering and fill behavior.
+  - `OverlayUiLayoutTests.DockPanelArrangesDockedChildrenAndFillLastChild` covers left/top docking order and last-child fill.
 
 ### 7.4 Grid
 
@@ -174,13 +178,15 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Implement fixed, auto, and star rows/columns.
 - [x] Add row/column span support only if required by samples.
   - `Grid` now exposes `SetRowSpan`, `SetColumnSpan`, `GetRowSpan`, and `GetColumnSpan`; span placement invalidates the parent layout like row/column changes.
-- [ ] Add tests for fixed/auto/star sizing and spans.
+- [x] Add tests for fixed/auto/star sizing and spans.
+  - `OverlayUiLayoutTests.GridSupportsPixelAutoStarAndSpans` covers pixel, auto, weighted star columns/rows, and column spans.
 
 ### 7.5 WrapPanel
 
 - [x] Decide whether `WrapPanel` is in 1.1 or deferred: include in 1.1 MVP.
 - [x] Implement horizontal wrapping first.
-- [ ] Add tests for wrapping, spacing, and available width changes.
+- [x] Add tests for wrapping, spacing, and available width changes.
+  - `OverlayUiLayoutTests.WrapPanelWrapsByAvailableWidthAndSpacing` covers wrapping decisions, spacing, and row placement under constrained width.
 
 ## 8. Dynamic Placement
 
@@ -646,7 +652,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 
 ## 32. Tests
 
-- [ ] Add layout unit tests.
+- [x] Add layout unit tests.
+  - Covered by `OverlayUiLayoutTests`.
 - [x] Add property invalidation category tests.
   - Covered by `OverlayUiInvalidationTests`.
 - [x] Add deferred mutation/reentrancy tests.

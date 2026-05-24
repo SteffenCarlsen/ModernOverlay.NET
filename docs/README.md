@@ -41,8 +41,9 @@ Use this folder as the project manual. The docs are intentionally split by topic
 3. [Next action points](next-action-points.md): numbered milestone roadmap.
 4. [Public API and package review](public-api-package-review.md): preview API/package decisions.
 5. [Implementation history](implementation-history.md): public summary of important implementation decisions and tradeoffs.
-6. [Development notes](development-notes.md): repository maintenance and validation habits.
-7. [Release validation checklist](release-validation-checklist.md): command gate and manual validation checklist.
-8. [Release publishing](release-publishing.md): tag-driven GitHub release and NuGet publishing setup.
-9. [Definition of done audit](definition-of-done-audit.md): MVP/alpha release-bar audit.
-10. [ModernOverlay 1.1 interactive UI tasks](modernoverlay-1.1-interactive-ui-tasks.md): separate checklist for the 1.1 UI feature track.
+6. [Architecture decision records](adr): accepted high-level implementation and contingency decisions.
+7. [Development notes](development-notes.md): repository maintenance and validation habits.
+8. [Release validation checklist](release-validation-checklist.md): command gate and manual validation checklist.
+9. [Release publishing](release-publishing.md): tag-driven GitHub release and NuGet publishing setup.
+10. [Definition of done audit](definition-of-done-audit.md): MVP/alpha release-bar audit.
+11. [ModernOverlay 1.1 interactive UI tasks](modernoverlay-1.1-interactive-ui-tasks.md): separate checklist for the 1.1 UI feature track.

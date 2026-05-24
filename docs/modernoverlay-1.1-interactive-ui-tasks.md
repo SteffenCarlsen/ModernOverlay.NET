@@ -13,7 +13,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Decide the 1.1 package boundary: ship as separate `ModernOverlay.UI` package.
 - [x] Decide the package naming convention.
   - Use `ModernOverlay.UI` for both internal and external naming to maintain consistency and simplicity.
-- [ ] Add an ADR for the UI package boundary, safety boundary, and release scope.
+- [x] Add an ADR for the UI package boundary, safety boundary, and release scope.
+  - See `docs/adr/0002-modernoverlay-ui-package-and-safety-boundary.md`.
 - [x] Define the 1.1 minimum viable control set: complete retained UI MVP including layout, selective click-through, text input, popups, window chrome, and all listed controls.
 - [x] Incorporate external architecture review feedback for property invalidation, reentrancy, popup/focus/capture policy, text-input scope, resource lifetime, command state, and sample strategy.
 

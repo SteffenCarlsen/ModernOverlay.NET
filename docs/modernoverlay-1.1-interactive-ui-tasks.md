@@ -475,6 +475,28 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add tests for text input, caret movement, deletion, selection, focus, disabled/read-only state, and rendering.
   - `OverlayUiTextBoxTests` covers text insertion, max length, selection replacement, caret movement, deletion, focus-owned input, read-only/disabled behavior, and text/selection/caret render commands.
 
+### 21.1.1 Multiline TextBox
+
+- [x] Analyze multiline scope, public API shape, internal line model, rendering, editing, tests, and sample needs.
+  - See `docs/modernoverlay-1.1-textbox-multiline-plan.md`.
+- [x] Decide whether multiline support is a separate control or part of `TextBox`.
+  - Keep multiline support on `TextBox`; do not add a separate `MultiLineTextBox` control for 1.1.
+- [ ] Decide the exact public opt-in API: `TextBoxMode Mode`, `IsMultiline`, or another small property shape.
+- [ ] Decide return-key behavior for multiline editing.
+- [ ] Decide multiline wrapping defaults.
+- [ ] Decide internal vertical overflow behavior: scroll into view, clip only, or a staged combination.
+- [ ] Decide Home/End semantics for line versus document navigation.
+- [ ] Decide whether `MaxLines` limits editing, layout/rendering, or both.
+- [ ] Implement an internal text line model shared by multiline render, selection, caret placement, hit testing, and scrolling.
+- [ ] Normalize line breaks for editing while preserving public `Text` behavior.
+- [ ] Add multiline pointer hit testing and drag selection across lines.
+- [ ] Add multiline keyboard navigation for Enter, Up, Down, Home, End, Ctrl+Home, Ctrl+End, and Shift selection extension.
+- [ ] Add multiline selection rendering, caret rendering, placeholder rendering, clipping, and caret visibility.
+- [ ] Add multiline measurement and layout behavior for explicit and automatic heights.
+- [ ] Add focused multiline tests in `OverlayUiTextBoxTests`.
+- [ ] Update `samples/UiAbTestOverlay` with a multiline `TextBox` showcase.
+- [ ] Update `docs/interactive-ui.md` once the public API is final.
+
 ### 21.2 SearchBox
 
 - [x] Decide whether `SearchBox` is a separate MVP control or a sample composition of `TextBox`: defer as post-MVP follow-up.

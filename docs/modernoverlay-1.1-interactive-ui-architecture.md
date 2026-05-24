@@ -228,6 +228,8 @@ General subtree opacity is not part of the 1.1 MVP because `DrawContext` does no
 
 When a text input control is focused and enters editing mode, it should own keyboard/text message input for the overlay editing session. The implementation can temporarily use an activation-capable text-entry state if Windows requires it, then return to the previous selective click-through/no-activate behavior when editing completes or focus leaves the text input. This is the MVP default behavior, not an optional best-effort path.
 
+Multiline editing should extend `TextBox` rather than introduce a separate `MultiLineTextBox`. The architectural boundary is a text layout mode inside the same control: single-line editing can keep horizontal scrolling and one-line caret math, while multiline editing needs an internal line model that maps between text indices and visual line coordinates for rendering, hit testing, selection, vertical navigation, and caret visibility. Public API details are tracked in `docs/modernoverlay-1.1-textbox-multiline-plan.md`.
+
 ### Scrolling and virtualization boundary
 
 `ScrollViewer` and general virtualization are deliberately post-MVP. The first release should not carry a half-designed scroll host because scrolling changes several root assumptions at once:

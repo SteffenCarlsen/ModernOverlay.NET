@@ -112,8 +112,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Schedule a follow-up layout pass when layout is invalidated during arrange.
   - `OverlayUiRoot.EnsureLayout()` keeps running measure/arrange passes while measure or arrange invalidation remains, capped by `UiLayoutLoop` diagnostics for repeated same-frame invalidation.
 - [x] Release capture predictably when the capture owner is removed, disabled, hidden, or detached.
-- [ ] Add tests for removal during click, popup close during bubbling, invalidation during arrange, capture-owner removal, and focus-owner removal.
-  - Partial coverage exists in `OverlayUiDeferredOperationTests` for idle safe-point execution, render-phase child mutation deferral, and non-reentrant FIFO flush ordering.
+- [x] Add tests for removal during click, popup close during bubbling, invalidation during arrange, capture-owner removal, and focus-owner removal.
+  - `OverlayUiDeferredOperationTests` covers idle safe-point execution, render-phase child mutation deferral, non-reentrant FIFO flush ordering, click-handler removal, popup close during bubbling, arrange-phase layout invalidation, and removal cleanup for focus/capture owners.
   - Partial coverage exists in `OverlayUiPopupPolicyTests` for deferred owner cleanup before new capture assignment.
 
 ## 5. Panel And Child Collection Model
@@ -648,7 +648,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [ ] Add layout unit tests.
 - [x] Add property invalidation category tests.
   - Covered by `OverlayUiInvalidationTests`.
-- [ ] Add deferred mutation/reentrancy tests.
+- [x] Add deferred mutation/reentrancy tests.
+  - Covered by `OverlayUiDeferredOperationTests`.
 - [ ] Add placement unit tests.
 - [ ] Add element-tree mutation tests.
 - [ ] Add input-region tests.

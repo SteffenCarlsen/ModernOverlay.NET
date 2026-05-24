@@ -1,10 +1,15 @@
 using ModernOverlay.UI;
+using ModernOverlay.Win32;
+using System.Reflection;
 
 namespace ModernOverlay.Tests;
 
 [TestClass]
 public sealed class OverlayUiElementModelTests
 {
+    private static readonly string[] ExpectedSecondHit = ["second"];
+    private static readonly string[] ExpectedTopHit = ["top"];
+
     [TestMethod]
     [TestCategory("WindowsIntegration")]
     public async Task AddingAndRemovingChildUpdatesParentRootAndLifecycleEvents()
@@ -43,6 +48,71 @@ public sealed class OverlayUiElementModelTests
 
         Assert.ThrowsExactly<InvalidOperationException>(() => secondParent.Children.Add(leaf));
         Assert.ThrowsExactly<InvalidOperationException>(() => firstParent.Children.Add(childPanel));
+    }
+
+    [TestMethod]
+    public void ChildCollectionClearDetachesChildrenAndMissingRemoveReturnsFalse()
+    {
+        UiPanel parent = new();
+        UiElement first = new ProbeElement();
+        UiElement second = new ProbeElement();
+        UiElement missing = new ProbeElement();
+        parent.Children.Add(first);
+        parent.Children.Add(second);
+
+        Assert.IsFalse(parent.Children.Remove(missing));
+
+        parent.Children.Clear();
+
+        Assert.AreEqual(0, parent.Children.Count);
+        Assert.IsNull(first.Parent);
+        Assert.IsNull(second.Parent);
+    }
+
+    [TestMethod]
+    public void ChildCollectionEnumerationPreservesInsertionOrder()
+    {
+        UiPanel parent = new();
+        UiElement first = new ProbeElement();
+        UiElement second = new ProbeElement();
+        UiElement third = new ProbeElement();
+
+        parent.Children.Add(first);
+        parent.Children.Add(second);
+        parent.Children.Add(third);
+
+        CollectionAssert.AreEqual(new[] { first, second, third }, parent.Children.ToArray());
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task InputHitTestingUsesZIndexThenReverseInsertionOrder()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        ProbeElement first = CreateInputElement();
+        ProbeElement second = CreateInputElement();
+        ProbeElement top = CreateInputElement();
+        top.ZIndex = 10;
+        List<string> hits = [];
+        first.PointerPressed += (_, _) => hits.Add("first");
+        second.PointerPressed += (_, _) => hits.Add("second");
+        top.PointerPressed += (_, _) => hits.Add("top");
+
+        ui.Root.Children.Add(first);
+        ui.Root.Children.Add(second);
+        ui.Render(new DrawContext());
+
+        DispatchPointer(overlay, Win32PointerEventKind.Pressed, Win32PointerButton.Left, 12, 14);
+
+        CollectionAssert.AreEqual(ExpectedSecondHit, hits);
+
+        hits.Clear();
+        ui.Root.Children.Add(top);
+
+        DispatchPointer(overlay, Win32PointerEventKind.Pressed, Win32PointerButton.Left, 12, 14);
+
+        CollectionAssert.AreEqual(ExpectedTopHit, hits);
     }
 
     [TestMethod]
@@ -116,6 +186,13 @@ public sealed class OverlayUiElementModelTests
             IsVisible = false,
             Bounds = new WindowBounds(10, 20, 200, 120),
         });
+
+    private static void DispatchPointer(OverlayWindow overlay, Win32PointerEventKind kind, Win32PointerButton button, int x, int y)
+    {
+        MethodInfo method = typeof(OverlayWindow).GetMethod("HandlePointerEvent", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(nameof(OverlayWindow), "HandlePointerEvent");
+        method.Invoke(overlay, [new Win32PointerEvent(kind, button, x, y)]);
+    }
 
     private static ProbeElement CreateInputElement()
     {

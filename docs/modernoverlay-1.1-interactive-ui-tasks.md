@@ -125,7 +125,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Preserve insertion order for equal z-index.
 - [x] Add child added/removed invalidation.
 - [x] Add tree traversal helpers for render order and input-region order.
-- [ ] Add tests for collection mutation, parent assignment, order, and tree-cycle prevention.
+- [x] Add tests for collection mutation, parent assignment, order, and tree-cycle prevention.
+  - `OverlayUiElementModelTests` covers add/remove/clear parent assignment, lifecycle detach, missing removal, public insertion-order enumeration, z-index and reverse insertion-order input hit testing, multiple-parent rejection, and cycle prevention.
 
 ## 6. Layout Engine
 
@@ -651,7 +652,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add deferred mutation/reentrancy tests.
   - Covered by `OverlayUiDeferredOperationTests`.
 - [ ] Add placement unit tests.
-- [ ] Add element-tree mutation tests.
+- [x] Add element-tree mutation tests.
+  - Covered by `OverlayUiElementModelTests`.
 - [ ] Add input-region tests.
 - [ ] Add routed input tests.
 - [ ] Add pointer capture tests.

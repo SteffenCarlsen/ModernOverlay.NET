@@ -50,6 +50,7 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add sample compile tests for the intended public API shape.
   - `SpecExampleCompileTests.InteractiveUiPublicApiShapeCompiles` covers the intended retained UI object model, controls, command parameter, theme readability, popup/menu types, and interface-only `IUiLayoutStore` persistence shape.
 - [ ] Add XML doc comments for all public UI entry points.
+  - Partial coverage exists for root attachment/lifetime APIs, placement, layout primitives, theme/render context resources, and commands; panels and controls still need XML comments.
 
 ## 3. Core UI Value Types
 

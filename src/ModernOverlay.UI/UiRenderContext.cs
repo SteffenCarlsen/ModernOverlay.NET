@@ -2,6 +2,9 @@ using ModernOverlay.Diagnostics;
 
 namespace ModernOverlay.UI;
 
+/// <summary>
+/// Provides drawing and theme resources to an element during UI rendering.
+/// </summary>
 public sealed class UiRenderContext
 {
     internal UiRenderContext(DrawContext draw, UiThemeResources theme)
@@ -10,35 +13,81 @@ public sealed class UiRenderContext
         Theme = theme;
     }
 
+    /// <summary>
+    /// Gets the underlying frame draw context.
+    /// </summary>
     public DrawContext Draw { get; }
 
+    /// <summary>
+    /// Gets the realized theme resources for the current UI root.
+    /// </summary>
     public UiThemeResources Theme { get; }
 }
 
+/// <summary>
+/// Defines colors and font settings used by retained UI controls.
+/// </summary>
 public sealed record UiTheme
 {
+    /// <summary>
+    /// Gets the default built-in UI theme.
+    /// </summary>
     public static UiTheme Default { get; } = new();
 
+    /// <summary>
+    /// Gets the font family used by built-in controls.
+    /// </summary>
     public string FontFamily { get; init; } = "Segoe UI";
 
+    /// <summary>
+    /// Gets the font size used by built-in controls.
+    /// </summary>
     public float FontSize { get; init; } = 14f;
 
+    /// <summary>
+    /// Gets the primary foreground color.
+    /// </summary>
     public ColorRgba Foreground { get; init; } = ColorRgba.FromBytes(236, 240, 244);
 
+    /// <summary>
+    /// Gets the muted foreground color used for secondary text and placeholders.
+    /// </summary>
     public ColorRgba MutedForeground { get; init; } = ColorRgba.FromBytes(145, 153, 161);
 
+    /// <summary>
+    /// Gets the base surface color.
+    /// </summary>
     public ColorRgba Surface { get; init; } = ColorRgba.FromBytes(30, 34, 40, 236);
 
+    /// <summary>
+    /// Gets the hover surface color.
+    /// </summary>
     public ColorRgba SurfaceHover { get; init; } = ColorRgba.FromBytes(42, 48, 56, 242);
 
+    /// <summary>
+    /// Gets the pressed surface color.
+    /// </summary>
     public ColorRgba SurfacePressed { get; init; } = ColorRgba.FromBytes(54, 62, 72, 248);
 
+    /// <summary>
+    /// Gets the default border color.
+    /// </summary>
     public ColorRgba Border { get; init; } = ColorRgba.FromBytes(120, 134, 150, 230);
 
+    /// <summary>
+    /// Gets the accent color used for focus, selection, and active affordances.
+    /// </summary>
     public ColorRgba Accent { get; init; } = ColorRgba.FromBytes(86, 156, 214);
 
+    /// <summary>
+    /// Gets the disabled-state color.
+    /// </summary>
     public ColorRgba Disabled { get; init; } = ColorRgba.FromBytes(130, 141, 153, 200);
 
+    /// <summary>
+    /// Checks key foreground/background pairs for readable contrast.
+    /// </summary>
+    /// <returns>A readability report for the theme.</returns>
     public UiThemeReadabilityReport CheckReadability()
     {
         UiThemeContrastCheck[] checks =
@@ -55,13 +104,31 @@ public sealed record UiTheme
     }
 }
 
+/// <summary>
+/// Contains readability checks for a UI theme.
+/// </summary>
+/// <param name="Checks">The contrast checks that were evaluated.</param>
 public sealed record UiThemeReadabilityReport(IReadOnlyList<UiThemeContrastCheck> Checks)
 {
+    /// <summary>
+    /// Gets whether every contrast check passed.
+    /// </summary>
     public bool IsReadable => Checks.Count > 0 && Checks.All(check => check.Passes);
 
+    /// <summary>
+    /// Gets the failed contrast checks.
+    /// </summary>
     public IReadOnlyList<UiThemeContrastCheck> Failures => Checks.Where(check => !check.Passes).ToArray();
 }
 
+/// <summary>
+/// Represents one foreground/background contrast check.
+/// </summary>
+/// <param name="Name">The display name of the check.</param>
+/// <param name="Foreground">The foreground color.</param>
+/// <param name="Background">The background color.</param>
+/// <param name="ContrastRatio">The calculated contrast ratio.</param>
+/// <param name="MinimumContrastRatio">The minimum acceptable contrast ratio.</param>
 public sealed record UiThemeContrastCheck(
     string Name,
     ColorRgba Foreground,
@@ -69,8 +136,19 @@ public sealed record UiThemeContrastCheck(
     float ContrastRatio,
     float MinimumContrastRatio)
 {
+    /// <summary>
+    /// Gets whether the calculated contrast ratio meets the minimum.
+    /// </summary>
     public bool Passes => ContrastRatio >= MinimumContrastRatio;
 
+    /// <summary>
+    /// Creates a contrast check from two colors and a minimum ratio.
+    /// </summary>
+    /// <param name="name">The display name of the check.</param>
+    /// <param name="foreground">The foreground color.</param>
+    /// <param name="background">The background color.</param>
+    /// <param name="minimumContrastRatio">The minimum acceptable contrast ratio.</param>
+    /// <returns>The calculated contrast check.</returns>
     public static UiThemeContrastCheck Create(string name, ColorRgba foreground, ColorRgba background, float minimumContrastRatio)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -86,6 +164,12 @@ public sealed record UiThemeContrastCheck(
             validatedMinimumContrastRatio);
     }
 
+    /// <summary>
+    /// Calculates the contrast ratio between a foreground color and a background color.
+    /// </summary>
+    /// <param name="foreground">The foreground color.</param>
+    /// <param name="background">The background color.</param>
+    /// <returns>The calculated contrast ratio.</returns>
     public static float CalculateContrastRatio(ColorRgba foreground, ColorRgba background)
     {
         float foregroundLuminance = RelativeLuminance(CompositeOverOpaqueBackground(foreground, background));
@@ -120,6 +204,9 @@ public sealed record UiThemeContrastCheck(
     }
 }
 
+/// <summary>
+/// Owns realized drawing resources for a <see cref="UiTheme"/>.
+/// </summary>
 public sealed class UiThemeResources : IDisposable
 {
     private readonly OverlayResourceManager resources;
@@ -133,24 +220,54 @@ public sealed class UiThemeResources : IDisposable
         ReplaceHandles(theme, disposeExisting: false);
     }
 
+    /// <summary>
+    /// Gets the theme used to create the current resource handles.
+    /// </summary>
     public UiTheme Theme => theme;
 
+    /// <summary>
+    /// Gets the primary foreground brush.
+    /// </summary>
     public SolidBrushHandle Foreground { get; private set; } = null!;
 
+    /// <summary>
+    /// Gets the muted foreground brush.
+    /// </summary>
     public SolidBrushHandle MutedForeground { get; private set; } = null!;
 
+    /// <summary>
+    /// Gets the base surface brush.
+    /// </summary>
     public SolidBrushHandle Surface { get; private set; } = null!;
 
+    /// <summary>
+    /// Gets the hover surface brush.
+    /// </summary>
     public SolidBrushHandle SurfaceHover { get; private set; } = null!;
 
+    /// <summary>
+    /// Gets the pressed surface brush.
+    /// </summary>
     public SolidBrushHandle SurfacePressed { get; private set; } = null!;
 
+    /// <summary>
+    /// Gets the default border brush.
+    /// </summary>
     public SolidBrushHandle Border { get; private set; } = null!;
 
+    /// <summary>
+    /// Gets the accent brush.
+    /// </summary>
     public SolidBrushHandle Accent { get; private set; } = null!;
 
+    /// <summary>
+    /// Gets the disabled-state brush.
+    /// </summary>
     public SolidBrushHandle Disabled { get; private set; } = null!;
 
+    /// <summary>
+    /// Gets the default UI font.
+    /// </summary>
     public FontHandle Font { get; private set; } = null!;
 
     internal void ApplyTheme(UiTheme nextTheme)
@@ -159,12 +276,20 @@ public sealed class UiThemeResources : IDisposable
         ReplaceHandles(nextTheme, disposeExisting: true);
     }
 
+    /// <summary>
+    /// Creates a caller-owned solid brush using the root resource manager.
+    /// </summary>
+    /// <param name="color">The brush color.</param>
+    /// <returns>A solid brush handle that must be disposed by the caller.</returns>
     public SolidBrushHandle CreateSolidBrush(ColorRgba color)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         return resources.CreateSolidBrush(color);
     }
 
+    /// <summary>
+    /// Disposes the realized theme resource handles.
+    /// </summary>
     public void Dispose()
     {
         if (disposed)

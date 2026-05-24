@@ -2,19 +2,46 @@ using ModernOverlay.Diagnostics;
 
 namespace ModernOverlay.UI;
 
+/// <summary>
+/// Configures a retained UI root attached to an overlay window.
+/// </summary>
 public sealed record OverlayUiOptions
 {
+    /// <summary>
+    /// Gets whether the UI root registers itself as the overlay input-region resolver.
+    /// </summary>
     public bool RegisterInputRegions { get; init; } = true;
 
+    /// <summary>
+    /// Gets the initial theme used to realize UI resources.
+    /// </summary>
     public UiTheme Theme { get; init; } = UiTheme.Default;
 }
 
+/// <summary>
+/// Entry point for attaching retained UI to an overlay window.
+/// </summary>
 public static class OverlayUi
 {
+    /// <summary>
+    /// Attaches a retained UI root to an overlay window.
+    /// </summary>
+    /// <param name="overlay">The overlay window that owns rendering, input, and resources.</param>
+    /// <param name="options">Optional UI configuration.</param>
+    /// <returns>The attached UI root. Dispose it before disposing the overlay when early cleanup is needed.</returns>
     public static OverlayUiRoot Attach(OverlayWindow overlay, OverlayUiOptions? options = null)
         => new(overlay, options ?? new OverlayUiOptions());
 }
 
+/// <summary>
+/// Reports runtime counters for an attached UI root.
+/// </summary>
+/// <param name="ElementCount">The number of attached elements, including the root canvas.</param>
+/// <param name="LayoutPasses">The number of completed layout passes.</param>
+/// <param name="RenderPasses">The number of completed render passes.</param>
+/// <param name="InputRegionChecks">The number of input-region checks served by the root.</param>
+/// <param name="RoutedEvents">The number of routed UI events dispatched by the root.</param>
+/// <param name="ActivePopupCount">The number of currently open popups.</param>
 public sealed record OverlayUiMetrics(
     int ElementCount,
     long LayoutPasses,
@@ -23,6 +50,9 @@ public sealed record OverlayUiMetrics(
     long RoutedEvents,
     int ActivePopupCount);
 
+/// <summary>
+/// Owns retained UI state, input routing, layout, theme resources, and rendering for one overlay window.
+/// </summary>
 public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
 {
     private const int MaxLayoutPassesPerFrame = 8;
@@ -86,18 +116,39 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         }
     }
 
+    /// <summary>
+    /// Gets the options used to create this UI root.
+    /// </summary>
     public OverlayUiOptions Options { get; }
 
+    /// <summary>
+    /// Gets the root canvas that hosts retained UI elements.
+    /// </summary>
     public Canvas Root { get; }
 
+    /// <summary>
+    /// Gets the element that currently owns keyboard focus.
+    /// </summary>
     public UiElement? FocusedElement { get; private set; }
 
+    /// <summary>
+    /// Gets the element that currently owns pointer capture.
+    /// </summary>
     public UiElement? CapturedElement { get; private set; }
 
+    /// <summary>
+    /// Gets the realized theme resources for this root.
+    /// </summary>
     public UiThemeResources ThemeResources { get; }
 
+    /// <summary>
+    /// Gets the currently active theme.
+    /// </summary>
     public UiTheme Theme => ThemeResources.Theme;
 
+    /// <summary>
+    /// Gets the current overlay bounds in device-independent pixels.
+    /// </summary>
     public RectF BoundsDips => overlay.BoundsDips;
 
     internal RectF? TargetBoundsDips => ToOverlayLocalDips(overlay.TargetBoundsPixels);
@@ -116,6 +167,9 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         return true;
     }
 
+    /// <summary>
+    /// Gets runtime counters for layout, rendering, input, and popup state.
+    /// </summary>
     public OverlayUiMetrics Metrics
     {
         get
@@ -132,6 +186,9 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         }
     }
 
+    /// <summary>
+    /// Gets or sets the pointer movement distance, in DIPs, that starts a drag gesture.
+    /// </summary>
     public float DragThreshold
     {
         get => dragThreshold;
@@ -146,6 +203,9 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         }
     }
 
+    /// <summary>
+    /// Gets or sets the maximum interval between clicks that counts as a double-click.
+    /// </summary>
     public TimeSpan DoubleClickTime
     {
         get => doubleClickTime;
@@ -160,6 +220,9 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         }
     }
 
+    /// <summary>
+    /// Gets or sets the maximum pointer distance, in DIPs, between clicks that counts as a double-click.
+    /// </summary>
     public float DoubleClickDistance
     {
         get => doubleClickDistance;
@@ -174,6 +237,9 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         }
     }
 
+    /// <summary>
+    /// Gets or sets the caret blink interval for focused text controls.
+    /// </summary>
     public TimeSpan CaretBlinkInterval
     {
         get => caretBlinkInterval;
@@ -206,6 +272,10 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         }
     }
 
+    /// <summary>
+    /// Lays out and renders the retained UI into an overlay frame.
+    /// </summary>
+    /// <param name="frame">The frame draw context supplied by the overlay render callback.</param>
     public void Render(DrawContext frame)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
@@ -234,6 +304,11 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         });
     }
 
+    /// <summary>
+    /// Resolves whether a pointer position should be handled by retained UI or pass through.
+    /// </summary>
+    /// <param name="position">The overlay-local pointer position in DIPs.</param>
+    /// <returns>The input-region result for the position.</returns>
     public OverlayInputRegionResult ResolveInputRegion(PointF position)
     {
         return disposed
@@ -262,6 +337,10 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         invalidation |= flags;
     }
 
+    /// <summary>
+    /// Moves keyboard focus to an attached element, or clears focus when <paramref name="element"/> is <see langword="null"/>.
+    /// </summary>
+    /// <param name="element">The element to focus, or <see langword="null"/> to clear focus.</param>
     public void Focus(UiElement? element)
     {
         VerifyAccess();
@@ -284,6 +363,10 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         }
     }
 
+    /// <summary>
+    /// Captures pointer events for an attached element until released.
+    /// </summary>
+    /// <param name="element">The visible enabled element that should receive captured pointer events.</param>
     public void CapturePointer(UiElement element)
     {
         ArgumentNullException.ThrowIfNull(element);
@@ -312,6 +395,10 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         invalidation |= UiInvalidation.Render;
     }
 
+    /// <summary>
+    /// Releases pointer capture when it is owned by the specified element.
+    /// </summary>
+    /// <param name="element">The element requesting capture release.</param>
     public void ReleasePointerCapture(UiElement element)
     {
         ArgumentNullException.ThrowIfNull(element);
@@ -326,8 +413,14 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         }
     }
 
+    /// <summary>
+    /// Moves keyboard focus to the next focusable element.
+    /// </summary>
     public void MoveFocusNext() => MoveFocus(forward: true);
 
+    /// <summary>
+    /// Moves keyboard focus to the previous focusable element.
+    /// </summary>
     public void MoveFocusPrevious() => MoveFocus(forward: false);
 
     internal void RestartCaretBlink()
@@ -336,6 +429,10 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         invalidation |= UiInvalidation.Render;
     }
 
+    /// <summary>
+    /// Replaces the current theme and recreates root-owned theme resources.
+    /// </summary>
+    /// <param name="theme">The theme to apply.</param>
     public void ApplyTheme(UiTheme theme)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
@@ -348,6 +445,11 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         });
     }
 
+    /// <summary>
+    /// Determines whether keyboard focus is currently on the element or one of its descendants.
+    /// </summary>
+    /// <param name="element">The element to test.</param>
+    /// <returns><see langword="true"/> when focus is within the element subtree.</returns>
     public bool IsKeyboardFocusWithin(UiElement element)
     {
         ArgumentNullException.ThrowIfNull(element);
@@ -355,6 +457,10 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         return IsSameOrDescendant(element, FocusedElement);
     }
 
+    /// <summary>
+    /// Runs or queues an operation so it executes outside protected layout, render, and event-dispatch phases.
+    /// </summary>
+    /// <param name="operation">The operation to run or queue.</param>
     public void Defer(Action operation)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
@@ -369,6 +475,9 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         deferredOperations.Enqueue(operation);
     }
 
+    /// <summary>
+    /// Detaches the UI root from the overlay and releases root-owned resources.
+    /// </summary>
     public void Dispose()
     {
         if (disposed)

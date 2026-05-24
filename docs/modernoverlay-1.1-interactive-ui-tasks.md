@@ -590,7 +590,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Decide whether `ColorPicker` is 1.1 or deferred: include in 1.1 MVP.
 - [x] Start with swatches plus RGBA sliders before adding HSL/HSV.
 - [x] Add color value model using `ColorRgba`.
-- [ ] Add tests for value conversion, swatch selection, slider updates, and event callbacks.
+- [x] Add tests for value conversion, swatch selection, slider updates, and event callbacks.
+  - `OverlayUiColorPickerTests` covers `ColorRgba` byte conversion into RGBA sliders, selected-swatch rendering, slider-to-value updates, and `ColorChanged` callbacks.
 
 ## 27. Selective Click-Through
 

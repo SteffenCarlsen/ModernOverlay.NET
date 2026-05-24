@@ -348,7 +348,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - Full data binding is out of scope for 1.1; controls expose direct properties plus explicit changed events.
 - [x] Add change callbacks for value controls: checked, selected item, slider value, text changed.
   - Toggle/check/radio controls expose `CheckedChanged`; selectors expose `SelectionChanged`; range and number controls expose `ValueChanged`; `TextBox` exposes `TextChanged`.
-- [ ] Add tests for command execution, disabled command state, and event callbacks.
+- [x] Add tests for command execution, disabled command state, and event callbacks.
+  - `OverlayUiCommandTests` covers command execution, parameter passing, `CanExecute` gating, click callbacks, keyboard activation, `CanExecuteChanged`, and command replacement.
 
 ## 17. Control Base Classes
 
@@ -685,7 +686,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add render-order tests with fake draw command sink.
   - Covered by `OverlayUiRenderOrderTests`.
 - [ ] Add theme/resource lifetime tests.
-- [ ] Add command `CanExecuteChanged` and parameter tests.
+- [x] Add command `CanExecuteChanged` and parameter tests.
+  - Covered by `OverlayUiCommandTests`.
 - [ ] Add control-specific tests for every shipped control.
 - [x] Add sample compile tests.
   - Covered by the retained UI compile-shape test and the focused `InteractiveUiOverlay` sample build.

@@ -456,7 +456,10 @@ public sealed class UiWindow : UiPanel
     private void DrawChromeButton(UiRenderContext context, RectF bounds, string text)
     {
         context.Draw.Draw.RoundedRectangle(bounds, 4f, 4f, ResolveBorderBrush(context));
-        context.Draw.Draw.Text(text, context.Theme.Font, ResolveForeground(context), new PointF(bounds.X + 5f, bounds.Y));
+        SizeF textSize = context.Draw.Measure.Text(text, context.Theme.Font);
+        float x = bounds.X + MathF.Max(0f, bounds.Width - textSize.Width) / 2f;
+        float y = bounds.Y + MathF.Max(0f, bounds.Height - textSize.Height) / 2f;
+        context.Draw.Draw.Text(text, context.Theme.Font, ResolveForeground(context), new PointF(x, y));
     }
 
     private void Minimize()

@@ -1,3 +1,4 @@
+using ModernOverlay.Rendering;
 using ModernOverlay.UI;
 using ModernOverlay.Win32;
 using System.Reflection;
@@ -173,6 +174,26 @@ public sealed class OverlayUiWindowTests
         AssertPlacement(docked, 8f, 142f);
     }
 
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task ChromeButtonGlyphsAreCenteredInButtonBounds()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        UiWindow window = CreateWindow(120f, 90f);
+        ui.Root.Children.Add(window);
+        var sink = new RecordingDrawCommandSink();
+
+        ui.Render(new DrawContext(sink));
+
+        TextRun minimize = sink.TextRuns.Single(run => run.Text == "-");
+        TextRun close = sink.TextRuns.Single(run => run.Text == "x");
+        Assert.AreEqual(80f + (18f - RecordingDrawCommandSink.MeasureTextWidth("-")) / 2f, minimize.Origin.X, 0.001f);
+        Assert.AreEqual(104f + (18f - RecordingDrawCommandSink.MeasureTextWidth("x")) / 2f, close.Origin.X, 0.001f);
+        Assert.AreEqual(18f, minimize.Origin.Y, 0.001f);
+        Assert.AreEqual(18f, close.Origin.Y, 0.001f);
+    }
+
     private static async ValueTask<OverlayWindow> CreateOverlayAsync()
         => await OverlayWindow.CreateAsync(new OverlayWindowOptions
         {
@@ -232,4 +253,100 @@ public sealed class OverlayUiWindowTests
         public void Save(string key, UiPlacement placement)
             => placements[key] = placement;
     }
+
+    private sealed class RecordingDrawCommandSink : IDrawCommandSink
+    {
+        public List<TextRun> TextRuns { get; } = [];
+
+        public int CommandCount { get; private set; }
+
+        public int PrimitiveCount { get; private set; }
+
+        public int TransientTextLayoutCount { get; }
+
+        public int NativeResourceCount => 0;
+
+        public void Clear(ColorRgba color) => CommandCount++;
+
+        public void PushClip(RectF clip) => CommandCount++;
+
+        public void PopClip() => CommandCount++;
+
+        public void PushTransform(Matrix3x2F transform) => CommandCount++;
+
+        public void PopTransform() => CommandCount++;
+
+        public void DrawLine(PointF start, PointF end, BrushHandle brush, float strokeWidth, StrokeStyleHandle? strokeStyle)
+            => AddPrimitive();
+
+        public void DrawRectangle(RectF rect, BrushHandle brush, float strokeWidth, StrokeStyleHandle? strokeStyle)
+            => AddPrimitive();
+
+        public void FillRectangle(RectF rect, BrushHandle brush)
+            => AddPrimitive();
+
+        public void DrawRoundedRectangle(RectF rect, float radiusX, float radiusY, BrushHandle brush, float strokeWidth, StrokeStyleHandle? strokeStyle)
+            => AddPrimitive();
+
+        public void FillRoundedRectangle(RectF rect, float radiusX, float radiusY, BrushHandle brush)
+            => AddPrimitive();
+
+        public void DrawCircle(PointF center, float radius, BrushHandle brush, float strokeWidth, StrokeStyleHandle? strokeStyle)
+            => AddPrimitive();
+
+        public void FillCircle(PointF center, float radius, BrushHandle brush)
+            => AddPrimitive();
+
+        public void DrawEllipse(RectF bounds, BrushHandle brush, float strokeWidth, StrokeStyleHandle? strokeStyle)
+            => AddPrimitive();
+
+        public void FillEllipse(RectF bounds, BrushHandle brush)
+            => AddPrimitive();
+
+        public void DrawTriangle(PointF a, PointF b, PointF c, BrushHandle brush, float strokeWidth, StrokeStyleHandle? strokeStyle)
+            => AddPrimitive();
+
+        public void FillTriangle(PointF a, PointF b, PointF c, BrushHandle brush)
+            => AddPrimitive();
+
+        public void DrawGeometry(GeometryPath geometry, BrushHandle brush, float strokeWidth, StrokeStyleHandle? strokeStyle)
+            => AddPrimitive();
+
+        public void FillGeometry(GeometryPath geometry, BrushHandle brush)
+            => AddPrimitive();
+
+        public void DrawImage(ImageHandle image, int frameIndex, RectF destination, RectF? source, float opacity, ImageInterpolationMode interpolationMode)
+            => AddPrimitive();
+
+        public void DrawText(string text, FontHandle font, BrushHandle brush, PointF origin)
+        {
+            TextRuns.Add(new TextRun(text, origin));
+            AddPrimitive();
+        }
+
+        public void DrawTextLayout(TextLayoutHandle layout, BrushHandle brush, PointF origin)
+            => AddPrimitive();
+
+        public SizeF MeasureText(string text, FontHandle font)
+            => new(MeasureTextWidth(text), font.Options.Size);
+
+        public SizeF MeasureTextLayout(TextLayoutHandle layout)
+            => new(MeasureTextWidth(layout.Text), layout.Font.Options.Size);
+
+        public static float MeasureTextWidth(string text)
+            => text switch
+            {
+                "-" => 6f,
+                "x" => 8f,
+                _ => text.Length * 7f,
+            };
+
+        private void AddPrimitive()
+        {
+            CommandCount++;
+            PrimitiveCount++;
+        }
+    }
+
+    private sealed record TextRun(string Text, PointF Origin);
 }

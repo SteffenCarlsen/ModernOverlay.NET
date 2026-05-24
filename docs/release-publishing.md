@@ -40,6 +40,7 @@ The release workflow packs the solution and publishes the same package set valid
 | `ModernOverlay.NET.Win32` | Yes |
 | `ModernOverlay.NET.Diagnostics` | Yes |
 | `ModernOverlay.NET.Integration` | Yes |
+| `ModernOverlay.UI` | Yes |
 | `ModernOverlay.Integration.Experimental` | No |
 
 Symbol packages are emitted as `.snupkg` files and pushed with the release packages when NuGet publishing is enabled.

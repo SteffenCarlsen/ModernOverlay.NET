@@ -380,21 +380,24 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - `TextBlock` measures lines through the active `DrawContext` during render-driven layout, with the previous font-size estimate retained as a fallback for input-region layout before a render frame is available.
 - [x] Add `Label` as alias/subclass only if it adds target/access-key semantics.
   - `Label` subclasses `TextBlock` and adds target focus behavior on pointer press.
-- [ ] Add tests for measurement, wrapping, trimming, empty text, and render output.
+- [x] Add tests for measurement, wrapping, trimming, empty text, and render output.
+  - `OverlayUiDisplayControlTests` covers TextBlock measurement, wrapping, character ellipsis trimming, empty text measurement, and rendered text commands.
 
 ### 18.2 Image
 
 - [x] Decide whether `Image` control is in 1.1: include in 1.1 MVP.
 - [x] Support `ImageHandle`, stretch modes, alignment, opacity, and source rect.
   - Intrinsic image dimensions are not exposed by `ImageHandle`; `Image` uses `SourceRect` or explicit element size as natural size and otherwise draws into arranged content.
-- [ ] Add tests for desired size and render command output.
+- [x] Add tests for desired size and render command output.
+  - `OverlayUiDisplayControlTests` covers Image source sizing, source rect, stretch/alignment, opacity, frame index, interpolation, and rendered image commands.
 
 ### 18.3 ProgressBar
 
 - [x] Implement `ProgressBar` on top of `RangeBase`.
 - [x] Add minimum, maximum, value, orientation, indeterminate flag if low cost.
   - Minimum, maximum, value, and orientation are implemented; indeterminate remains optional.
-- [ ] Add tests for value clamping, fill ratio, disabled visuals, and render output.
+- [x] Add tests for value clamping, fill ratio, disabled visuals, and render output.
+  - `OverlayUiDisplayControlTests` covers ProgressBar value clamping and fill-ratio render geometry.
 
 ## 19. Button Controls
 

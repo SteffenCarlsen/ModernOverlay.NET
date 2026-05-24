@@ -1201,23 +1201,34 @@ public sealed class Slider : RangeBase
 }
 
 /// <summary>
-/// Provides single-line text editing.
+/// Provides text editing with single-line and multiline modes.
 /// </summary>
 public sealed class TextBox : UiControl
 {
+    private const float DefaultLineSpacing = 1.35f;
+
     private string text = string.Empty;
     private string placeholder = string.Empty;
+    private TextBoxMode mode;
+    private bool acceptsReturn;
+    private bool acceptsReturnExplicit;
+    private UiTextWrapping textWrapping = UiTextWrapping.NoWrap;
+    private bool textWrappingExplicit;
     private int caretIndex;
     private int selectionStart;
     private int selectionLength;
     private int maxLength = int.MaxValue;
+    private int maxLines = int.MaxValue;
+    private float lineSpacing = DefaultLineSpacing;
     private bool isReadOnly;
     private bool selecting;
+    private bool suppressNextReturnTextInput;
     private int selectionAnchor;
     private float horizontalOffset;
-    private string measuredText = string.Empty;
-    private long measuredFontId = -1;
-    private float[] measuredTextAdvances = [0f];
+    private float verticalOffset;
+    private float lineHeight = UiTheme.Default.FontSize * DefaultLineSpacing;
+    private float preferredCaretX = float.NaN;
+    private TextBoxLine[] textLines = [new(0, 0, 0f, [0f])];
 
     /// <summary>
     /// Initializes a text box.
@@ -1265,6 +1276,59 @@ public sealed class TextBox : UiControl
     {
         get => placeholder;
         set => SetProperty(ref placeholder, value ?? string.Empty, UiInvalidation.Render);
+    }
+
+    /// <summary>
+    /// Gets or sets whether the text box edits one horizontal line or multiple visual lines.
+    /// </summary>
+    public TextBoxMode Mode
+    {
+        get => mode;
+        set
+        {
+            if (SetProperty(ref mode, value, UiInvalidation.Measure | UiInvalidation.Render))
+            {
+                if (!acceptsReturnExplicit)
+                {
+                    acceptsReturn = mode == TextBoxMode.MultiLine;
+                }
+
+                if (!textWrappingExplicit)
+                {
+                    textWrapping = mode == TextBoxMode.MultiLine ? UiTextWrapping.Wrap : UiTextWrapping.NoWrap;
+                }
+
+                horizontalOffset = 0f;
+                verticalOffset = 0f;
+                preferredCaretX = float.NaN;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets whether Enter inserts a new line when <see cref="Mode"/> is <see cref="TextBoxMode.MultiLine"/>.
+    /// </summary>
+    public bool AcceptsReturn
+    {
+        get => acceptsReturn;
+        set
+        {
+            acceptsReturnExplicit = true;
+            SetProperty(ref acceptsReturn, value, UiInvalidation.None);
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets text wrapping behavior used by multiline text layout.
+    /// </summary>
+    public UiTextWrapping TextWrapping
+    {
+        get => textWrapping;
+        set
+        {
+            textWrappingExplicit = true;
+            SetProperty(ref textWrapping, value, UiInvalidation.Measure | UiInvalidation.Render);
+        }
     }
 
     /// <summary>
@@ -1327,6 +1391,36 @@ public sealed class TextBox : UiControl
     }
 
     /// <summary>
+    /// Gets or sets the maximum number of lines used for automatic multiline measurement.
+    /// </summary>
+    public int MaxLines
+    {
+        get => maxLines;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
+            SetProperty(ref maxLines, value, UiInvalidation.Measure | UiInvalidation.Render);
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the multiline line-spacing multiplier.
+    /// </summary>
+    public float LineSpacing
+    {
+        get => lineSpacing;
+        set
+        {
+            if (value <= 0f || !float.IsFinite(value))
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), "LineSpacing must be finite and greater than zero.");
+            }
+
+            SetProperty(ref lineSpacing, value, UiInvalidation.Measure | UiInvalidation.Render);
+        }
+    }
+
+    /// <summary>
     /// Gets or sets whether text editing is disabled while focus and selection remain available.
     /// </summary>
     public bool IsReadOnly
@@ -1338,7 +1432,22 @@ public sealed class TextBox : UiControl
     protected override SizeF MeasureCore(SizeF availableSize)
     {
         float fontSize = Root?.ThemeResources.Theme.FontSize ?? UiTheme.Default.FontSize;
-        return new SizeF(MathF.Min(availableSize.Width, MathF.Max(MinWidth, Text.Length * fontSize * 0.56f + Padding.Horizontal)), MathF.Max(MinHeight, fontSize * 1.35f + Padding.Vertical));
+        if (Mode == TextBoxMode.SingleLine)
+        {
+            return new SizeF(
+                MathF.Min(availableSize.Width, MathF.Max(MinWidth, Text.Length * CharacterWidth(fontSize) + Padding.Horizontal)),
+                MathF.Max(MinHeight, fontSize * DefaultLineSpacing + Padding.Vertical));
+        }
+
+        TextBoxLine[] lines = BuildTextLines(MathF.Max(0f, availableSize.Width - Padding.Horizontal), context: null, font: null);
+        int visibleLineCount = Math.Max(1, Math.Min(MaxLines, lines.Length));
+        float measuredLineHeight = ResolveLineHeight(context: null, font: null);
+        float naturalWidth = lines.Length == 0 ? MinWidth : lines.Max(line => line.Width) + Padding.Horizontal;
+        float width = TextWrapping == UiTextWrapping.Wrap && float.IsFinite(availableSize.Width)
+            ? availableSize.Width
+            : MathF.Min(availableSize.Width, MathF.Max(MinWidth, naturalWidth));
+        float height = MathF.Max(MinHeight, measuredLineHeight * visibleLineCount + Padding.Vertical);
+        return new SizeF(width, height);
     }
 
     protected override void RenderCore(UiRenderContext context)
@@ -1351,36 +1460,40 @@ public sealed class TextBox : UiControl
         RectF content = ContentBounds;
         float fontSize = context.Theme.Theme.FontSize;
         FontHandle font = context.Theme.Font;
-        UpdateMeasuredTextAdvances(context, font);
-        EnsureCaretVisible();
+        UpdateTextLayout(context, font);
+        EnsureCaretVisible(useCurrentLayout: true);
+        if (content.Width <= 0f || content.Height <= 0f)
+        {
+            return;
+        }
+
+        using ScopedClip _ = context.Draw.Clip(content);
         if (SelectionLength > 0 && Text.Length > 0)
         {
-            int selectionEnd = SelectionStart + SelectionLength;
-            float selectionX = content.X + TextAdvanceAt(SelectionStart, fontSize) - horizontalOffset;
-            float selectionWidth = TextAdvanceAt(selectionEnd, fontSize) - TextAdvanceAt(SelectionStart, fontSize);
-            RectF selection = new(
-                MathF.Max(content.X, selectionX),
-                content.Y,
-                MathF.Min(content.X + content.Width, selectionX + selectionWidth) - MathF.Max(content.X, selectionX),
-                fontSize * 1.35f);
-            if (!selection.IsEmpty)
-            {
-                context.Draw.Fill.Rectangle(selection, HoverBackground ?? context.Theme.SurfaceHover);
-            }
+            RenderSelection(context, content);
         }
 
         string displayText = Text.Length == 0 ? Placeholder : Text;
         BrushHandle textBrush = !enabled ? ResolveDisabledBrush(context) : Text.Length == 0 ? context.Theme.MutedForeground : ResolveForeground(context);
         if (displayText.Length > 0)
         {
-            float offset = Text.Length == 0 ? 0f : horizontalOffset;
-            context.Draw.Draw.Text(displayText, font, IsReadOnly || !enabled ? ResolveDisabledBrush(context) : textBrush, new PointF(content.X - offset, content.Y));
+            BrushHandle brush = IsReadOnly || !enabled ? ResolveDisabledBrush(context) : textBrush;
+            if (Text.Length == 0)
+            {
+                context.Draw.Draw.Text(displayText, font, brush, new PointF(content.X, content.Y));
+            }
+            else
+            {
+                RenderTextLines(context, content, font, brush);
+            }
         }
 
         if (enabled && IsFocused && !IsReadOnly && (Root?.IsCaretVisible ?? true))
         {
-            float caretX = content.X + TextAdvanceAt(CaretIndex, fontSize) - horizontalOffset;
-            context.Draw.Draw.Line(new PointF(caretX, content.Y), new PointF(caretX, content.Y + fontSize * 1.3f), ResolveAccentBrush(context));
+            TextBoxCaret caret = CaretAt(CaretIndex);
+            float caretX = content.X + caret.X - horizontalOffset;
+            float caretY = content.Y + caret.Y - verticalOffset;
+            context.Draw.Draw.Line(new PointF(caretX, caretY), new PointF(caretX, caretY + fontSize * 1.3f), ResolveAccentBrush(context));
         }
     }
 
@@ -1393,6 +1506,7 @@ public sealed class TextBox : UiControl
 
         Focus();
         CaretIndex = CaretIndexFromPoint(args.Position);
+        preferredCaretX = float.NaN;
         selectionAnchor = CaretIndex;
         ClearSelection();
         selecting = true;
@@ -1408,6 +1522,7 @@ public sealed class TextBox : UiControl
         }
 
         CaretIndex = CaretIndexFromPoint(args.Position);
+        preferredCaretX = float.NaN;
         SelectFromAnchor(selectionAnchor, CaretIndex);
         args.Handled = true;
     }
@@ -1437,7 +1552,14 @@ public sealed class TextBox : UiControl
             return;
         }
 
-        string filtered = new(args.Text.Where(character => !char.IsControl(character)).ToArray());
+        if (suppressNextReturnTextInput && IsOnlyReturnInput(args.Text))
+        {
+            suppressNextReturnTextInput = false;
+            return;
+        }
+
+        suppressNextReturnTextInput = false;
+        string filtered = FilterTextInput(args.Text);
         if (filtered.Length == 0)
         {
             return;
@@ -1460,12 +1582,29 @@ public sealed class TextBox : UiControl
                 MoveCaret(NextTextBoundary(CaretIndex), shift);
                 args.Handled = true;
                 break;
+            case UiVirtualKeys.Up when Mode == TextBoxMode.MultiLine:
+                MoveCaretVertical(-1, shift);
+                args.Handled = true;
+                break;
+            case UiVirtualKeys.Down when Mode == TextBoxMode.MultiLine:
+                MoveCaretVertical(1, shift);
+                args.Handled = true;
+                break;
             case UiVirtualKeys.Home:
-                MoveCaret(0, shift);
+                MoveCaret(control && Mode == TextBoxMode.MultiLine ? 0 : HomeIndex(), shift);
                 args.Handled = true;
                 break;
             case UiVirtualKeys.End:
-                MoveCaret(Text.Length, shift);
+                MoveCaret(control && Mode == TextBoxMode.MultiLine ? Text.Length : EndIndex(), shift);
+                args.Handled = true;
+                break;
+            case UiVirtualKeys.Enter when Mode == TextBoxMode.MultiLine && AcceptsReturn:
+                if (!IsReadOnly)
+                {
+                    InsertText("\n");
+                    suppressNextReturnTextInput = true;
+                }
+
                 args.Handled = true;
                 break;
             case UiVirtualKeys.A when control:
@@ -1503,6 +1642,7 @@ public sealed class TextBox : UiControl
 
         Text = Text.Insert(CaretIndex, insert);
         CaretIndex += insert.Length;
+        preferredCaretX = float.NaN;
         ClearSelection();
     }
 
@@ -1521,6 +1661,7 @@ public sealed class TextBox : UiControl
         int previous = PreviousTextBoundary(CaretIndex);
         Text = Text.Remove(previous, CaretIndex - previous);
         CaretIndex = previous;
+        preferredCaretX = float.NaN;
     }
 
     private void Delete()
@@ -1537,6 +1678,7 @@ public sealed class TextBox : UiControl
 
         int next = NextTextBoundary(CaretIndex);
         Text = Text.Remove(CaretIndex, next - CaretIndex);
+        preferredCaretX = float.NaN;
     }
 
     private bool DeleteSelection()
@@ -1548,6 +1690,7 @@ public sealed class TextBox : UiControl
 
         Text = Text.Remove(SelectionStart, SelectionLength);
         CaretIndex = SelectionStart;
+        preferredCaretX = float.NaN;
         ClearSelection();
         return true;
     }
@@ -1562,18 +1705,43 @@ public sealed class TextBox : UiControl
             }
 
             CaretIndex = nextIndex;
+            preferredCaretX = float.NaN;
             SelectFromAnchor(selectionAnchor, CaretIndex);
             return;
         }
 
         CaretIndex = nextIndex;
+        preferredCaretX = float.NaN;
         ClearSelection();
+    }
+
+    private void MoveCaretVertical(int delta, bool extendSelection)
+    {
+        UpdateTextLayout(context: null, font: null);
+        int currentLine = LineIndexForCaret(CaretIndex);
+        TextBoxCaret caret = CaretAt(CaretIndex);
+        float targetX = float.IsNaN(preferredCaretX) ? caret.X : preferredCaretX;
+        int targetLine = Math.Clamp(currentLine + delta, 0, textLines.Length - 1);
+        int targetIndex = IndexFromLineAdvance(textLines[targetLine], targetX);
+        MoveCaret(targetIndex, extendSelection);
+        preferredCaretX = targetX;
     }
 
     private int CaretIndexFromPoint(PointF point)
     {
-        float relativeX = Math.Clamp(point.X - ContentBounds.X + horizontalOffset, 0f, TextAdvanceAt(Text.Length, ResolveFontSize()));
-        return CoerceCaretIndex(TextIndexFromAdvance(relativeX));
+        UpdateTextLayout(context: null, font: null);
+        RectF content = ContentBounds;
+        if (Mode == TextBoxMode.MultiLine)
+        {
+            float relativeY = MathF.Max(0f, point.Y - content.Y + verticalOffset);
+            int lineIndex = Math.Clamp((int)MathF.Floor(relativeY / MathF.Max(1f, lineHeight)), 0, textLines.Length - 1);
+            float relativeX = MathF.Max(0f, point.X - content.X + horizontalOffset);
+            return CoerceCaretIndex(IndexFromLineAdvance(textLines[lineIndex], relativeX));
+        }
+
+        float lineWidth = textLines.Length == 0 ? 0f : textLines[0].Width;
+        float singleLineX = Math.Clamp(point.X - content.X + horizontalOffset, 0f, lineWidth);
+        return CoerceCaretIndex(IndexFromLineAdvance(textLines[0], singleLineX));
     }
 
     private void SelectFromAnchor(int anchor, int caret)
@@ -1585,16 +1753,22 @@ public sealed class TextBox : UiControl
         InvalidateRender();
     }
 
-    private void EnsureCaretVisible()
+    private void EnsureCaretVisible(bool useCurrentLayout = false)
     {
         float contentWidth = ContentBounds.Width;
-        if (contentWidth <= 0f)
+        float contentHeight = ContentBounds.Height;
+        if (contentWidth <= 0f || contentHeight <= 0f)
         {
             return;
         }
 
-        float fontSize = ResolveFontSize();
-        float caretX = TextAdvanceAt(CaretIndex, fontSize);
+        if (!useCurrentLayout)
+        {
+            UpdateTextLayout(context: null, font: null);
+        }
+
+        TextBoxCaret caret = CaretAt(CaretIndex);
+        float caretX = caret.X;
         if (caretX < horizontalOffset)
         {
             horizontalOffset = caretX;
@@ -1604,76 +1778,319 @@ public sealed class TextBox : UiControl
             horizontalOffset = caretX - contentWidth;
         }
 
-        float maxOffset = MathF.Max(0f, TextAdvanceAt(Text.Length, fontSize) - contentWidth);
-        horizontalOffset = Math.Clamp(horizontalOffset, 0f, maxOffset);
+        float maxHorizontalOffset = MathF.Max(0f, textLines.Max(line => line.Width) - contentWidth);
+        horizontalOffset = TextWrapping == UiTextWrapping.Wrap && Mode == TextBoxMode.MultiLine
+            ? 0f
+            : Math.Clamp(horizontalOffset, 0f, maxHorizontalOffset);
+
+        if (Mode == TextBoxMode.SingleLine)
+        {
+            verticalOffset = 0f;
+            return;
+        }
+
+        if (caret.Y < verticalOffset)
+        {
+            verticalOffset = caret.Y;
+        }
+        else if (caret.Y + lineHeight > verticalOffset + contentHeight)
+        {
+            verticalOffset = caret.Y + lineHeight - contentHeight;
+        }
+
+        float maxVerticalOffset = MathF.Max(0f, textLines.Length * lineHeight - contentHeight);
+        verticalOffset = Math.Clamp(verticalOffset, 0f, maxVerticalOffset);
     }
 
     private float ResolveFontSize()
         => Root?.ThemeResources.Theme.FontSize ?? UiTheme.Default.FontSize;
 
-    private void UpdateMeasuredTextAdvances(UiRenderContext context, FontHandle font)
+    private static float CharacterWidth(float fontSize) => MathF.Max(1f, fontSize * 0.56f);
+
+    private string FilterTextInput(string value)
     {
-        if (measuredFontId == font.Id
-            && string.Equals(measuredText, Text, StringComparison.Ordinal)
-            && measuredTextAdvances.Length == Text.Length + 1)
+        bool allowNewLine = Mode == TextBoxMode.MultiLine && AcceptsReturn;
+        var filtered = new List<char>(value.Length);
+        for (int index = 0; index < value.Length; index++)
         {
+            char character = value[index];
+            if ((character == '\r' || character == '\n') && allowNewLine)
+            {
+                if (character == '\r' && index + 1 < value.Length && value[index + 1] == '\n')
+                {
+                    index++;
+                }
+
+                filtered.Add('\n');
+                continue;
+            }
+
+            if (!char.IsControl(character))
+            {
+                filtered.Add(character);
+            }
+        }
+
+        return new string(filtered.ToArray());
+    }
+
+    private void UpdateTextLayout(UiRenderContext? context, FontHandle? font)
+    {
+        float contentWidth = ContentBounds.Width;
+        textLines = BuildTextLines(contentWidth, context, font);
+        lineHeight = ResolveLineHeight(context, font);
+    }
+
+    private TextBoxLine[] BuildTextLines(float availableWidth, UiRenderContext? context, FontHandle? font)
+    {
+        float wrapWidth = Mode == TextBoxMode.MultiLine && TextWrapping == UiTextWrapping.Wrap && availableWidth > 0f
+            ? availableWidth
+            : float.PositiveInfinity;
+        float y = 0f;
+        float resolvedLineHeight = ResolveLineHeight(context, font);
+        var lines = new List<TextBoxLine>();
+
+        if (Text.Length == 0)
+        {
+            lines.Add(CreateLine(0, 0, y, context, font));
+            return lines.ToArray();
+        }
+
+        int logicalStart = 0;
+        for (int index = 0; index <= Text.Length; index++)
+        {
+            bool atEnd = index == Text.Length;
+            bool atBreak = !atEnd && IsLineBreak(Text[index]);
+            if (!atEnd && !atBreak)
+            {
+                continue;
+            }
+
+            AddWrappedLines(lines, logicalStart, index, wrapWidth, ref y, resolvedLineHeight, context, font);
+            if (atBreak)
+            {
+                bool isCarriageReturnPair = Text[index] == '\r' && index + 1 < Text.Length && Text[index + 1] == '\n';
+                if (isCarriageReturnPair)
+                {
+                    index++;
+                }
+
+                logicalStart = index + 1;
+                if (logicalStart == Text.Length)
+                {
+                    lines.Add(CreateLine(Text.Length, Text.Length, y, context, font));
+                    y += resolvedLineHeight;
+                }
+            }
+        }
+
+        return lines.Count == 0 ? [CreateLine(0, 0, 0f, context, font)] : lines.ToArray();
+    }
+
+    private void AddWrappedLines(
+        List<TextBoxLine> lines,
+        int start,
+        int end,
+        float wrapWidth,
+        ref float y,
+        float resolvedLineHeight,
+        UiRenderContext? context,
+        FontHandle? font)
+    {
+        if (start == end)
+        {
+            lines.Add(CreateLine(start, end, y, context, font));
+            y += resolvedLineHeight;
             return;
         }
 
-        measuredText = Text;
-        measuredFontId = font.Id;
-        measuredTextAdvances = new float[Text.Length + 1];
-        measuredTextAdvances[0] = 0f;
-        for (int index = 1; index <= Text.Length; index++)
+        int lineStart = start;
+        while (lineStart < end)
         {
-            measuredTextAdvances[index] = CoerceTextBoundaryAtOrBefore(Text, index) == index
-                ? context.Draw.Measure.Text(Text[..index], font).Width
-                : measuredTextAdvances[index - 1];
+            int lineEnd = end;
+            if (float.IsFinite(wrapWidth))
+            {
+                lineEnd = FindWrappedLineEnd(lineStart, end, wrapWidth, context, font);
+            }
+
+            lines.Add(CreateLine(lineStart, lineEnd, y, context, font));
+            y += resolvedLineHeight;
+            lineStart = Math.Max(lineEnd, lineStart + 1);
         }
     }
 
-    private float TextAdvanceAt(int index, float fontSize)
+    private int FindWrappedLineEnd(int start, int end, float wrapWidth, UiRenderContext? context, FontHandle? font)
+    {
+        int best = start;
+        for (int index = start + 1; index <= end; index++)
+        {
+            int boundary = CoerceTextBoundaryAtOrBefore(Text, index);
+            if (boundary != index)
+            {
+                continue;
+            }
+
+            float width = MeasureTextRange(start, index, context, font);
+            if (width > wrapWidth && best > start)
+            {
+                return best;
+            }
+
+            best = index;
+        }
+
+        return Math.Max(best, start + 1);
+    }
+
+    private TextBoxLine CreateLine(int start, int end, float y, UiRenderContext? context, FontHandle? font)
+    {
+        int length = Math.Max(0, end - start);
+        float[] advances = new float[length + 1];
+        for (int offset = 1; offset <= length; offset++)
+        {
+            int absolute = start + offset;
+            advances[offset] = CoerceTextBoundaryAtOrBefore(Text, absolute) == absolute
+                ? MeasureTextRange(start, absolute, context, font)
+                : advances[offset - 1];
+        }
+
+        return new TextBoxLine(start, end, y, advances);
+    }
+
+    private float MeasureTextRange(int start, int end, UiRenderContext? context, FontHandle? font)
+    {
+        int length = Math.Max(0, end - start);
+        if (length == 0)
+        {
+            return 0f;
+        }
+
+        string value = Text.Substring(start, length);
+        return context is not null && font is not null
+            ? context.Draw.Measure.Text(value, font).Width
+            : Root is { } root && root.TryMeasureText(value, font ?? root.ThemeResources.Font, out SizeF measured)
+                ? measured.Width
+                : length * CharacterWidth(ResolveFontSize());
+    }
+
+    private float ResolveLineHeight(UiRenderContext? context, FontHandle? font)
+        => context is not null && font is not null
+            ? context.Draw.Measure.Text("M", font).Height * LineSpacing
+            : ResolveFontSize() * LineSpacing;
+
+    private void RenderSelection(UiRenderContext context, RectF content)
+    {
+        int selectionEnd = SelectionStart + SelectionLength;
+        foreach (TextBoxLine line in textLines)
+        {
+            float y = content.Y + line.Y - verticalOffset;
+            if (y + lineHeight < content.Y || y > content.Y + content.Height)
+            {
+                continue;
+            }
+
+            int start = Math.Max(SelectionStart, line.Start);
+            int end = Math.Min(selectionEnd, line.End);
+            if (start >= end)
+            {
+                continue;
+            }
+
+            float selectionX = content.X + line.AdvanceAt(start) - horizontalOffset;
+            float selectionWidth = line.AdvanceAt(end) - line.AdvanceAt(start);
+            RectF selection = new(
+                MathF.Max(content.X, selectionX),
+                y,
+                MathF.Min(content.X + content.Width, selectionX + selectionWidth) - MathF.Max(content.X, selectionX),
+                lineHeight);
+            if (!selection.IsEmpty)
+            {
+                context.Draw.Fill.Rectangle(selection, HoverBackground ?? context.Theme.SurfaceHover);
+            }
+        }
+    }
+
+    private void RenderTextLines(UiRenderContext context, RectF content, FontHandle font, BrushHandle brush)
+    {
+        foreach (TextBoxLine line in textLines)
+        {
+            float y = content.Y + line.Y - verticalOffset;
+            if (y + lineHeight < content.Y || y > content.Y + content.Height || line.Start == line.End)
+            {
+                continue;
+            }
+
+            string lineText = Text[line.Start..line.End];
+            context.Draw.Draw.Text(lineText, font, brush, new PointF(content.X - horizontalOffset, y));
+        }
+    }
+
+    private TextBoxCaret CaretAt(int index)
+    {
+        int lineIndex = LineIndexForCaret(index);
+        TextBoxLine line = textLines[lineIndex];
+        return new TextBoxCaret(line.AdvanceAt(index), line.Y);
+    }
+
+    private int LineIndexForCaret(int index)
     {
         int coerced = CoerceCaretIndex(index);
-        return string.Equals(measuredText, Text, StringComparison.Ordinal)
-            && coerced >= 0
-            && coerced < measuredTextAdvances.Length
-                ? measuredTextAdvances[coerced]
-                : Root is { } root
-                    && root.TryMeasureText(Text[..coerced], root.ThemeResources.Font, out SizeF measured)
-                        ? measured.Width
-                        : coerced * CharacterWidth(fontSize);
-    }
-
-    private int TextIndexFromAdvance(float advance)
-    {
-        if (!string.Equals(measuredText, Text, StringComparison.Ordinal) || measuredTextAdvances.Length != Text.Length + 1)
+        for (int lineIndex = 0; lineIndex < textLines.Length; lineIndex++)
         {
-            float charWidth = CharacterWidth(ResolveFontSize());
-            return (int)Math.Clamp(MathF.Round(advance / charWidth), 0, Text.Length);
+            TextBoxLine line = textLines[lineIndex];
+            if (coerced >= line.Start && coerced <= line.End)
+            {
+                return lineIndex;
+            }
         }
 
-        int bestIndex = 0;
+        return textLines.Length - 1;
+    }
+
+    private int IndexFromLineAdvance(TextBoxLine line, float advance)
+    {
+        int bestOffset = 0;
         float bestDistance = MathF.Abs(advance);
-        for (int index = 1; index <= Text.Length; index++)
+        for (int offset = 1; offset < line.Advances.Length; offset++)
         {
+            int index = line.Start + offset;
             if (CoerceTextBoundaryAtOrBefore(Text, index) != index)
             {
                 continue;
             }
 
-            float distance = MathF.Abs(measuredTextAdvances[index] - advance);
+            float distance = MathF.Abs(line.Advances[offset] - advance);
             if (distance <= bestDistance)
             {
-                bestIndex = index;
+                bestOffset = offset;
                 bestDistance = distance;
             }
         }
 
-        return bestIndex;
+        return line.Start + bestOffset;
     }
 
-    private static float CharacterWidth(float fontSize) => MathF.Max(1f, fontSize * 0.56f);
+    private int HomeIndex()
+    {
+        if (Mode == TextBoxMode.SingleLine)
+        {
+            return 0;
+        }
+
+        UpdateTextLayout(context: null, font: null);
+        return textLines[LineIndexForCaret(CaretIndex)].Start;
+    }
+
+    private int EndIndex()
+    {
+        if (Mode == TextBoxMode.SingleLine)
+        {
+            return Text.Length;
+        }
+
+        UpdateTextLayout(context: null, font: null);
+        return textLines[LineIndexForCaret(CaretIndex)].End;
+    }
 
     private string ClampTextToMaxLength(string value)
     {
@@ -1749,6 +2166,41 @@ public sealed class TextBox : UiControl
         selectionLength = 0;
         InvalidateRender();
     }
+
+    private static bool IsLineBreak(char value) => value is '\r' or '\n';
+
+    private static bool IsOnlyReturnInput(string value)
+        => value is "\r" or "\n" or "\r\n";
+
+    private sealed class TextBoxLine
+    {
+        public TextBoxLine(int start, int end, float y, float[] advances)
+        {
+            Start = start;
+            End = end;
+            Y = y;
+            Advances = advances;
+            Width = advances.Length == 0 ? 0f : advances[^1];
+        }
+
+        public int Start { get; }
+
+        public int End { get; }
+
+        public float Y { get; }
+
+        public float Width { get; }
+
+        public float[] Advances { get; }
+
+        public float AdvanceAt(int index)
+        {
+            int offset = Math.Clamp(index - Start, 0, Advances.Length - 1);
+            return Advances[offset];
+        }
+    }
+
+    private readonly record struct TextBoxCaret(float X, float Y);
 }
 
 /// <summary>

@@ -13,9 +13,12 @@ public sealed class OverlayUiTextBoxTests
     private const int VirtualKeyBackspace = 0x08;
     private const int VirtualKeyDelete = 0x2E;
     private const int VirtualKeyEnd = 0x23;
+    private const int VirtualKeyEnter = 0x0D;
     private const int VirtualKeyHome = 0x24;
     private const int VirtualKeyLeft = 0x25;
     private const int VirtualKeyRight = 0x27;
+    private const int VirtualKeyUp = 0x26;
+    private const int VirtualKeyDown = 0x28;
     private const int VirtualKeyV = 0x56;
 
     [TestMethod]
@@ -206,6 +209,89 @@ public sealed class OverlayUiTextBoxTests
         Assert.AreEqual(1, sink.Lines.Count);
         float expectedX = textBox.ContentBounds.X + RecordingDrawCommandSink.MeasureVariableText(textBox.Text);
         Assert.AreEqual(expectedX, sink.Lines[0].Start.X, 0.001f);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task MultilineModeDefaultsWrapAndAcceptsReturn()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        UiTextBox textBox = CreateTextBox("one");
+        textBox.Mode = TextBoxMode.MultiLine;
+        textBox.Height = 90f;
+        ui.Root.Children.Add(textBox);
+        textBox.Focus();
+        textBox.CaretIndex = textBox.Text.Length;
+
+        DispatchKey(overlay, VirtualKeyEnter, pressed: true);
+        DispatchText(overlay, "\r");
+        DispatchText(overlay, "two\r\nthree");
+
+        Assert.AreEqual(TextBoxMode.MultiLine, textBox.Mode);
+        Assert.IsTrue(textBox.AcceptsReturn);
+        Assert.AreEqual(UiTextWrapping.Wrap, textBox.TextWrapping);
+        Assert.AreEqual("one\ntwo\nthree", textBox.Text);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task MultilineKeyboardMovesBetweenLinesAndDocumentBoundaries()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        UiTextBox textBox = CreateTextBox("abc\ndef\nghi");
+        textBox.Mode = TextBoxMode.MultiLine;
+        textBox.Height = 90f;
+        textBox.CaretIndex = 6;
+        ui.Root.Children.Add(textBox);
+        textBox.Focus();
+        ui.Render(new DrawContext(new RecordingDrawCommandSink()));
+
+        DispatchKey(overlay, VirtualKeyUp, pressed: true);
+        Assert.AreEqual(2, textBox.CaretIndex);
+
+        DispatchKey(overlay, VirtualKeyDown, pressed: true);
+        Assert.AreEqual(6, textBox.CaretIndex);
+
+        DispatchKey(overlay, VirtualKeyHome, pressed: true);
+        Assert.AreEqual(4, textBox.CaretIndex);
+
+        DispatchKey(overlay, VirtualKeyEnd, pressed: true);
+        Assert.AreEqual(7, textBox.CaretIndex);
+
+        DispatchKey(overlay, VirtualKeyHome, pressed: true, modifiers: Win32ModifierKeys.Control);
+        Assert.AreEqual(0, textBox.CaretIndex);
+
+        DispatchKey(overlay, VirtualKeyEnd, pressed: true, modifiers: Win32ModifierKeys.Control);
+        Assert.AreEqual(textBox.Text.Length, textBox.CaretIndex);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task MultilineRenderDrawsLinesSelectionAndCaretInsideViewport()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        ui.CaretBlinkInterval = TimeSpan.Zero;
+        UiTextBox textBox = CreateTextBox("first\nsecond\nthird");
+        textBox.Mode = TextBoxMode.MultiLine;
+        textBox.Height = 54f;
+        textBox.SelectionStart = 0;
+        textBox.SelectionLength = 12;
+        textBox.CaretIndex = textBox.Text.Length;
+        ui.Root.Children.Add(textBox);
+        textBox.Focus();
+        var sink = new RecordingDrawCommandSink();
+
+        ui.Render(new DrawContext(sink));
+
+        Assert.Contains("first", sink.TextRuns);
+        Assert.Contains("second", sink.TextRuns);
+        Assert.IsTrue(sink.FilledRectangles.Count > 0);
+        Assert.AreEqual(1, sink.Lines.Count);
+        Assert.IsTrue(sink.Lines[0].Start.Y >= textBox.ContentBounds.Y);
+        Assert.IsTrue(sink.Lines[0].Start.Y <= textBox.ContentBounds.Y + textBox.ContentBounds.Height);
     }
 
     private static async ValueTask<OverlayWindow> CreateOverlayAsync()

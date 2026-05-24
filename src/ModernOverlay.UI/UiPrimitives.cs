@@ -275,6 +275,18 @@ public enum UiTextTrimming
 }
 
 /// <summary>
+/// Describes whether a <see cref="TextBox"/> edits one line or multiple visual lines.
+/// </summary>
+public enum TextBoxMode
+{
+    /// <summary>Edit one horizontal line and scroll horizontally when text exceeds the viewport.</summary>
+    SingleLine,
+
+    /// <summary>Edit multiple lines with vertical caret navigation and viewport scrolling.</summary>
+    MultiLine,
+}
+
+/// <summary>
 /// Describes the effective visual state of an element.
 /// </summary>
 public enum UiVisualState

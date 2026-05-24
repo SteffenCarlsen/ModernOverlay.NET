@@ -95,7 +95,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Ensure property changes during protected phases are render-safe and schedule deferred consequences when needed.
 - [x] Define UI tree thread affinity and reject or marshal cross-thread mutation through an explicit root-owned API.
   - 1.1 rejects cross-thread UI-tree mutation; `OverlayUiRoot.Defer` is a same-thread safe-point API, not a cross-thread dispatcher.
-- [ ] Add tests proving property setters trigger the correct invalidation category and do not over-invalidate unrelated phases.
+- [x] Add tests proving property setters trigger the correct invalidation category and do not over-invalidate unrelated phases.
+  - `OverlayUiInvalidationTests` covers layout-affecting property changes, render/input/focus-state changes that must not trigger layout, no-op same-value setters, and input-region changes that affect hit testing without a layout pass.
 
 ### 4.2 Reentrancy And Deferred Operations
 
@@ -645,7 +646,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 ## 32. Tests
 
 - [ ] Add layout unit tests.
-- [ ] Add property invalidation category tests.
+- [x] Add property invalidation category tests.
+  - Covered by `OverlayUiInvalidationTests`.
 - [ ] Add deferred mutation/reentrancy tests.
 - [ ] Add placement unit tests.
 - [ ] Add element-tree mutation tests.

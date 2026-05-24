@@ -712,7 +712,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [ ] Add control-specific tests for every shipped control.
 - [x] Add sample compile tests.
   - Covered by the retained UI compile-shape test and the focused `InteractiveUiOverlay` sample build.
-- [ ] Add Win32 integration tests for keyboard/text events.
+- [x] Add Win32 integration tests for keyboard/text events.
+  - `OverlayWindowThreadingTests.InteractiveOverlayReceivesKeyboardAndTextInputEvents` verifies native key down/up and `WM_CHAR` flow into `OverlayWindow` keyboard/text events.
 - [ ] Add optional manual visual checklist for the interactive UI sample.
 
 ## 33. Validation Gates

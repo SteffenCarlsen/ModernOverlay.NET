@@ -392,23 +392,27 @@ public sealed class Win32OverlayWindow : IDisposable
             dpiX == 0 ? 1f : dpiX / (float)NativeMethods.DefaultDpi,
             dpiY == 0 ? 1f : dpiY / (float)NativeMethods.DefaultDpi);
 
-        NativeMethods.Rect suggestedRect = System.Runtime.InteropServices.Marshal.PtrToStructure<NativeMethods.Rect>(lParam);
-        var bounds = new Win32WindowBounds(
-            suggestedRect.Left,
-            suggestedRect.Top,
-            suggestedRect.Width,
-            suggestedRect.Height);
-
-        if (!bounds.IsEmpty)
+        Win32WindowBounds bounds = default;
+        if (lParam != 0)
         {
-            _ = NativeMethods.SetWindowPos(
-                hwnd,
-                0,
-                bounds.X,
-                bounds.Y,
-                bounds.Width,
-                bounds.Height,
-                NativeMethods.SwpNoZOrder | NativeMethods.SwpNoActivate);
+            NativeMethods.Rect suggestedRect = System.Runtime.InteropServices.Marshal.PtrToStructure<NativeMethods.Rect>(lParam);
+            bounds = new Win32WindowBounds(
+                suggestedRect.Left,
+                suggestedRect.Top,
+                suggestedRect.Width,
+                suggestedRect.Height);
+
+            if (!bounds.IsEmpty)
+            {
+                _ = NativeMethods.SetWindowPos(
+                    hwnd,
+                    0,
+                    bounds.X,
+                    bounds.Y,
+                    bounds.Width,
+                    bounds.Height,
+                    NativeMethods.SwpNoZOrder | NativeMethods.SwpNoActivate);
+            }
         }
 
         state.DpiChanged?.Invoke(scale, bounds);
@@ -418,9 +422,12 @@ public sealed class Win32OverlayWindow : IDisposable
     {
         Func<int, int, bool>? inputRegion = state.InputRegion;
         NativeMethods.Point point = GetPointerPoint(NativeMethods.WmNcHitTest, lParam);
-        _ = NativeMethods.ScreenToClient(hwnd, ref point)
-            ? true
-            : throw new NativeWin32Exception("ScreenToClient(input region)");
+        if (!NativeMethods.ScreenToClient(hwnd, ref point))
+        {
+            Win32NativeDiagnostics.RecordWin32Failure("ScreenToClient(input region)", System.Runtime.InteropServices.Marshal.GetLastPInvokeError());
+            return false;
+        }
+
         return inputRegion?.Invoke(point.X, point.Y) ?? true;
     }
 

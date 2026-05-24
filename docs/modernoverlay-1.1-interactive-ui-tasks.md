@@ -219,7 +219,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - Interactive controls resolve default hover, pressed, and focus brushes through shared style helpers.
 - [x] Add opacity support if it can be implemented without expensive per-control offscreen composition.
   - Full subtree opacity is deferred because `DrawContext` has no cheap global opacity stack; `UiElement.Opacity == 0` gates render/input participation and `Image.ImageOpacity` covers image-specific alpha.
-- [ ] Add tests using a fake draw command sink to verify render order and clipping calls.
+- [x] Add tests using a fake draw command sink to verify render order and clipping calls.
+  - `OverlayUiRenderOrderTests` verifies z-index/layer insertion ordering and element clip scopes around child draw calls.
 
 ## 10. Theming And Styling
 
@@ -681,7 +682,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - Covered by `OverlayUiTextBoxTests`.
 - [x] Add text editing scope tests for supported Unicode/dead-key/clipboard behavior.
   - `OverlayUiTextBoxTests` verifies delivered composed/Unicode text is stored and clipboard paste remains deferred/inert for 1.1.
-- [ ] Add render-order tests with fake draw command sink.
+- [x] Add render-order tests with fake draw command sink.
+  - Covered by `OverlayUiRenderOrderTests`.
 - [ ] Add theme/resource lifetime tests.
 - [ ] Add command `CanExecuteChanged` and parameter tests.
 - [ ] Add control-specific tests for every shipped control.

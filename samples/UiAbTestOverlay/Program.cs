@@ -183,7 +183,7 @@ UiWindow CreateControlsWindow(
     Slider slider = new() { Minimum = 0f, Maximum = 100f, Value = 40f };
     ProgressBar progress = new() { Minimum = 0f, Maximum = 100f, Value = slider.Value, Height = 12f };
     ComboBox comboBox = new() { Placeholder = "Combo" };
-    ListBox listBox = new() { Title = "Layout preview", Height = 140f };
+    ListBox listBox = new() { Title = "Layout preview", Height = 152f };
     NumberBox numberBox = new() { Minimum = 0d, Maximum = 100d, Step = 5d, Value = 55d };
     ColorPicker colorPicker = new()
     {
@@ -339,7 +339,7 @@ UiWindow CreateControlsWindow(
 
 UiWindow CreateLayoutWindow(out Action<string> showLayoutPreview)
 {
-    GroupBox preview = new() { Height = 170f };
+    GroupBox preview = new() { Height = 190f };
     showLayoutPreview = layoutName =>
     {
         preview.Header = $"{layoutName} preview";
@@ -348,14 +348,13 @@ UiWindow CreateLayoutWindow(out Action<string> showLayoutPreview)
     showLayoutPreview("Canvas");
 
     StackPanel content = new() { Spacing = 8f };
-    content.Children.Add(new TextBlock { Text = "Select a layout in the main controls list to update this preview.", TextWrapping = UiTextWrapping.Wrap, MaxLines = 2 });
     content.Children.Add(preview);
 
     return new UiWindow
     {
         Title = "Layouts",
         Width = 420f,
-        Height = 250f,
+        Height = 244f,
         Placement = UiPlacement.AnchorTo(OverlayAnchor.TopRight, new Thickness(0f, 64f, 32f, 0f)),
         Content = content,
     };
@@ -375,16 +374,16 @@ UiElement CreateLayoutPreview(string layoutName)
 
 Canvas CreateCanvasPreview()
 {
-    Canvas canvas = new() { Height = 112f };
-    TextBlock canvasA = new() { Text = "Canvas A", Background = null };
-    TextBlock canvasB = new() { Text = "Canvas B" };
-    TextBlock canvasC = new() { Text = "Manual position" };
+    Canvas canvas = new() { Height = 132f };
+    Button canvasA = CreateLayoutBlock("Canvas A", 108f, 34f);
+    Button canvasB = CreateLayoutBlock("Canvas B", 132f, 34f);
+    Button canvasC = CreateLayoutBlock("Manual position", 150f, 34f);
     Canvas.SetLeft(canvasA, 8f);
     Canvas.SetTop(canvasA, 8f);
     Canvas.SetLeft(canvasB, 124f);
-    Canvas.SetTop(canvasB, 42f);
-    Canvas.SetLeft(canvasC, 218f);
-    Canvas.SetTop(canvasC, 76f);
+    Canvas.SetTop(canvasB, 48f);
+    Canvas.SetLeft(canvasC, 220f);
+    Canvas.SetTop(canvasC, 90f);
     canvas.Children.Add(canvasA);
     canvas.Children.Add(canvasB);
     canvas.Children.Add(canvasC);
@@ -393,19 +392,19 @@ Canvas CreateCanvasPreview()
 
 StackPanel CreateStackPanelPreview()
 {
-    StackPanel stack = new() { Spacing = 6f, Height = 112f };
-    stack.Children.Add(new Button { Text = "First", Width = 120f, TextHorizontalAlignment = UiHorizontalAlignment.Center });
-    stack.Children.Add(new Button { Text = "Second", Width = 160f, TextHorizontalAlignment = UiHorizontalAlignment.Center });
-    stack.Children.Add(new Button { Text = "Third", Width = 96f, TextHorizontalAlignment = UiHorizontalAlignment.Center });
+    StackPanel stack = new() { Spacing = 7f, Height = 132f };
+    stack.Children.Add(CreateLayoutBlock("First row", 120f, 32f));
+    stack.Children.Add(CreateLayoutBlock("Second row", 180f, 32f));
+    stack.Children.Add(CreateLayoutBlock("Third row", 96f, 32f));
     return stack;
 }
 
 DockPanel CreateDockPanelPreview()
 {
-    DockPanel dock = new() { Height = 112f };
-    TextBlock dockLeft = new() { Text = "Left", Width = 64f };
-    TextBlock dockTop = new() { Text = "Top", Height = 24f };
-    TextBlock dockFill = new() { Text = "Fill" };
+    DockPanel dock = new() { Height = 132f };
+    Button dockLeft = CreateLayoutBlock("Left", 74f, 132f);
+    Button dockTop = CreateLayoutBlock("Top", 0f, 34f);
+    Button dockFill = CreateLayoutBlock("Fill", 0f, 0f);
     DockPanel.SetDock(dockLeft, Dock.Left);
     DockPanel.SetDock(dockTop, Dock.Top);
     dock.Children.Add(dockLeft);
@@ -416,10 +415,10 @@ DockPanel CreateDockPanelPreview()
 
 WrapPanel CreateWrapPanelPreview()
 {
-    WrapPanel wrap = new() { Spacing = 6f, Height = 112f };
+    WrapPanel wrap = new() { Spacing = 7f, Height = 132f };
     foreach (string token in new[] { "Wrap", "Panel", "Flow", "Resizes", "Across", "Rows" })
     {
-        wrap.Children.Add(new Button { Text = token, Width = 74f, TextHorizontalAlignment = UiHorizontalAlignment.Center });
+        wrap.Children.Add(CreateLayoutBlock(token, 82f, 32f));
     }
 
     return wrap;
@@ -427,15 +426,15 @@ WrapPanel CreateWrapPanelPreview()
 
 Grid CreateGridPreview()
 {
-    Grid grid = new() { Height = 112f };
-    grid.Columns.Add(new GridDefinition(GridLength.Pixel(92f)));
+    Grid grid = new() { Height = 132f };
+    grid.Columns.Add(new GridDefinition(GridLength.Pixel(108f)));
     grid.Columns.Add(new GridDefinition(GridLength.Star()));
-    grid.Rows.Add(new GridDefinition(GridLength.Pixel(36f)));
+    grid.Rows.Add(new GridDefinition(GridLength.Pixel(40f)));
     grid.Rows.Add(new GridDefinition(GridLength.Star()));
 
-    TextBlock fixedCell = new() { Text = "92px" };
-    TextBlock starCell = new() { Text = "Star column" };
-    TextBlock fillCell = new() { Text = "Grid fill" };
+    Button fixedCell = CreateLayoutBlock("108px", 0f, 0f);
+    Button starCell = CreateLayoutBlock("Star column", 0f, 0f);
+    Button fillCell = CreateLayoutBlock("Row span", 0f, 0f);
     Grid.SetRow(fixedCell, 0);
     Grid.SetColumn(fixedCell, 0);
     Grid.SetRow(starCell, 0);
@@ -447,6 +446,27 @@ Grid CreateGridPreview()
     grid.Children.Add(starCell);
     grid.Children.Add(fillCell);
     return grid;
+}
+
+Button CreateLayoutBlock(string text, float width, float height)
+{
+    Button block = new()
+    {
+        Text = text,
+        TextHorizontalAlignment = UiHorizontalAlignment.Center,
+        TextVerticalAlignment = UiVerticalAlignment.Center,
+    };
+    if (width > 0f)
+    {
+        block.Width = width;
+    }
+
+    if (height > 0f)
+    {
+        block.Height = height;
+    }
+
+    return block;
 }
 
 UiWindow CreatePopupWindow(out Button popupButton, out Button contextButton, out Button tooltipButton)

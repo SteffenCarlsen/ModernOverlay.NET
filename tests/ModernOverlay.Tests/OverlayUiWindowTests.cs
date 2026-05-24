@@ -76,6 +76,24 @@ public sealed class OverlayUiWindowTests
 
     [TestMethod]
     [TestCategory("WindowsIntegration")]
+    public async Task AnchoredWindowWithStarLayoutContentKeepsExplicitSize()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        UiWindow window = CreateWindow(120f, 90f);
+        window.Placement = UiPlacement.AnchorTo(OverlayAnchor.TopRight, new Thickness(0f, 10f, 10f, 0f));
+        window.Content = CreateStarGridContent();
+        ui.Root.Children.Add(window);
+
+        ui.Render(new DrawContext());
+
+        Assert.AreEqual(120f, window.Bounds.Width, 0.001f);
+        Assert.AreEqual(90f, window.Bounds.Height, 0.001f);
+        AssertPlacement(window, 130f, 10f);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
     public async Task PointerActivationBringsWindowToFrontAndFocusesIt()
     {
         await using OverlayWindow overlay = await CreateOverlayAsync();
@@ -243,6 +261,24 @@ public sealed class OverlayUiWindowTests
         Canvas.SetLeft(window, 10f);
         Canvas.SetTop(window, 10f);
         return window;
+    }
+
+    private static Grid CreateStarGridContent()
+    {
+        Grid grid = new() { Height = 48f };
+        grid.Columns.Add(new GridDefinition(GridLength.Pixel(40f)));
+        grid.Columns.Add(new GridDefinition(GridLength.Star()));
+        grid.Rows.Add(new GridDefinition(GridLength.Pixel(20f)));
+        grid.Rows.Add(new GridDefinition(GridLength.Star()));
+        grid.Children.Add(new TextBlock { Text = "Fixed" });
+        TextBlock star = new() { Text = "Star" };
+        Grid.SetColumn(star, 1);
+        grid.Children.Add(star);
+        TextBlock span = new() { Text = "Span" };
+        Grid.SetRow(span, 1);
+        Grid.SetColumnSpan(span, 2);
+        grid.Children.Add(span);
+        return grid;
     }
 
     private static void Click(OverlayWindow overlay, int x, int y)

@@ -283,14 +283,31 @@ public sealed class UiWindow : UiPanel
         SizeF contentSize = new(0f, 0f);
         if (Content is not null && !IsMinimized)
         {
-            contentSize = Content.Measure(UiGeometry.Deflate(availableSize, Padding));
+            SizeF contentAvailable = UiGeometry.Deflate(availableSize, Padding);
+            if (!float.IsNaN(Width))
+            {
+                contentAvailable = contentAvailable with { Width = MathF.Max(0f, Width - Padding.Horizontal) };
+            }
+
+            if (!float.IsNaN(Height))
+            {
+                contentAvailable = contentAvailable with { Height = MathF.Max(0f, Height - HeaderHeight - Padding.Vertical) };
+            }
+
+            contentSize = Content.Measure(contentAvailable);
         }
 
+        float measuredWidth = float.IsNaN(Width)
+            ? contentSize.Width + Padding.Horizontal
+            : Width;
+        float measuredHeight = float.IsNaN(Height)
+            ? contentSize.Height + HeaderHeight + Padding.Vertical
+            : Height;
         SizeF windowSize = new(
-            MathF.Max(MinWidth, MathF.Max(Width, contentSize.Width + Padding.Horizontal)),
+            MathF.Max(MinWidth, measuredWidth),
             IsMinimized && MinimizeBehavior == MinimizeBehavior.CollapseToTitleBar
                 ? HeaderHeight
-                : MathF.Max(MinHeight, MathF.Max(Height, contentSize.Height + HeaderHeight + Padding.Vertical)));
+                : MathF.Max(MinHeight, measuredHeight));
         if (activePlacement is { } placementToApply)
         {
             ApplyPlacement(placementToApply, windowSize);

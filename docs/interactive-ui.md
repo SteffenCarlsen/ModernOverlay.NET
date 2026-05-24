@@ -300,7 +300,7 @@ Before adding `ScrollViewer`, the design needs explicit transformed-coordinate h
 
 ## Samples
 
-Use `samples/InteractiveUiOverlay` for the retained UI sample. It demonstrates selective click-through, explicit `ui.Render(frame)`, floating windows, popups, menus, context menus, text input, tab navigation, runtime theme changes, live metrics, and in-memory `IUiLayoutStore` persistence.
+Use `samples/InteractiveUiOverlay` for the retained UI sample. It demonstrates selective click-through, explicit `ui.Render(frame)`, floating windows, popups, menus, context menus, text input, tab navigation, runtime theme changes, live metrics, bounds/DPI movement, and in-memory `IUiLayoutStore` persistence.
 
 Run it with:
 

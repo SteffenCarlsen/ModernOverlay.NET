@@ -33,12 +33,20 @@ UiTheme alternateTheme = UiTheme.Default with
     Border = ColorRgba.FromBytes(90, 126, 120, 230),
 };
 bool alternateThemeActive = false;
+bool movedOverlay = false;
+bool expandedOverlay = false;
 int metricsFrameCounter = 0;
 
 TextBlock status = new()
 {
     Text = "Ready",
     Padding = new Thickness(0f, 0f, 0f, 4f),
+};
+TextBlock boundsStatus = new()
+{
+    Text = "Bounds pending",
+    TextWrapping = UiTextWrapping.Wrap,
+    MaxLines = 2,
 };
 TextBlock metricsStatus = new()
 {
@@ -140,12 +148,22 @@ Button contextButton = new()
 Button themeButton = new()
 {
     Text = "Theme",
-    Width = 120f,
+    Width = 110f,
 };
 Button restoreButton = new()
 {
     Text = "Restore",
-    Width = 120f,
+    Width = 110f,
+};
+Button moveButton = new()
+{
+    Text = "Move",
+    Width = 110f,
+};
+Button resizeButton = new()
+{
+    Text = "Resize",
+    Width = 110f,
 };
 CheckBox checkbox = new()
 {
@@ -190,6 +208,25 @@ restoreButton.Click += (_, _) =>
     window.Placement = mainPlacement;
     status.Text = "Layout restored through IUiLayoutStore";
 };
+moveButton.Click += (_, _) =>
+{
+    WindowBounds current = overlay.BoundsPixels;
+    int nextX = movedOverlay ? 160 : 920;
+    int nextY = movedOverlay ? 160 : 180;
+    overlay.MovePixels(nextX, nextY);
+    movedOverlay = !movedOverlay;
+    status.Text = $"Moved overlay to {nextX}, {nextY} px; previous size was {current.Width} x {current.Height} px";
+};
+resizeButton.Click += (_, _) =>
+{
+    RectF current = overlay.BoundsDips;
+    RectF next = expandedOverlay
+        ? new RectF(current.X, current.Y, 820f, 700f)
+        : new RectF(current.X, current.Y, 980f, 760f);
+    overlay.SetBoundsDips(next, overlay.DpiScale);
+    expandedOverlay = !expandedOverlay;
+    status.Text = $"Resized overlay to {next.Width:0} x {next.Height:0} DIPs";
+};
 checkbox.CheckStateChanged += (_, _) => status.Text = $"Check state: {checkbox.CheckState}";
 firstRadio.CheckedChanged += (_, _) =>
 {
@@ -223,9 +260,10 @@ opacityBox.ValueChanged += (_, _) =>
 
 content.Children.Add(CreateMenu(status));
 content.Children.Add(status);
+content.Children.Add(boundsStatus);
 content.Children.Add(textBox);
 content.Children.Add(CreateControlsGrid(button, contextButton, checkbox, firstRadio, secondRadio));
-content.Children.Add(CreateActionGroup(themeButton, restoreButton));
+content.Children.Add(CreateActionGroup(themeButton, restoreButton, moveButton, resizeButton));
 content.Children.Add(slider);
 content.Children.Add(progress);
 content.Children.Add(comboBox);
@@ -245,6 +283,10 @@ overlay.Render += frame =>
     {
         OverlayUiMetrics metrics = ui.Metrics;
         metricsStatus.Text = $"Elements {metrics.ElementCount} | Layout {metrics.LayoutPasses} | Render {metrics.RenderPasses} | Popups {metrics.ActivePopupCount}";
+        WindowBounds pixelBounds = overlay.BoundsPixels;
+        RectF dipBounds = overlay.BoundsDips;
+        DpiScale dpi = overlay.DpiScale;
+        boundsStatus.Text = $"DPI {dpi.X:0.##} x {dpi.Y:0.##} | px {pixelBounds.Width} x {pixelBounds.Height} | DIPs {dipBounds.Width:0} x {dipBounds.Height:0}";
     }
 
     ui.Render(frame);
@@ -291,7 +333,7 @@ static Grid CreateControlsGrid(Button button, Button contextButton, CheckBox che
     return grid;
 }
 
-static StackPanel CreateActionGroup(Button themeButton, Button restoreButton)
+static StackPanel CreateActionGroup(Button themeButton, Button restoreButton, Button moveButton, Button resizeButton)
 {
     var row = new StackPanel
     {
@@ -300,6 +342,8 @@ static StackPanel CreateActionGroup(Button themeButton, Button restoreButton)
     };
     row.Children.Add(themeButton);
     row.Children.Add(restoreButton);
+    row.Children.Add(moveButton);
+    row.Children.Add(resizeButton);
     return row;
 }
 

@@ -409,7 +409,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - `Button` now derives from `ContentControl`; `Text` remains the lightweight fallback when no retained child content is assigned.
 - [x] Invoke click on pointer press/release within the control.
 - [x] Invoke command on click and Enter/Space when focused.
-- [ ] Add tests for click, command, disabled state, keyboard activation, and pointer cancel after drag/leave.
+- [x] Add tests for click, command, disabled state, keyboard activation, and pointer cancel after drag/leave.
+  - `OverlayUiButtonControlTests` covers button pointer activation, command parameter execution, keyboard activation, drag suppression, release-outside cancellation, and disabled command behavior.
 
 ### 19.2 ToggleButton
 
@@ -417,20 +418,23 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add `IsChecked`.
 - [x] Add checked/unchecked/indeterminate only if tri-state is needed.
   - `ToggleButton` exposes `UiToggleState`, `CheckState`, `IsThreeState`, `IsChecked`, and `IsIndeterminate`; `CheckBox` renders checked and indeterminate states.
-- [ ] Add tests for toggle by pointer, keyboard, command callback, and disabled state.
+- [x] Add tests for toggle by pointer, keyboard, command callback, and disabled state.
+  - `OverlayUiButtonControlTests` covers ToggleButton pointer/keyboard toggling, checked-change callbacks, command callbacks, and disabled input suppression.
 
 ### 19.3 CheckBox
 
 - [x] Implement `CheckBox` based on `ToggleButton`.
 - [x] Add box glyph plus text/content.
-- [ ] Add tests for layout, glyph rendering, checked state, and keyboard activation.
+- [x] Add tests for layout, glyph rendering, checked state, and keyboard activation.
+  - `OverlayUiButtonControlTests` covers CheckBox keyboard activation, checked state, layout bounds, glyph draw commands, and text rendering.
 
 ### 19.4 RadioButton
 
 - [x] Implement `RadioButton`.
 - [x] Add group name and container-scoped group behavior.
 - [x] Ensure selecting one option clears peers in the same group.
-- [ ] Add tests for group behavior, keyboard activation, disabled state, and dynamic add/remove.
+- [x] Add tests for group behavior, keyboard activation, disabled state, and dynamic add/remove.
+  - `OverlayUiButtonControlTests` covers RadioButton group peer clearing, keyboard activation, disabled input suppression, and dynamic removal before selecting another peer.
 
 ## 20. Range And Numeric Controls
 

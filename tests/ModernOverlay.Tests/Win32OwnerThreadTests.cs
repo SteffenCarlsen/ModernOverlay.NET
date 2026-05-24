@@ -10,7 +10,7 @@ public sealed class Win32OwnerThreadTests
     public void WindowIsCreatedOnDedicatedOwnerThread()
     {
         int testThreadId = Environment.CurrentManagedThreadId;
-        using Win32OverlayWindow window = Win32OverlayWindow.Create(new Win32OverlayWindowOptions(
+        using var window = Win32OverlayWindow.Create(new Win32OverlayWindowOptions(
             ClassName: null,
             Title: "ModernOverlay owner thread test",
             X: 0,
@@ -33,7 +33,7 @@ public sealed class Win32OwnerThreadTests
     [TestCategory("WindowsIntegration")]
     public void FrameLoopRechecksDynamicIntervalWhileRunning()
     {
-        using Win32OverlayWindow window = Win32OverlayWindow.Create(new Win32OverlayWindowOptions(
+        using var window = Win32OverlayWindow.Create(new Win32OverlayWindowOptions(
             ClassName: null,
             Title: "ModernOverlay dynamic frame interval test",
             X: 0,

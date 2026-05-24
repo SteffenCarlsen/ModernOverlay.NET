@@ -366,7 +366,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add `RangeBase` for slider/progress/number controls.
 - [x] Add `Selector` for list/combo/radio groups.
   - `Selector` now owns item collection, selected index/item, display-text callback, and selection-change notification for list/combo controls.
-- [ ] Add tests for common visual states, command state, and inherited behavior.
+- [x] Add tests for common visual states, command state, and inherited behavior.
+  - `OverlayUiControlBaseTests` covers visual-state priority for focus/hover/pressed/capture/disabled, inherited disabled state, and command-disabled activation behavior.
 
 ## 18. Text And Display Controls
 

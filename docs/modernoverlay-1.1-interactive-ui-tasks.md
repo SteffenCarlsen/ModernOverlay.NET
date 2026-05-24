@@ -448,14 +448,16 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add pointer capture during thumb drag.
 - [x] Add click-to-track behavior.
 - [x] Add keyboard arrows/home/end/page behavior.
-- [ ] Add tests for value clamping, drag, capture, track click, keyboard changes, disabled state, and render output.
+- [x] Add tests for value clamping, drag, capture, track click, keyboard changes, disabled state, and render output.
+  - `OverlayUiRangeNumericTests` covers Slider value clamping, pointer capture drag, track click positioning, keyboard changes, disabled input suppression, and render output.
 
 ### 20.2 NumberBox
 
 - [x] Decide whether `NumberBox` is 1.1 or deferred: include in 1.1 MVP.
 - [x] Compose `TextBox` plus increment/decrement buttons.
 - [x] Add min/max/step, parsing, formatting, and validation.
-- [ ] Add tests for parsing, invalid input, buttons, keyboard, and culture-invariant behavior.
+- [x] Add tests for parsing, invalid input, buttons, keyboard, and culture-invariant behavior.
+  - `OverlayUiRangeNumericTests` covers NumberBox invariant text parsing under a non-invariant culture, invalid input preservation, step buttons, value clamping, and formatted text updates.
 
 ## 21. Text Input Controls
 

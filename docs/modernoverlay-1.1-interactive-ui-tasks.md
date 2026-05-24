@@ -366,7 +366,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 
 - [x] Implement `ToggleButton`.
 - [x] Add `IsChecked`.
-- [ ] Add checked/unchecked/indeterminate only if tri-state is needed.
+- [x] Add checked/unchecked/indeterminate only if tri-state is needed.
+  - `ToggleButton` exposes `UiToggleState`, `CheckState`, `IsThreeState`, `IsChecked`, and `IsIndeterminate`; `CheckBox` renders checked and indeterminate states.
 - [ ] Add tests for toggle by pointer, keyboard, command callback, and disabled state.
 
 ### 19.3 CheckBox

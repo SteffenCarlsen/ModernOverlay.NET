@@ -515,37 +515,91 @@ public class Button : ContentControl
 
 public class ToggleButton : Button
 {
-    private bool isChecked;
+    private UiToggleState checkState;
+    private bool isThreeState;
 
     public event EventHandler? CheckedChanged;
 
+    public event EventHandler? CheckStateChanged;
+
     public bool IsChecked
     {
-        get => isChecked;
+        get => CheckState == UiToggleState.Checked;
+        set => CheckState = value ? UiToggleState.Checked : UiToggleState.Unchecked;
+    }
+
+    public bool IsIndeterminate
+    {
+        get => CheckState == UiToggleState.Indeterminate;
+        set => CheckState = value ? UiToggleState.Indeterminate : UiToggleState.Unchecked;
+    }
+
+    public bool IsThreeState
+    {
+        get => isThreeState;
         set
         {
-            if (SetProperty(ref isChecked, value, UiInvalidation.Render))
+            if (SetProperty(ref isThreeState, value, UiInvalidation.Render)
+                && !value
+                && CheckState == UiToggleState.Indeterminate)
             {
-                CheckedChanged?.Invoke(this, EventArgs.Empty);
+                CheckState = UiToggleState.Unchecked;
             }
         }
     }
 
+    public UiToggleState CheckState
+    {
+        get => checkState;
+        set => SetCheckState(value);
+    }
+
     protected override void InvokeClick(PointF position, OverlayPointerButton button, int clickCount = 1)
     {
-        IsChecked = !IsChecked;
+        CheckState = NextCheckState();
         base.InvokeClick(position, button, clickCount);
     }
 
     protected override void RenderCore(UiRenderContext context)
     {
         base.RenderCore(context);
-        if (IsChecked)
+        if (CheckState == UiToggleState.Checked)
         {
             RectF mark = UiGeometry.Deflate(Bounds, new Thickness(4f));
             context.Draw.Draw.RoundedRectangle(mark, 3f, 3f, ResolveAccentBrush(context), 2f);
         }
+        else if (CheckState == UiToggleState.Indeterminate)
+        {
+            RectF mark = UiGeometry.Deflate(Bounds, new Thickness(5f, Bounds.Height / 2f - 1f));
+            context.Draw.Fill.Rectangle(mark, ResolveAccentBrush(context));
+        }
     }
+
+    private void SetCheckState(UiToggleState value)
+    {
+        if (!Enum.IsDefined(value))
+        {
+            throw new ArgumentOutOfRangeException(nameof(value), "Unsupported toggle state.");
+        }
+
+        UiToggleState next = !IsThreeState && value == UiToggleState.Indeterminate
+            ? UiToggleState.Unchecked
+            : value;
+        if (SetProperty(ref checkState, next, UiInvalidation.Render))
+        {
+            CheckedChanged?.Invoke(this, EventArgs.Empty);
+            CheckStateChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private UiToggleState NextCheckState()
+        => CheckState switch
+        {
+            UiToggleState.Unchecked => UiToggleState.Checked,
+            UiToggleState.Checked => IsThreeState ? UiToggleState.Indeterminate : UiToggleState.Unchecked,
+            UiToggleState.Indeterminate => UiToggleState.Unchecked,
+            _ => UiToggleState.Unchecked,
+        };
 }
 
 public sealed class CheckBox : ToggleButton
@@ -561,9 +615,14 @@ public sealed class CheckBox : ToggleButton
         RectF box = new(Bounds.X + 6f, Bounds.Y + (Bounds.Height - 14f) / 2f, 14f, 14f);
         BrushHandle stateBrush = IsEffectivelyEnabled ? ResolveAccentBrush(context) : ResolveDisabledBrush(context);
         context.Draw.Draw.Rectangle(box, IsFocused && IsEffectivelyEnabled ? ResolveFocusBrush(context) : ResolveBorderBrush(context));
-        if (IsChecked)
+        if (CheckState == UiToggleState.Checked)
         {
             context.Draw.Fill.Rectangle(UiGeometry.Deflate(box, new Thickness(3f)), stateBrush);
+        }
+        else if (CheckState == UiToggleState.Indeterminate)
+        {
+            RectF mark = new(box.X + 3f, box.Y + box.Height / 2f - 1f, box.Width - 6f, 2f);
+            context.Draw.Fill.Rectangle(mark, stateBrush);
         }
 
         if (Content is not null)

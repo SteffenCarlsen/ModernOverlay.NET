@@ -144,6 +144,13 @@ public enum UiVisualState
     Focused,
 }
 
+public enum UiToggleState
+{
+    Unchecked,
+    Checked,
+    Indeterminate,
+}
+
 public enum UiLayer
 {
     Content = 0,

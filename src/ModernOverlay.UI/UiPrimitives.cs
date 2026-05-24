@@ -434,6 +434,8 @@ internal enum UiRootPhase
 
 internal static class UiGeometry
 {
+    private const float InputBoundaryEpsilon = 0.001f;
+
     public static RectF Deflate(RectF rect, Thickness thickness)
     {
         float width = MathF.Max(0f, rect.Width - thickness.Horizontal);
@@ -446,6 +448,45 @@ internal static class UiGeometry
             && point.Y >= rect.Y
             && point.X < rect.X + rect.Width
             && point.Y < rect.Y + rect.Height;
+
+    public static bool ContainsInputBand(RectF rect, PointF point)
+        => point.X >= rect.X - InputBoundaryEpsilon
+            && point.Y >= rect.Y - InputBoundaryEpsilon
+            && point.X < rect.X + rect.Width + InputBoundaryEpsilon
+            && point.Y < rect.Y + rect.Height + InputBoundaryEpsilon;
+
+    public static int VisibleUniformBandCount(float extent, float bandExtent, int count)
+        => count <= 0 || extent <= 0f || bandExtent <= 0f || !float.IsFinite(extent) || !float.IsFinite(bandExtent)
+            ? 0
+            : Math.Min(count, (int)MathF.Floor((extent + InputBoundaryEpsilon) / bandExtent));
+
+    public static int UniformBandIndex(float coordinate, float origin, float bandExtent, int count)
+    {
+        if (count <= 0 || bandExtent <= 0f || !float.IsFinite(coordinate) || !float.IsFinite(origin) || !float.IsFinite(bandExtent))
+        {
+            return -1;
+        }
+
+        float relative = coordinate - origin;
+        if (relative < -InputBoundaryEpsilon)
+        {
+            return -1;
+        }
+
+        float totalExtent = count * bandExtent;
+        if (relative >= totalExtent + InputBoundaryEpsilon)
+        {
+            return -1;
+        }
+
+        if (relative <= InputBoundaryEpsilon)
+        {
+            return 0;
+        }
+
+        int index = (int)MathF.Floor((relative - InputBoundaryEpsilon) / bandExtent);
+        return index >= 0 && index < count ? index : -1;
+    }
 
     public static SizeF Clamp(SizeF size, float minWidth, float minHeight, float maxWidth, float maxHeight)
         => new(

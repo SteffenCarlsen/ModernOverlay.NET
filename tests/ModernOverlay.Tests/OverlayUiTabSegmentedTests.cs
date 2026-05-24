@@ -42,6 +42,22 @@ public sealed class OverlayUiTabSegmentedTests
 
     [TestMethod]
     [TestCategory("WindowsIntegration")]
+    public async Task TabPointerBoundaryKeepsPreviousRenderedHeader()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        UiTabControl tabs = CreateTabs(out _, out _, out _);
+        ui.Root.Children.Add(tabs);
+        ui.Render(new DrawContext());
+
+        float boundaryX = 10f + TabHeaderWidth("One");
+        ClickUi(ui, new PointF(boundaryX, 20f));
+
+        Assert.AreEqual(0, tabs.SelectedIndex);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
     public async Task TabKeyboardNavigationSkipsDisabledTabs()
     {
         await using OverlayWindow overlay = await CreateOverlayAsync();
@@ -103,6 +119,29 @@ public sealed class OverlayUiTabSegmentedTests
         Assert.AreEqual(4, changes);
     }
 
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task SegmentedControlPointerBoundaryKeepsPreviousRenderedSegment()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        SegmentedControl segmented = new()
+        {
+            Width = 180f,
+        };
+        Canvas.SetLeft(segmented, 10f);
+        Canvas.SetTop(segmented, 10f);
+        segmented.Items.Add("A");
+        segmented.Items.Add("B");
+        segmented.Items.Add("C");
+        ui.Root.Children.Add(segmented);
+        ui.Render(new DrawContext());
+
+        ClickUi(ui, new PointF(70f, 20f));
+
+        Assert.AreEqual(0, segmented.SelectedIndex);
+    }
+
     private static async ValueTask<OverlayWindow> CreateOverlayAsync()
         => await OverlayWindow.CreateAsync(new OverlayWindowOptions
         {
@@ -130,10 +169,18 @@ public sealed class OverlayUiTabSegmentedTests
         return tabs;
     }
 
+    private static float TabHeaderWidth(string header) => header.Length * UiTheme.Default.FontSize * 0.62f + 24f;
+
     private static void Click(OverlayWindow overlay, int x, int y)
     {
         DispatchPointer(overlay, Win32PointerEventKind.Pressed, Win32PointerButton.Left, x, y);
         DispatchPointer(overlay, Win32PointerEventKind.Released, Win32PointerButton.Left, x, y);
+    }
+
+    private static void ClickUi(OverlayUiRoot ui, PointF position)
+    {
+        DispatchUiPointer(ui, OverlayPointerEventKind.Pressed, OverlayPointerButton.Left, position);
+        DispatchUiPointer(ui, OverlayPointerEventKind.Released, OverlayPointerButton.Left, position);
     }
 
     private static void DispatchPointer(OverlayWindow overlay, Win32PointerEventKind kind, Win32PointerButton button, int x, int y)
@@ -141,6 +188,13 @@ public sealed class OverlayUiTabSegmentedTests
         MethodInfo method = typeof(OverlayWindow).GetMethod("HandlePointerEvent", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new MissingMethodException(nameof(OverlayWindow), "HandlePointerEvent");
         method.Invoke(overlay, [new Win32PointerEvent(kind, button, x, y)]);
+    }
+
+    private static void DispatchUiPointer(OverlayUiRoot ui, OverlayPointerEventKind kind, OverlayPointerButton button, PointF position)
+    {
+        MethodInfo method = typeof(OverlayUiRoot).GetMethod("DispatchPointer", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(nameof(OverlayUiRoot), "DispatchPointer");
+        method.Invoke(ui, [new OverlayPointerEventArgs(kind, button, position, (int)MathF.Round(position.X), (int)MathF.Round(position.Y)), kind]);
     }
 
     private static void DispatchKey(OverlayWindow overlay, int virtualKey)

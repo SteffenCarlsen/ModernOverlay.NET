@@ -33,6 +33,25 @@ public sealed class OverlayUiMenuTests
 
     [TestMethod]
     [TestCategory("WindowsIntegration")]
+    public async Task MenuPointerBoundaryKeepsPreviousRenderedItem()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        object? invokedParameter = null;
+        UiMenu menu = CreateMenu();
+        menu.Items.Add(new UiMenuItem("A", new UiCommand(parameter => invokedParameter = parameter)) { CommandParameter = "first" });
+        menu.Items.Add(new UiMenuItem("B", new UiCommand(parameter => invokedParameter = parameter)) { CommandParameter = "second" });
+        ui.Root.Children.Add(menu);
+        ui.Render(new DrawContext());
+
+        float boundaryX = 10f + 8f + MenuItemWidth("A");
+        ClickUi(ui, new PointF(boundaryX, 20f));
+
+        Assert.AreEqual("first", invokedParameter);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
     public async Task MenuKeyboardNavigationSkipsDisabledItemsAndInvokesCommand()
     {
         await using OverlayWindow overlay = await CreateOverlayAsync();
@@ -70,6 +89,24 @@ public sealed class OverlayUiMenuTests
 
         Assert.AreEqual("keyboard", invokedParameter);
         Assert.IsFalse(contextMenu.IsOpen);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task ContextMenuPointerBoundaryKeepsPreviousRenderedItem()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        object? invokedParameter = null;
+        UiContextMenu contextMenu = CreateContextMenu();
+        contextMenu.Items.Add(new UiMenuItem("A", new UiCommand(parameter => invokedParameter = parameter)) { CommandParameter = "first" });
+        contextMenu.Items.Add(new UiMenuItem("B", new UiCommand(parameter => invokedParameter = parameter)) { CommandParameter = "second" });
+        ui.Root.Children.Add(contextMenu);
+        ui.Render(new DrawContext());
+
+        Click(overlay, 20, 40);
+
+        Assert.AreEqual("first", invokedParameter);
     }
 
     [TestMethod]
@@ -118,10 +155,18 @@ public sealed class OverlayUiMenuTests
             Placement = new PointF(10f, 10f),
         };
 
+    private static float MenuItemWidth(string text) => text.Length * UiTheme.Default.FontSize * 0.62f + 22f;
+
     private static void Click(OverlayWindow overlay, int x, int y)
     {
         DispatchPointer(overlay, Win32PointerEventKind.Pressed, Win32PointerButton.Left, x, y);
         DispatchPointer(overlay, Win32PointerEventKind.Released, Win32PointerButton.Left, x, y);
+    }
+
+    private static void ClickUi(OverlayUiRoot ui, PointF position)
+    {
+        DispatchUiPointer(ui, OverlayPointerEventKind.Pressed, OverlayPointerButton.Left, position);
+        DispatchUiPointer(ui, OverlayPointerEventKind.Released, OverlayPointerButton.Left, position);
     }
 
     private static void DispatchPointer(OverlayWindow overlay, Win32PointerEventKind kind, Win32PointerButton button, int x, int y)
@@ -129,6 +174,13 @@ public sealed class OverlayUiMenuTests
         MethodInfo method = typeof(OverlayWindow).GetMethod("HandlePointerEvent", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new MissingMethodException(nameof(OverlayWindow), "HandlePointerEvent");
         method.Invoke(overlay, [new Win32PointerEvent(kind, button, x, y)]);
+    }
+
+    private static void DispatchUiPointer(OverlayUiRoot ui, OverlayPointerEventKind kind, OverlayPointerButton button, PointF position)
+    {
+        MethodInfo method = typeof(OverlayUiRoot).GetMethod("DispatchPointer", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(nameof(OverlayUiRoot), "DispatchPointer");
+        method.Invoke(ui, [new OverlayPointerEventArgs(kind, button, position, (int)MathF.Round(position.X), (int)MathF.Round(position.Y)), kind]);
     }
 
     private static void DispatchKey(OverlayWindow overlay, int virtualKey)

@@ -33,6 +33,40 @@ public sealed class OverlayUiListBoxTests
 
     [TestMethod]
     [TestCategory("WindowsIntegration")]
+    public async Task PointerBoundaryKeepsPreviousRenderedRow()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        UiListBox listBox = CreateListBox("Alpha", "Bravo", "Charlie");
+        ui.Root.Children.Add(listBox);
+        ui.Render(new DrawContext());
+
+        DispatchUiPointer(ui, OverlayPointerEventKind.Pressed, OverlayPointerButton.Left, new PointF(20f, 58f));
+
+        Assert.AreEqual(1, listBox.SelectedIndex);
+        Assert.AreEqual("Bravo", listBox.SelectedItem);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task PointerInUnrenderedPartialRowDoesNotSelectHiddenItem()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        UiListBox listBox = CreateListBox("Alpha", "Bravo", "Charlie", "Delta");
+        listBox.Height = 92f;
+        listBox.SelectedIndex = 0;
+        ui.Root.Children.Add(listBox);
+        ui.Render(new DrawContext());
+
+        DispatchPointer(overlay, Win32PointerEventKind.Pressed, Win32PointerButton.Left, 20, 90);
+
+        Assert.AreEqual(0, listBox.SelectedIndex);
+        Assert.AreEqual("Alpha", listBox.SelectedItem);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
     public async Task KeyboardNavigationSelectsExpectedItems()
     {
         await using OverlayWindow overlay = await CreateOverlayAsync();
@@ -127,6 +161,13 @@ public sealed class OverlayUiListBoxTests
         MethodInfo method = typeof(OverlayWindow).GetMethod("HandlePointerEvent", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new MissingMethodException(nameof(OverlayWindow), "HandlePointerEvent");
         method.Invoke(overlay, [pointer]);
+    }
+
+    private static void DispatchUiPointer(OverlayUiRoot ui, OverlayPointerEventKind kind, OverlayPointerButton button, PointF position)
+    {
+        MethodInfo method = typeof(OverlayUiRoot).GetMethod("DispatchPointer", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(nameof(OverlayUiRoot), "DispatchPointer");
+        method.Invoke(ui, [new OverlayPointerEventArgs(kind, button, position, (int)MathF.Round(position.X), (int)MathF.Round(position.Y)), kind]);
     }
 
     private static void DispatchKey(OverlayWindow overlay, int virtualKey)

@@ -433,7 +433,8 @@ public class Menu : UiControl
         for (int index = 0; index < Items.Count; index++)
         {
             float width = Items[index].Text.Length * (Root?.ThemeResources.Theme.FontSize ?? UiTheme.Default.FontSize) * 0.62f + 22f;
-            if (point.X >= x && point.X < x + width && point.Y >= ContentBounds.Y && point.Y < ContentBounds.Y + ContentBounds.Height)
+            RectF itemRect = new(x, ContentBounds.Y, width, ContentBounds.Height);
+            if (UiGeometry.ContainsInputBand(itemRect, point))
             {
                 return index;
             }
@@ -523,6 +524,7 @@ public sealed class ContextMenu : Menu, IUiPopup
     {
         ZIndex = (int)UiLayer.Popup;
         Width = 180f;
+        Height = float.NaN;
     }
 
     /// <summary>
@@ -735,8 +737,9 @@ public sealed class ContextMenu : Menu, IUiPopup
             return -1;
         }
 
-        int index = (int)((point.Y - ContentBounds.Y) / ItemHeight);
-        return index >= 0 && index < Items.Count ? index : -1;
+        RectF content = ContentBounds;
+        int visibleCount = UiGeometry.VisibleUniformBandCount(content.Height, ItemHeight, Items.Count);
+        return UiGeometry.UniformBandIndex(point.Y, content.Y, ItemHeight, visibleCount);
     }
 
     private void MoveContextHotIndex(int direction)

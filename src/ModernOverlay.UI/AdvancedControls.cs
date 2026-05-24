@@ -422,7 +422,8 @@ public sealed class TabControl : UiPanel
         for (int index = 0; index < Items.Count; index++)
         {
             float width = Items[index].Header.Length * (Root?.ThemeResources.Theme.FontSize ?? UiTheme.Default.FontSize) * 0.62f + 24f;
-            if (point.X >= x && point.X < x + width && point.Y >= Bounds.Y && point.Y < Bounds.Y + HeaderHeight)
+            RectF header = new(x, Bounds.Y, width, HeaderHeight);
+            if (UiGeometry.ContainsInputBand(header, point))
             {
                 return index;
             }
@@ -583,7 +584,8 @@ public sealed class SegmentedControl : UiControl
             return;
         }
 
-        int index = (int)((args.Position.X - Bounds.X) / MathF.Max(1f, Bounds.Width / Items.Count));
+        float segmentWidth = MathF.Max(1f, Bounds.Width / Items.Count);
+        int index = UiGeometry.UniformBandIndex(args.Position.X, Bounds.X, segmentWidth, Items.Count);
         if (index >= 0 && index < Items.Count)
         {
             SelectedIndex = index;

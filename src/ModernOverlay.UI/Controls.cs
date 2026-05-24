@@ -1673,7 +1673,7 @@ public sealed class ListBox : Selector
         context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, enabled ? ResolveBackground(context) : ResolveDisabledBrush(context));
         context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, IsFocused && enabled ? ResolveFocusBrush(context) : ResolveBorderBrush(context));
         RectF content = ContentBounds;
-        int visibleCount = Math.Min(Items.Count, (int)MathF.Floor(content.Height / ItemHeight));
+        int visibleCount = UiGeometry.VisibleUniformBandCount(content.Height, ItemHeight, Items.Count);
         for (int index = 0; index < visibleCount; index++)
         {
             RectF row = new(content.X, content.Y + index * ItemHeight, content.Width, ItemHeight);
@@ -1696,7 +1696,9 @@ public sealed class ListBox : Selector
         }
 
         Focus();
-        int index = (int)((args.Position.Y - ContentBounds.Y) / ItemHeight);
+        RectF content = ContentBounds;
+        int visibleCount = UiGeometry.VisibleUniformBandCount(content.Height, ItemHeight, Items.Count);
+        int index = UiGeometry.UniformBandIndex(args.Position.Y, content.Y, ItemHeight, visibleCount);
         if (IsItemEnabled(index))
         {
             SelectedIndex = index;
@@ -1881,7 +1883,9 @@ public sealed class ComboBox : Selector, IUiPopup
         Focus();
         if (IsDropDownOpen && UiGeometry.Contains(DropDownBounds, args.Position))
         {
-            int index = (int)((args.Position.Y - DropDownBounds.Y) / itemHeight);
+            RectF dropDown = DropDownBounds;
+            int visibleCount = UiGeometry.VisibleUniformBandCount(dropDown.Height, itemHeight, Items.Count);
+            int index = UiGeometry.UniformBandIndex(args.Position.Y, dropDown.Y, itemHeight, visibleCount);
             if (IsItemEnabled(index))
             {
                 SelectedIndex = index;
@@ -1946,7 +1950,7 @@ public sealed class ComboBox : Selector, IUiPopup
         bool enabled = IsEffectivelyEnabled;
         context.Draw.Fill.RoundedRectangle(dropdown, 4f, 4f, enabled ? ResolvePopupBackground(context) : ResolveDisabledBrush(context));
         context.Draw.Draw.RoundedRectangle(dropdown, 4f, 4f, ResolveBorderBrush(context));
-        int visibleCount = Math.Min(Items.Count, (int)MathF.Floor(dropdown.Height / itemHeight));
+        int visibleCount = UiGeometry.VisibleUniformBandCount(dropdown.Height, itemHeight, Items.Count);
         for (int index = 0; index < visibleCount; index++)
         {
             RectF row = new(dropdown.X, dropdown.Y + index * itemHeight, dropdown.Width, itemHeight);

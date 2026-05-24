@@ -39,6 +39,27 @@ public sealed class OverlayUiComboBoxTests
 
     [TestMethod]
     [TestCategory("WindowsIntegration")]
+    public async Task PointerInUnrenderedDropDownPartialRowDoesNotSelectHiddenItem()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        UiComboBox comboBox = CreateComboBox("Manual", "Auto", "Hybrid", "Hidden");
+        comboBox.MaxDropDownHeight = 92f;
+        ui.Root.Children.Add(comboBox);
+        ui.Render(new DrawContext());
+
+        Click(overlay, 20, 20);
+        Assert.IsTrue(comboBox.IsDropDownOpen);
+
+        Click(overlay, 20, 120);
+
+        Assert.IsFalse(comboBox.IsDropDownOpen);
+        Assert.AreEqual(-1, comboBox.SelectedIndex);
+        Assert.IsNull(comboBox.SelectedItem);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
     public async Task OutsidePointerAndEscapeCloseDropDown()
     {
         await using OverlayWindow overlay = await CreateOverlayAsync();

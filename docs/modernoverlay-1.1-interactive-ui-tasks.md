@@ -26,9 +26,10 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - Should reference `ModernOverlay.Diagnostics` for the sake of consistency.
 - [x] Add nullable/analyzer/package metadata matching the existing repo style.
 - [x] Add XML documentation generation.
-- [ ] Add package metadata and package README coverage if it ships as a NuGet package.
+- [x] Add package metadata and package README coverage if it ships as a NuGet package.
   - Include usage instructions, sample highlights, and API overview in the package README.
-- [ ] Add release-gate validation that the UI package is either emitted or intentionally absent according to the package decision.
+- [x] Add release-gate validation that the UI package is either emitted or intentionally absent according to the package decision.
+  - `tools/Invoke-ModernOverlayReleaseValidation.ps1` expects `ModernOverlay.UI` in the package set and compiles basic UI imports in the package-consumer smoke project.
 - [x] Add a UI namespace guard so public UI types live under `ModernOverlay.UI`.
 
 ## 2. Public API Design

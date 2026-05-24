@@ -1,12 +1,29 @@
 namespace ModernOverlay.UI;
 
+/// <summary>
+/// Describes how a <see cref="UiWindow"/> changes its layout when minimized.
+/// </summary>
 public enum MinimizeBehavior
 {
+    /// <summary>
+    /// Keep the window visible as a title bar.
+    /// </summary>
     CollapseToTitleBar,
+
+    /// <summary>
+    /// Hide the window until it is restored.
+    /// </summary>
     HideUntilRestored,
+
+    /// <summary>
+    /// Move the window to the overlay dock area until it is restored.
+    /// </summary>
     Dock,
 }
 
+/// <summary>
+/// Represents a draggable, resizable floating overlay window with optional chrome, placement, and persistence hooks.
+/// </summary>
 public sealed class UiWindow : UiPanel
 {
     private const float HeaderHeight = 30f;
@@ -34,6 +51,9 @@ public sealed class UiWindow : UiPanel
     private string? layoutKey;
     private IUiLayoutStore? layoutStore;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UiWindow"/> class.
+    /// </summary>
     public UiWindow()
     {
         ReceivesInput = true;
@@ -46,16 +66,28 @@ public sealed class UiWindow : UiPanel
         ZIndex = (int)UiLayer.Floating;
     }
 
+    /// <summary>
+    /// Occurs when the user requests that the window close.
+    /// </summary>
     public event EventHandler? CloseRequested;
 
+    /// <summary>
+    /// Occurs when <see cref="IsMinimized"/> changes.
+    /// </summary>
     public event EventHandler? MinimizedChanged;
 
+    /// <summary>
+    /// Gets or sets the window title displayed in the header.
+    /// </summary>
     public string Title
     {
         get => title;
         set => SetProperty(ref title, value ?? string.Empty, UiInvalidation.Measure | UiInvalidation.Render);
     }
 
+    /// <summary>
+    /// Gets or sets the child element displayed in the window content area.
+    /// </summary>
     public UiElement? Content
     {
         get => content;
@@ -81,30 +113,45 @@ public sealed class UiWindow : UiPanel
         }
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the window can be moved by dragging its header.
+    /// </summary>
     public bool CanDrag
     {
         get => canDrag;
         set => SetProperty(ref canDrag, value, UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the window can be resized from its resize grip.
+    /// </summary>
     public bool CanResize
     {
         get => canResize;
         set => SetProperty(ref canResize, value, UiInvalidation.Render | UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the close chrome is shown and active.
+    /// </summary>
     public bool CanClose
     {
         get => canClose;
         set => SetProperty(ref canClose, value, UiInvalidation.Render | UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the minimize chrome is shown and active.
+    /// </summary>
     public bool CanMinimize
     {
         get => canMinimize;
         set => SetProperty(ref canMinimize, value, UiInvalidation.Render | UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the window is minimized.
+    /// </summary>
     public bool IsMinimized
     {
         get => isMinimized;
@@ -121,12 +168,18 @@ public sealed class UiWindow : UiPanel
         }
     }
 
+    /// <summary>
+    /// Gets or sets the layout behavior used when the window is minimized.
+    /// </summary>
     public MinimizeBehavior MinimizeBehavior
     {
         get => minimizeBehavior;
         set => SetProperty(ref minimizeBehavior, value, UiInvalidation.Measure | UiInvalidation.Render);
     }
 
+    /// <summary>
+    /// Gets or sets the dynamic placement rule used when the window is arranged in a <see cref="Canvas"/>.
+    /// </summary>
     public UiPlacement? Placement
     {
         get => placement;
@@ -139,24 +192,36 @@ public sealed class UiWindow : UiPanel
         }
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether resolved placement is clamped to the overlay bounds.
+    /// </summary>
     public bool ClampPlacementToOverlay
     {
         get => clampPlacementToOverlay;
         set => SetProperty(ref clampPlacementToOverlay, value, UiInvalidation.Measure | UiInvalidation.Arrange | UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether clamping should keep at least the header visible.
+    /// </summary>
     public bool PreserveVisibleHeader
     {
         get => preserveVisibleHeader;
         set => SetProperty(ref preserveVisibleHeader, value, UiInvalidation.Measure | UiInvalidation.Arrange | UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether dragging converts dynamic placement into manual placement.
+    /// </summary>
     public bool ConvertPlacementToManualOnDrag
     {
         get => convertPlacementToManualOnDrag;
         set => SetProperty(ref convertPlacementToManualOnDrag, value, UiInvalidation.None);
     }
 
+    /// <summary>
+    /// Gets or sets the optional layout persistence key used with <see cref="LayoutStore"/>.
+    /// </summary>
     public string? LayoutKey
     {
         get => layoutKey;
@@ -169,6 +234,9 @@ public sealed class UiWindow : UiPanel
         }
     }
 
+    /// <summary>
+    /// Gets or sets the optional layout persistence store used to restore and save manual placement.
+    /// </summary>
     public IUiLayoutStore? LayoutStore
     {
         get => layoutStore;
@@ -181,6 +249,9 @@ public sealed class UiWindow : UiPanel
         }
     }
 
+    /// <summary>
+    /// Restores the window from its minimized state.
+    /// </summary>
     public void Restore()
     {
         Visibility = UiVisibility.Visible;

@@ -1,5 +1,8 @@
 namespace ModernOverlay.UI;
 
+/// <summary>
+/// Provides a numeric input composed from a text box and increment/decrement buttons.
+/// </summary>
 public sealed class NumberBox : UiPanel
 {
     private readonly TextBox textBox;
@@ -11,6 +14,9 @@ public sealed class NumberBox : UiPanel
     private double step = 1d;
     private bool updatingText;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="NumberBox"/> class.
+    /// </summary>
     public NumberBox()
     {
         Focusable = false;
@@ -26,8 +32,14 @@ public sealed class NumberBox : UiPanel
         textBox.TextChanged += (_, _) => CommitText();
     }
 
+    /// <summary>
+    /// Occurs when <see cref="Value"/> changes.
+    /// </summary>
     public event EventHandler? ValueChanged;
 
+    /// <summary>
+    /// Gets or sets the minimum allowed value.
+    /// </summary>
     public double Minimum
     {
         get => minimum;
@@ -43,6 +55,9 @@ public sealed class NumberBox : UiPanel
         }
     }
 
+    /// <summary>
+    /// Gets or sets the maximum allowed value.
+    /// </summary>
     public double Maximum
     {
         get => maximum;
@@ -53,6 +68,9 @@ public sealed class NumberBox : UiPanel
         }
     }
 
+    /// <summary>
+    /// Gets or sets the increment used by the step buttons.
+    /// </summary>
     public double Step
     {
         get => step;
@@ -67,6 +85,9 @@ public sealed class NumberBox : UiPanel
         }
     }
 
+    /// <summary>
+    /// Gets or sets the current numeric value.
+    /// </summary>
     public double Value
     {
         get => value;
@@ -125,11 +146,17 @@ public sealed class NumberBox : UiPanel
     }
 }
 
+/// <summary>
+/// Displays a titled border around a single content element.
+/// </summary>
 public sealed class GroupBox : UiPanel
 {
     private string header = string.Empty;
     private UiElement? content;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GroupBox"/> class.
+    /// </summary>
     public GroupBox()
     {
         Padding = new Thickness(10f, 24f, 10f, 10f);
@@ -137,12 +164,18 @@ public sealed class GroupBox : UiPanel
         MinHeight = 60f;
     }
 
+    /// <summary>
+    /// Gets or sets the group header text.
+    /// </summary>
     public string Header
     {
         get => header;
         set => SetProperty(ref header, value ?? string.Empty, UiInvalidation.Measure | UiInvalidation.Render);
     }
 
+    /// <summary>
+    /// Gets or sets the group content element.
+    /// </summary>
     public UiElement? Content
     {
         get => content;
@@ -192,26 +225,49 @@ public sealed class GroupBox : UiPanel
     }
 }
 
+/// <summary>
+/// Represents a single tab and its content in a <see cref="TabControl"/>.
+/// </summary>
 public sealed class TabItem
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TabItem"/> class.
+    /// </summary>
+    /// <param name="header">The tab header text.</param>
+    /// <param name="content">The tab content element.</param>
     public TabItem(string header, UiElement content)
     {
         Header = header ?? string.Empty;
         Content = content ?? throw new ArgumentNullException(nameof(content));
     }
 
+    /// <summary>
+    /// Gets or sets the tab header text.
+    /// </summary>
     public string Header { get; set; }
 
+    /// <summary>
+    /// Gets the tab content element.
+    /// </summary>
     public UiElement Content { get; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the tab can be selected.
+    /// </summary>
     public bool IsEnabled { get; set; } = true;
 }
 
+/// <summary>
+/// Displays selectable tab headers with one active content element.
+/// </summary>
 public sealed class TabControl : UiPanel
 {
     private const float HeaderHeight = 30f;
     private int selectedIndex = -1;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TabControl"/> class.
+    /// </summary>
     public TabControl()
     {
         ReceivesInput = true;
@@ -220,10 +276,19 @@ public sealed class TabControl : UiPanel
         MinHeight = 100f;
     }
 
+    /// <summary>
+    /// Occurs when <see cref="SelectedIndex"/> changes.
+    /// </summary>
     public event EventHandler? SelectionChanged;
 
+    /// <summary>
+    /// Gets the tab items displayed by the control.
+    /// </summary>
     public IList<TabItem> Items { get; } = [];
 
+    /// <summary>
+    /// Gets or sets the selected tab index, or -1 when no item is selected.
+    /// </summary>
     public int SelectedIndex
     {
         get => selectedIndex;
@@ -242,6 +307,11 @@ public sealed class TabControl : UiPanel
         }
     }
 
+    /// <summary>
+    /// Adds a tab with the specified header and content element.
+    /// </summary>
+    /// <param name="header">The tab header text.</param>
+    /// <param name="content">The tab content element.</param>
     public void Add(string header, UiElement content)
     {
         Items.Add(new TabItem(header, content));
@@ -407,10 +477,16 @@ public sealed class TabControl : UiPanel
     }
 }
 
+/// <summary>
+/// Displays a compact segmented selector backed by a list of text options.
+/// </summary>
 public sealed class SegmentedControl : UiControl
 {
     private int selectedIndex = -1;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SegmentedControl"/> class.
+    /// </summary>
     public SegmentedControl()
     {
         ReceivesInput = true;
@@ -419,10 +495,19 @@ public sealed class SegmentedControl : UiControl
         MinWidth = 120f;
     }
 
+    /// <summary>
+    /// Occurs when <see cref="SelectedIndex"/> changes.
+    /// </summary>
     public event EventHandler? SelectionChanged;
 
+    /// <summary>
+    /// Gets the segment labels displayed by the control.
+    /// </summary>
     public IList<string> Items { get; } = [];
 
+    /// <summary>
+    /// Gets or sets the selected segment index, or -1 when no item is selected.
+    /// </summary>
     public int SelectedIndex
     {
         get => selectedIndex;
@@ -507,6 +592,9 @@ public sealed class SegmentedControl : UiControl
     }
 }
 
+/// <summary>
+/// Provides a simple RGBA color picker backed by channel sliders and a color swatch.
+/// </summary>
 public sealed class ColorPicker : UiPanel
 {
     private readonly Slider red;
@@ -517,6 +605,9 @@ public sealed class ColorPicker : UiPanel
     private bool updatingSliders;
     private SolidBrushHandle? swatchBrush;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ColorPicker"/> class.
+    /// </summary>
     public ColorPicker()
     {
         red = CreateChannelSlider();
@@ -534,8 +625,14 @@ public sealed class ColorPicker : UiPanel
         SetSliders(ColorRgba.White);
     }
 
+    /// <summary>
+    /// Occurs when <see cref="Value"/> changes.
+    /// </summary>
     public event EventHandler? ColorChanged;
 
+    /// <summary>
+    /// Gets or sets the selected color value.
+    /// </summary>
     public ColorRgba Value
     {
         get => value;

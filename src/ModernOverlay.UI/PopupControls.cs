@@ -26,9 +26,19 @@ internal interface IUiPopup
     void DismissPopup(UiPopupDismissReason reason);
 }
 
+/// <summary>
+/// Describes how popup placement coordinates are interpreted.
+/// </summary>
 public enum UiPopupPlacementMode
 {
+    /// <summary>
+    /// Treat <see cref="Popup.Placement"/> or equivalent placement as an absolute overlay DIP coordinate.
+    /// </summary>
     Absolute,
+
+    /// <summary>
+    /// Place the popup by aligning owner and popup anchors.
+    /// </summary>
     OwnerAnchor,
 }
 
@@ -117,6 +127,9 @@ internal static class UiPopupPlacement
         };
 }
 
+/// <summary>
+/// Provides a general popup container that can be placed absolutely or relative to an owner element.
+/// </summary>
 public class Popup : UiPanel, IUiPopup
 {
     private bool isOpen;
@@ -128,6 +141,9 @@ public class Popup : UiPanel, IUiPopup
     private bool clampToOverlay = true;
     private UiElement? owner;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Popup"/> class.
+    /// </summary>
     public Popup()
     {
         ZIndex = (int)UiLayer.Popup;
@@ -135,6 +151,9 @@ public class Popup : UiPanel, IUiPopup
         Padding = new Thickness(6f);
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the popup is visible and participates in layout.
+    /// </summary>
     public bool IsOpen
     {
         get => isOpen;
@@ -147,46 +166,73 @@ public class Popup : UiPanel, IUiPopup
         }
     }
 
+    /// <summary>
+    /// Gets or sets the element that owns this popup.
+    /// </summary>
     public UiElement? Owner
     {
         get => owner;
         set => SetProperty(ref owner, value, UiInvalidation.None);
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether pointer input outside the popup dismisses it.
+    /// </summary>
     public bool DismissOnOutsidePointer { get; set; } = true;
 
+    /// <summary>
+    /// Gets or sets a value indicating whether Escape dismisses the popup.
+    /// </summary>
     public bool DismissOnEscape { get; set; } = true;
 
+    /// <summary>
+    /// Gets or sets the absolute placement point used when <see cref="PlacementMode"/> is <see cref="UiPopupPlacementMode.Absolute"/>.
+    /// </summary>
     public PointF Placement
     {
         get => placement;
         set => SetProperty(ref placement, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets the additional placement offset applied after anchor resolution.
+    /// </summary>
     public PointF PlacementOffset
     {
         get => placementOffset;
         set => SetProperty(ref placementOffset, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets the popup placement mode.
+    /// </summary>
     public UiPopupPlacementMode PlacementMode
     {
         get => placementMode;
         set => SetProperty(ref placementMode, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets the owner anchor used when <see cref="PlacementMode"/> is <see cref="UiPopupPlacementMode.OwnerAnchor"/>.
+    /// </summary>
     public OverlayAnchor OwnerAnchor
     {
         get => ownerAnchor;
         set => SetProperty(ref ownerAnchor, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets the popup anchor aligned to <see cref="OwnerAnchor"/>.
+    /// </summary>
     public OverlayAnchor PopupAnchor
     {
         get => popupAnchor;
         set => SetProperty(ref popupAnchor, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether popup placement should be clamped to the overlay bounds.
+    /// </summary>
     public bool ClampToOverlay
     {
         get => clampToOverlay;
@@ -199,6 +245,11 @@ public class Popup : UiPanel, IUiPopup
 
     UiElement? IUiPopup.PopupOwner => Owner;
 
+    /// <summary>
+    /// Determines whether the specified point is inside the popup or its owner.
+    /// </summary>
+    /// <param name="point">The point to test in overlay DIPs.</param>
+    /// <returns><see langword="true"/> when the point is inside the popup or owner bounds.</returns>
     public bool ContainsPopupPoint(PointF point)
         => UiGeometry.Contains(Bounds, point) || (Owner is not null && UiGeometry.Contains(Owner.Bounds, point));
 
@@ -229,27 +280,53 @@ public class Popup : UiPanel, IUiPopup
     }
 }
 
+/// <summary>
+/// Represents a commandable item displayed by a menu or context menu.
+/// </summary>
 public sealed class UiMenuItem
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UiMenuItem"/> class.
+    /// </summary>
+    /// <param name="text">The item text.</param>
+    /// <param name="command">The optional command executed by the item.</param>
     public UiMenuItem(string text, UiCommand? command = null)
     {
         Text = text ?? string.Empty;
         Command = command;
     }
 
+    /// <summary>
+    /// Gets or sets the item text.
+    /// </summary>
     public string Text { get; set; }
 
+    /// <summary>
+    /// Gets or sets the optional command executed by the item.
+    /// </summary>
     public UiCommand? Command { get; set; }
 
+    /// <summary>
+    /// Gets or sets the optional command parameter passed to <see cref="Command"/>.
+    /// </summary>
     public object? CommandParameter { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the item can be invoked.
+    /// </summary>
     public bool IsEnabled { get; set; } = true;
 }
 
+/// <summary>
+/// Displays a horizontal list of commandable menu items.
+/// </summary>
 public class Menu : UiControl
 {
     private int hotIndex = -1;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Menu"/> class.
+    /// </summary>
     public Menu()
     {
         ReceivesInput = true;
@@ -258,6 +335,9 @@ public class Menu : UiControl
         Padding = new Thickness(8f, 4f);
     }
 
+    /// <summary>
+    /// Gets the items displayed by the menu.
+    /// </summary>
     public IList<UiMenuItem> Items { get; } = [];
 
     protected override SizeF MeasureCore(SizeF availableSize)
@@ -420,6 +500,9 @@ public class Menu : UiControl
     }
 }
 
+/// <summary>
+/// Displays a vertical popup menu that can be placed absolutely or relative to an owner element.
+/// </summary>
 public sealed class ContextMenu : Menu, IUiPopup
 {
     private const float ItemHeight = 26f;
@@ -433,12 +516,18 @@ public sealed class ContextMenu : Menu, IUiPopup
     private int hotIndex = -1;
     private UiElement? owner;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ContextMenu"/> class.
+    /// </summary>
     public ContextMenu()
     {
         ZIndex = (int)UiLayer.Popup;
         Width = 180f;
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the context menu is visible and participates in layout.
+    /// </summary>
     public bool IsOpen
     {
         get => isOpen;
@@ -451,50 +540,77 @@ public sealed class ContextMenu : Menu, IUiPopup
         }
     }
 
+    /// <summary>
+    /// Gets or sets the absolute placement point used when <see cref="PlacementMode"/> is <see cref="UiPopupPlacementMode.Absolute"/>.
+    /// </summary>
     public PointF Placement
     {
         get => placement;
         set => SetProperty(ref placement, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets the additional placement offset applied after anchor resolution.
+    /// </summary>
     public PointF PlacementOffset
     {
         get => placementOffset;
         set => SetProperty(ref placementOffset, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets the context menu placement mode.
+    /// </summary>
     public UiPopupPlacementMode PlacementMode
     {
         get => placementMode;
         set => SetProperty(ref placementMode, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets the owner anchor used when <see cref="PlacementMode"/> is <see cref="UiPopupPlacementMode.OwnerAnchor"/>.
+    /// </summary>
     public OverlayAnchor OwnerAnchor
     {
         get => ownerAnchor;
         set => SetProperty(ref ownerAnchor, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets the popup anchor aligned to <see cref="OwnerAnchor"/>.
+    /// </summary>
     public OverlayAnchor PopupAnchor
     {
         get => popupAnchor;
         set => SetProperty(ref popupAnchor, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether placement should be clamped to the overlay bounds.
+    /// </summary>
     public bool ClampToOverlay
     {
         get => clampToOverlay;
         set => SetProperty(ref clampToOverlay, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets the element that owns this context menu.
+    /// </summary>
     public UiElement? Owner
     {
         get => owner;
         set => SetProperty(ref owner, value, UiInvalidation.None);
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether pointer input outside the menu dismisses it.
+    /// </summary>
     public bool DismissOnOutsidePointer { get; set; } = true;
 
+    /// <summary>
+    /// Gets or sets a value indicating whether Escape dismisses the menu.
+    /// </summary>
     public bool DismissOnEscape { get; set; } = true;
 
     bool IUiPopup.IsPopupOpen => IsOpen;
@@ -503,6 +619,11 @@ public sealed class ContextMenu : Menu, IUiPopup
 
     UiElement? IUiPopup.PopupOwner => Owner;
 
+    /// <summary>
+    /// Determines whether the specified point is inside the menu or its owner.
+    /// </summary>
+    /// <param name="point">The point to test in overlay DIPs.</param>
+    /// <returns><see langword="true"/> when the point is inside the menu or owner bounds.</returns>
     public bool ContainsPopupPoint(PointF point)
         => UiGeometry.Contains(Bounds, point) || (Owner is not null && UiGeometry.Contains(Owner.Bounds, point));
 
@@ -675,6 +796,9 @@ public sealed class ContextMenu : Menu, IUiPopup
     }
 }
 
+/// <summary>
+/// Displays transient text near an owner element, optionally opening after hover delay.
+/// </summary>
 public sealed class ToolTip : UiControl, IUiPopup
 {
     private string text = string.Empty;
@@ -695,18 +819,27 @@ public sealed class ToolTip : UiControl, IUiPopup
     private long hoverStartedTimestamp;
     private long openedTimestamp;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ToolTip"/> class.
+    /// </summary>
     public ToolTip()
     {
         ZIndex = (int)UiLayer.Popup;
         Padding = new Thickness(8f, 5f);
     }
 
+    /// <summary>
+    /// Gets or sets the tooltip text.
+    /// </summary>
     public string Text
     {
         get => text;
         set => SetProperty(ref text, value ?? string.Empty, UiInvalidation.Measure | UiInvalidation.Render);
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the tooltip is visible and participates in layout.
+    /// </summary>
     public bool IsOpen
     {
         get => isOpen;
@@ -719,6 +852,9 @@ public sealed class ToolTip : UiControl, IUiPopup
         }
     }
 
+    /// <summary>
+    /// Gets or sets the element that owns this tooltip.
+    /// </summary>
     public UiElement? Owner
     {
         get => owner;
@@ -734,6 +870,9 @@ public sealed class ToolTip : UiControl, IUiPopup
         }
     }
 
+    /// <summary>
+    /// Gets or sets the hover delay before the tooltip opens.
+    /// </summary>
     public TimeSpan InitialDelay
     {
         get => initialDelay;
@@ -748,6 +887,9 @@ public sealed class ToolTip : UiControl, IUiPopup
         }
     }
 
+    /// <summary>
+    /// Gets or sets how long the tooltip remains open after showing. Zero means no automatic timeout.
+    /// </summary>
     public TimeSpan ShowDuration
     {
         get => showDuration;
@@ -762,6 +904,9 @@ public sealed class ToolTip : UiControl, IUiPopup
         }
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether owner hover can open the tooltip.
+    /// </summary>
     public bool OpensOnHover
     {
         get => opensOnHover;
@@ -774,40 +919,64 @@ public sealed class ToolTip : UiControl, IUiPopup
         }
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether pointer input outside the tooltip dismisses it.
+    /// </summary>
     public bool DismissOnOutsidePointer { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether Escape dismisses the tooltip.
+    /// </summary>
     public bool DismissOnEscape { get; set; } = true;
 
+    /// <summary>
+    /// Gets or sets the absolute placement point used when <see cref="PlacementMode"/> is <see cref="UiPopupPlacementMode.Absolute"/>.
+    /// </summary>
     public PointF Placement
     {
         get => placement;
         set => SetProperty(ref placement, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets the additional placement offset applied after anchor resolution.
+    /// </summary>
     public PointF PlacementOffset
     {
         get => placementOffset;
         set => SetProperty(ref placementOffset, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets the tooltip placement mode.
+    /// </summary>
     public UiPopupPlacementMode PlacementMode
     {
         get => placementMode;
         set => SetProperty(ref placementMode, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets the owner anchor used when <see cref="PlacementMode"/> is <see cref="UiPopupPlacementMode.OwnerAnchor"/>.
+    /// </summary>
     public OverlayAnchor OwnerAnchor
     {
         get => ownerAnchor;
         set => SetProperty(ref ownerAnchor, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets the popup anchor aligned to <see cref="OwnerAnchor"/>.
+    /// </summary>
     public OverlayAnchor PopupAnchor
     {
         get => popupAnchor;
         set => SetProperty(ref popupAnchor, value, UiInvalidation.Arrange | UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether placement should be clamped to the overlay bounds.
+    /// </summary>
     public bool ClampToOverlay
     {
         get => clampToOverlay;
@@ -820,6 +989,11 @@ public sealed class ToolTip : UiControl, IUiPopup
 
     UiElement? IUiPopup.PopupOwner => Owner;
 
+    /// <summary>
+    /// Determines whether the specified point is inside the tooltip or its owner.
+    /// </summary>
+    /// <param name="point">The point to test in overlay DIPs.</param>
+    /// <returns><see langword="true"/> when the point is inside the tooltip or owner bounds.</returns>
     public bool ContainsPopupPoint(PointF point)
         => UiGeometry.Contains(Bounds, point) || (Owner is not null && UiGeometry.Contains(Owner.Bounds, point));
 

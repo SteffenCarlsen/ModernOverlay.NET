@@ -1206,6 +1206,8 @@ public sealed class Slider : RangeBase
 public sealed class TextBox : UiControl
 {
     private const float DefaultLineSpacing = 1.35f;
+    private const float ScrollIndicatorWidth = 4f;
+    private const float ScrollIndicatorMinThumbHeight = 12f;
 
     private string text = string.Empty;
     private string placeholder = string.Empty;
@@ -1495,6 +1497,8 @@ public sealed class TextBox : UiControl
             float caretY = content.Y + caret.Y - verticalOffset;
             context.Draw.Draw.Line(new PointF(caretX, caretY), new PointF(caretX, caretY + fontSize * 1.3f), ResolveAccentBrush(context));
         }
+
+        RenderScrollIndicator(context, content, enabled);
     }
 
     protected override void OnPointerPressed(UiPointerEventArgs args)
@@ -2023,6 +2027,30 @@ public sealed class TextBox : UiControl
             string lineText = Text[line.Start..line.End];
             context.Draw.Draw.Text(lineText, font, brush, new PointF(content.X - horizontalOffset, y));
         }
+    }
+
+    private void RenderScrollIndicator(UiRenderContext context, RectF content, bool enabled)
+    {
+        if (Mode != TextBoxMode.MultiLine || content.Height <= 0f || lineHeight <= 0f)
+        {
+            return;
+        }
+
+        float totalHeight = textLines.Length * lineHeight;
+        if (totalHeight <= content.Height)
+        {
+            return;
+        }
+
+        float maxVerticalOffset = MathF.Max(1f, totalHeight - content.Height);
+        float trackHeight = content.Height;
+        float thumbHeight = Math.Clamp(content.Height / totalHeight * trackHeight, ScrollIndicatorMinThumbHeight, trackHeight);
+        float thumbTravel = MathF.Max(0f, trackHeight - thumbHeight);
+        float thumbY = content.Y + thumbTravel * Math.Clamp(verticalOffset / maxVerticalOffset, 0f, 1f);
+        RectF track = new(content.X + content.Width - ScrollIndicatorWidth, content.Y, ScrollIndicatorWidth, trackHeight);
+        RectF thumb = new(track.X, thumbY, ScrollIndicatorWidth, thumbHeight);
+        context.Draw.Fill.Rectangle(track, enabled ? ResolveBorderBrush(context) : ResolveDisabledBrush(context));
+        context.Draw.Fill.Rectangle(thumb, enabled ? ResolveAccentBrush(context) : ResolveDisabledBrush(context));
     }
 
     private TextBoxCaret CaretAt(int index)

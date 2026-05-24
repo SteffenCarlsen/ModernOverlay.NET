@@ -294,6 +294,32 @@ public sealed class OverlayUiTextBoxTests
         Assert.IsTrue(sink.Lines[0].Start.Y <= textBox.ContentBounds.Y + textBox.ContentBounds.Height);
     }
 
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task MultilineRenderDrawsScrollIndicatorWhenContentOverflows()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        UiTextBox textBox = CreateTextBox("one\ntwo\nthree\nfour\nfive");
+        textBox.Mode = TextBoxMode.MultiLine;
+        textBox.Height = 54f;
+        textBox.CaretIndex = textBox.Text.Length;
+        ui.Root.Children.Add(textBox);
+        textBox.Focus();
+        var sink = new RecordingDrawCommandSink();
+
+        ui.Render(new DrawContext(sink));
+
+        float expectedX = textBox.ContentBounds.X + textBox.ContentBounds.Width - 4f;
+        List<RectF> indicatorParts = sink.FilledRectangles
+            .Where(rect => Math.Abs(rect.X - expectedX) < 0.001f && Math.Abs(rect.Width - 4f) < 0.001f)
+            .ToList();
+        Assert.AreEqual(2, indicatorParts.Count);
+        Assert.AreEqual(textBox.ContentBounds.Height, indicatorParts[0].Height, 0.001f);
+        Assert.IsTrue(indicatorParts[1].Height < indicatorParts[0].Height);
+        Assert.IsTrue(indicatorParts[1].Y > textBox.ContentBounds.Y);
+    }
+
     private static async ValueTask<OverlayWindow> CreateOverlayAsync()
         => await OverlayWindow.CreateAsync(new OverlayWindowOptions
         {

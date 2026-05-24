@@ -55,6 +55,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
     private readonly bool registeredInputRegions;
     private RectF? lastLayoutTargetBounds;
     private PointF? lastPointerPosition;
+    private DrawContext? layoutMeasurementContext;
 
     internal OverlayUiRoot(OverlayWindow overlay, OverlayUiOptions options)
     {
@@ -101,6 +102,18 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
     internal RectF? TargetBoundsDips => ToOverlayLocalDips(overlay.TargetBoundsPixels);
 
     internal PointF? LastPointerPositionDips => lastPointerPosition;
+
+    internal bool TryMeasureText(string text, FontHandle? font, out SizeF size)
+    {
+        if (layoutMeasurementContext is null)
+        {
+            size = default;
+            return false;
+        }
+
+        size = layoutMeasurementContext.Measure.Text(text, font ?? ThemeResources.Font);
+        return true;
+    }
 
     public OverlayUiMetrics Metrics
     {
@@ -201,7 +214,16 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
             BindAccess();
             VerifyAccess();
             UpdateFrameTimers();
-            EnsureLayout();
+            layoutMeasurementContext = frame;
+            try
+            {
+                EnsureLayout();
+            }
+            finally
+            {
+                layoutMeasurementContext = null;
+            }
+
             using (EnterPhase(UiRootPhase.Render))
             {
                 Root.Render(new UiRenderContext(frame, ThemeResources));

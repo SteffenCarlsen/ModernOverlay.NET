@@ -73,16 +73,15 @@ public class TextBlock : UiElement
     {
         float resolvedFontSize = ResolveFontSize();
         float charWidth = CharacterWidth(resolvedFontSize);
-        int lineCapacity = TextWrapping == UiTextWrapping.Wrap && availableSize.Width > Padding.Horizontal
-            ? Math.Max(1, (int)MathF.Floor((availableSize.Width - Padding.Horizontal) / charWidth))
-            : Math.Max(1, Text.Length);
-        int lineCount = Text.Length == 0 ? 1 : Math.Max(1, (int)MathF.Ceiling(Text.Length / (float)lineCapacity));
-        lineCount = Math.Min(lineCount, MaxLines);
-        float naturalWidth = TextWrapping == UiTextWrapping.Wrap
-            ? Math.Min(availableSize.Width, Math.Min(Text.Length, lineCapacity) * charWidth + Padding.Horizontal)
-            : Text.Length * charWidth + Padding.Horizontal;
+        string[] lines = BuildLines(availableSize.Width - Padding.Horizontal, charWidth);
+        int lineCount = Math.Max(1, lines.Length);
+        float measuredLineHeight = MeasureText("M", resolvedFontSize).Height;
+        float naturalTextWidth = lines.Length == 0
+            ? 0f
+            : lines.Max(line => MeasureText(line, resolvedFontSize).Width);
+        float naturalWidth = naturalTextWidth + Padding.Horizontal;
         float width = MathF.Min(availableSize.Width, naturalWidth);
-        float height = resolvedFontSize * LineSpacing * lineCount + Padding.Vertical;
+        float height = measuredLineHeight * LineSpacing * lineCount + Padding.Vertical;
         return new SizeF(width, height);
     }
 
@@ -98,7 +97,7 @@ public class TextBlock : UiElement
         float charWidth = CharacterWidth(resolvedFontSize);
         BrushHandle brush = ResolveForeground(context);
         string[] lines = BuildLines(content.Width, charWidth);
-        float lineHeight = resolvedFontSize * LineSpacing;
+        float lineHeight = context.Draw.Measure.Text("M", Font ?? context.Theme.Font).Height * LineSpacing;
         for (int index = 0; index < lines.Length; index++)
         {
             string line = lines[index];
@@ -107,7 +106,7 @@ public class TextBlock : UiElement
                 continue;
             }
 
-            float lineWidth = line.Length * charWidth;
+            float lineWidth = context.Draw.Measure.Text(line, Font ?? context.Theme.Font).Width;
             float x = TextAlignment switch
             {
                 UiHorizontalAlignment.Center => content.X + MathF.Max(0f, content.Width - lineWidth) / 2f,
@@ -165,6 +164,11 @@ public class TextBlock : UiElement
 
     private float ResolveFontSize(UiTheme? theme = null)
         => Font?.Options.Size ?? (theme ?? Root?.ThemeResources.Theme ?? UiTheme.Default).FontSize;
+
+    private SizeF MeasureText(string value, float resolvedFontSize)
+        => Root?.TryMeasureText(value, Font, out SizeF measured) == true
+            ? measured
+            : new SizeF(value.Length * CharacterWidth(resolvedFontSize), resolvedFontSize);
 
     private static float CharacterWidth(float fontSize) => MathF.Max(1f, fontSize * 0.56f);
 }

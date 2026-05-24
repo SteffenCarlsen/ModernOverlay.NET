@@ -330,7 +330,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Implement `TextBlock`.
 - [x] Add text, font, foreground, alignment, wrapping, trimming, max lines, and line spacing.
   - `TextBlock` supports caller-owned font/foreground handles, horizontal text alignment, basic wrap/no-wrap layout, character ellipsis trimming, max lines, and line spacing.
-- [ ] Use existing text measurement APIs for desired size.
+- [x] Use existing text measurement APIs for desired size.
+  - `TextBlock` measures lines through the active `DrawContext` during render-driven layout, with the previous font-size estimate retained as a fallback for input-region layout before a render frame is available.
 - [x] Add `Label` as alias/subclass only if it adds target/access-key semantics.
   - `Label` subclasses `TextBlock` and adds target focus behavior on pointer press.
 - [ ] Add tests for measurement, wrapping, trimming, empty text, and render output.

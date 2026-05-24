@@ -398,6 +398,7 @@ public sealed class UiWindow : UiPanel
         {
             Width = MathF.Max(MinWidth, resizeStartSize.Width + args.Position.X - resizeOrigin.X);
             Height = MathF.Max(MinHeight, resizeStartSize.Height + args.Position.Y - resizeOrigin.Y);
+            CaptureCurrentManualPlacement();
             InvalidateMeasure();
             args.Handled = true;
             return;
@@ -661,7 +662,8 @@ public sealed class UiWindow : UiPanel
             return;
         }
 
-        placement = UiPlacement.Manual(Canvas.GetLeft(this), Canvas.GetTop(this), Bounds.Width, Bounds.Height);
+        SizeF size = CurrentPlacementSize();
+        placement = UiPlacement.Manual(Canvas.GetLeft(this), Canvas.GetTop(this), size.Width, size.Height);
         layoutRestored = true;
     }
 
@@ -677,7 +679,15 @@ public sealed class UiWindow : UiPanel
 
         float x = Parent is Canvas ? Canvas.GetLeft(this) : Bounds.X;
         float y = Parent is Canvas ? Canvas.GetTop(this) : Bounds.Y;
-        LayoutStore.Save(key, UiPlacement.Manual(x, y, Bounds.Width, Bounds.Height));
+        SizeF size = CurrentPlacementSize();
+        LayoutStore.Save(key, UiPlacement.Manual(x, y, size.Width, size.Height));
+    }
+
+    private SizeF CurrentPlacementSize()
+    {
+        float width = float.IsFinite(Width) && Width > 0f ? Width : Bounds.Width;
+        float height = float.IsFinite(Height) && Height > 0f ? Height : Bounds.Height;
+        return new SizeF(width, height);
     }
 
     private void BringToFront()

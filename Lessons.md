@@ -9,3 +9,4 @@
 ## ModernOverlay UI Samples
 
 - If a draggable sample `UiWindow` appears to snap back while other windows move normally, check whether its fixed width/height exceeds the current overlay bounds. Placement clamping collapses the valid move range when the window is larger than the overlay, so sample windows should size adaptively before treating drag as a framework bug.
+- For placed `UiWindow` resize bugs, verify that the manual placement size is updated during pointer movement. Frame-loop layout can run before pointer release and reapply stale placement bounds if only `Width`/`Height` changed.

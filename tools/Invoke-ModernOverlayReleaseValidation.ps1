@@ -199,6 +199,7 @@ function Invoke-PackageConsumerSmoke {
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <RestorePackagesPath>$(MSBuildThisFileDirectory).packages</RestorePackagesPath>
   </PropertyGroup>
 </Project>
 '@ | Set-Content -Path $directoryBuildProps -Encoding UTF8

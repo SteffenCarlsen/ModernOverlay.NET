@@ -603,7 +603,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Ensure non-UI overlay regions can remain click-through while UI controls receive input.
 - [x] Add Win32 tests for `WM_NCHITTEST` behavior.
   - `OverlayWindowThreadingTests.SelectiveClickThroughNcHitTestUsesInputRegionResolver` verifies `HTCLIENT` for interactive regions and `HTTRANSPARENT` for pass-through regions after screen-to-client conversion.
-- [ ] Add sample validation for mixed click-through and interactive UI regions.
+- [x] Add sample validation for mixed click-through and interactive UI regions.
+  - `tools\Start-ModernOverlaySample.ps1 InteractiveUiOverlay` exited with code 0, and `OverlayWindowThreadingTests.SelectiveClickThroughNcHitTestUsesInputRegionResolver` verifies interactive UI regions return `HTCLIENT` while pass-through regions return `HTTRANSPARENT`.
 - [x] Document selective click-through behavior, input-region behavior, limitations, and fallback behavior.
   - Covered in `docs/interactive-ui.md`.
 
@@ -716,19 +717,24 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - Covered by the retained UI compile-shape test and the focused `InteractiveUiOverlay` sample build.
 - [x] Add Win32 integration tests for keyboard/text events.
   - `OverlayWindowThreadingTests.InteractiveOverlayReceivesKeyboardAndTextInputEvents` verifies native key down/up and `WM_CHAR` flow into `OverlayWindow` keyboard/text events.
-- [ ] Add optional manual visual checklist for the interactive UI sample.
+- [x] Add optional manual visual checklist for the interactive UI sample.
+  - Added `docs/modernoverlay-1.1-ui-validation-20260524.md` with the visual checklist and current automated/manual-sample evidence.
 
 ## 33. Validation Gates
 
 - [x] Run `dotnet build ModernOverlay.sln --configuration Release`.
-- [ ] Run `dotnet test ModernOverlay.sln --configuration Release --verbosity minimal`.
+- [x] Run `dotnet test ModernOverlay.sln --configuration Release --verbosity minimal`.
+  - Passed with 234 tests.
 - [x] Run focused UI unit tests while iterating.
   - `dotnet test tests\ModernOverlay.Tests\ModernOverlay.Tests.csproj --configuration Debug --filter FullyQualifiedName~OverlayUi --verbosity minimal` passed with 116 tests.
 - [x] Run Win32 integration tests for input plumbing on a desktop session.
   - `dotnet test tests\ModernOverlay.Tests\ModernOverlay.Tests.csproj --configuration Debug --filter FullyQualifiedName~OverlayWindowThreadingTests --verbosity minimal` passed with 18 tests.
-- [ ] Run `tools\Start-ModernOverlaySample.ps1 InteractiveUiOverlay` for manual sample validation.
-- [ ] Run the release gate after package/docs changes.
-- [ ] Record the 1.1 validation result in a dated release validation doc or a dedicated UI validation doc.
+- [x] Run `tools\Start-ModernOverlaySample.ps1 InteractiveUiOverlay` for manual sample validation.
+  - Exited with code 0 after the sample's built-in timed run.
+- [x] Run the release gate after package/docs changes.
+  - `$env:MSBuildEnableWorkloadResolver='false'; tools\Invoke-ModernOverlayReleaseValidation.ps1` completed build, full tests, non-integration tests, pack, package-consumer smoke, package boundary checks, and transparency sample execution.
+- [x] Record the 1.1 validation result in a dated release validation doc or a dedicated UI validation doc.
+  - Recorded in `docs/modernoverlay-1.1-ui-validation-20260524.md`.
 
 ## 34. Proposed Implementation Order
 

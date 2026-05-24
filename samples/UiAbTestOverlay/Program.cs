@@ -7,45 +7,16 @@ using ModernOverlay.UI;
 using Forms = System.Windows.Forms;
 using UiImage = ModernOverlay.UI.Image;
 
-Forms.Screen? launchScreen = Forms.Screen.FromPoint(Forms.Cursor.Position) ?? Forms.Screen.PrimaryScreen;
-System.Drawing.Rectangle screen = launchScreen?.Bounds ?? new System.Drawing.Rectangle(0, 0, 1280, 720);
-WindowBounds fullScreenBounds = screen.Width > 0 && screen.Height > 0
+Forms.Screen launchScreen = Forms.Screen.FromPoint(Forms.Cursor.Position);
+System.Drawing.Rectangle screen = launchScreen.Bounds;
+WindowBounds fullScreenBounds = screen is { Width: > 0, Height: > 0 }
     ? new WindowBounds(screen.X, screen.Y, screen.Width, screen.Height)
     : new WindowBounds(0, 0, 1280, 720);
-
-await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
-{
-    Title = "ModernOverlay UI A/B Test",
-    Bounds = fullScreenBounds,
-    InputMode = OverlayInputMode.SelectiveClickThrough,
-    FrameRateLimit = FrameRateLimit.Fixed(60),
-    TransparencyMode = TransparencyMode.DwmGlassFrame,
-    NoActivate = false,
-});
-
-using OverlayUiRoot ui = OverlayUi.Attach(overlay);
-using ImageHandle sampleImage = overlay.Resources.CreateImage(ResolveAssetPath("modernoverlay-icon.png"));
-
-UiTheme themeA = UiTheme.Default;
-UiTheme themeB = UiTheme.Default with
-{
-    Accent = ColorRgba.FromBytes(227, 117, 89),
-    Surface = ColorRgba.FromBytes(28, 37, 42, 238),
-    SurfaceHover = ColorRgba.FromBytes(46, 61, 66, 242),
-    SurfacePressed = ColorRgba.FromBytes(58, 73, 78, 248),
-    Border = ColorRgba.FromBytes(122, 151, 142, 230),
-};
-
-var layoutStore = new MemoryLayoutStore();
-bool themeBActive = false;
-bool commandEnabled = true;
-int frameCounter = 0;
-float controlsWindowWidth = Math.Clamp(fullScreenBounds.Width - 220f, 520f, 760f);
-float controlsWindowHeight = Math.Clamp(fullScreenBounds.Height - 96f, 420f, 920f);
 
 TextBlock status = new() { Text = "Ready", TextWrapping = UiTextWrapping.Wrap, MaxLines = 2 };
 TextBlock metrics = new() { Text = "Metrics pending" };
 TextBlock bounds = new() { Text = "Bounds pending", TextWrapping = UiTextWrapping.Wrap, MaxLines = 2 };
+bool commandEnabled = true;
 
 void SetStatus(string value)
 {
@@ -54,112 +25,161 @@ void SetStatus(string value)
 
 UiCommand sampleCommand = new(_ => SetStatus("Command executed"), _ => commandEnabled);
 
-UiWindow layoutWindow = CreateLayoutWindow(out Action<string> showLayoutPreview);
-UiWindow controlsWindow = CreateControlsWindow(
-    status,
-    bounds,
-    sampleImage,
-    sampleCommand,
-    () =>
+OverlayWindow? overlay = null;
+OverlayUiRoot? ui = null;
+ImageHandle? sampleImage = null;
+
+try
+{
+    overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
     {
-        commandEnabled = !commandEnabled;
-        sampleCommand.RaiseCanExecuteChanged();
-        SetStatus(commandEnabled ? "Command enabled" : "Command disabled");
-    },
-    () =>
+        Title = "ModernOverlay UI A/B Test",
+        Bounds = fullScreenBounds,
+        InputMode = OverlayInputMode.SelectiveClickThrough,
+        FrameRateLimit = FrameRateLimit.Fixed(60),
+        TransparencyMode = TransparencyMode.DwmGlassFrame,
+        NoActivate = false,
+    });
+    OverlayWindow overlayWindow = overlay;
+
+    ui = OverlayUi.Attach(overlayWindow);
+    OverlayUiRoot uiRoot = ui;
+
+    sampleImage = overlayWindow.Resources.CreateImage(ResolveAssetPath("modernoverlay-icon.png"));
+    ImageHandle sampleImageHandle = sampleImage;
+
+    UiTheme themeA = UiTheme.Default;
+    UiTheme themeB = UiTheme.Default with
     {
-        themeBActive = !themeBActive;
-        ui.ApplyTheme(themeBActive ? themeB : themeA);
-        SetStatus(themeBActive ? "Theme B active" : "Theme A active");
-    },
-    layoutStore,
-    showLayoutPreview,
-    controlsWindowWidth,
-    controlsWindowHeight);
-
-UiWindow popupWindow = CreatePopupWindow(out Button popupButton, out Button contextButton, out Button tooltipButton);
-UiWindow textInputWindow = CreateTextInputWindow();
-UiWindow collapseWindow = CreateMinimizeWindow("Collapse", MinimizeBehavior.CollapseToTitleBar, new Thickness(24f, 24f, 0f, 0f), OverlayAnchor.BottomLeft);
-UiWindow hideWindow = CreateMinimizeWindow("Hide", MinimizeBehavior.HideUntilRestored, new Thickness(236f, 24f, 0f, 0f), OverlayAnchor.BottomLeft);
-UiWindow dockWindow = CreateMinimizeWindow("Dock", MinimizeBehavior.Dock, new Thickness(448f, 24f, 0f, 0f), OverlayAnchor.BottomLeft);
-UiWindow diagnosticsWindow = CreateDiagnosticsWindow(metrics);
-
-Popup popup = CreatePopup(popupButton);
-ContextMenu contextMenu = CreateContextMenu(contextButton);
-ToolTip showcaseToolTip = new()
-{
-    Owner = tooltipButton,
-    Text = "ToolTip opened from hover",
-    InitialDelay = TimeSpan.FromMilliseconds(250),
-    ShowDuration = TimeSpan.FromSeconds(4),
-};
-
-popupButton.Click += (_, _) =>
-{
-    popup.IsOpen = !popup.IsOpen;
-    SetStatus(popup.IsOpen ? "Popup opened" : "Popup closed");
-};
-
-contextButton.Click += (_, _) =>
-{
-    contextMenu.IsOpen = true;
-    SetStatus("Context menu opened");
-};
-
-foreach (UiWindow window in new[] { controlsWindow, layoutWindow, popupWindow, textInputWindow, collapseWindow, hideWindow, dockWindow, diagnosticsWindow })
-{
-    window.CloseRequested += (_, _) =>
-    {
-        window.Visibility = UiVisibility.Collapsed;
-        SetStatus($"{window.Title} closed");
+        Accent = ColorRgba.FromBytes(227, 117, 89),
+        Surface = ColorRgba.FromBytes(28, 37, 42, 238),
+        SurfaceHover = ColorRgba.FromBytes(46, 61, 66, 242),
+        SurfacePressed = ColorRgba.FromBytes(58, 73, 78, 248),
+        Border = ColorRgba.FromBytes(122, 151, 142, 230),
     };
-}
 
-Button restoreAll = new() { Text = "Restore windows", Width = 150f, TextHorizontalAlignment = UiHorizontalAlignment.Center };
-restoreAll.Click += (_, _) =>
-{
+    var layoutStore = new MemoryLayoutStore();
+    bool themeBActive = false;
+    int frameCounter = 0;
+    float controlsWindowWidth = Math.Clamp(fullScreenBounds.Width - 220f, 520f, 760f);
+    float controlsWindowHeight = Math.Clamp(fullScreenBounds.Height - 96f, 420f, 920f);
+
+    UiWindow layoutWindow = CreateLayoutWindow(out Action<string> updateLayoutPreview);
+    UiWindow controlsWindow = CreateControlsWindow(
+        status,
+        bounds,
+        sampleImageHandle,
+        sampleCommand,
+        () =>
+        {
+            commandEnabled = !commandEnabled;
+            sampleCommand.RaiseCanExecuteChanged();
+            SetStatus(commandEnabled ? "Command enabled" : "Command disabled");
+        },
+        () =>
+        {
+            themeBActive = !themeBActive;
+            uiRoot.ApplyTheme(themeBActive ? themeB : themeA);
+            SetStatus(themeBActive ? "Theme B active" : "Theme A active");
+        },
+        layoutStore,
+        updateLayoutPreview,
+        controlsWindowWidth,
+        controlsWindowHeight);
+
+    UiWindow popupWindow = CreatePopupWindow(out Button popupButton, out Button contextButton, out Button tooltipButton);
+    UiWindow textInputWindow = CreateTextInputWindow();
+    UiWindow collapseWindow = CreateMinimizeWindow("Collapse", MinimizeBehavior.CollapseToTitleBar, new Thickness(24f, 24f, 0f, 0f), OverlayAnchor.BottomLeft);
+    UiWindow hideWindow = CreateMinimizeWindow("Hide", MinimizeBehavior.HideUntilRestored, new Thickness(236f, 24f, 0f, 0f), OverlayAnchor.BottomLeft);
+    UiWindow dockWindow = CreateMinimizeWindow("Dock", MinimizeBehavior.Dock, new Thickness(448f, 24f, 0f, 0f), OverlayAnchor.BottomLeft);
+    UiWindow diagnosticsWindow = CreateDiagnosticsWindow(metrics);
+
+    Popup popup = CreatePopup(popupButton);
+    ContextMenu contextMenu = CreateContextMenu(contextButton);
+    ToolTip showcaseToolTip = new()
+    {
+        Owner = tooltipButton,
+        Text = "ToolTip opened from hover",
+        InitialDelay = TimeSpan.FromMilliseconds(250),
+        ShowDuration = TimeSpan.FromSeconds(4),
+    };
+
+    popupButton.Click += (_, _) =>
+    {
+        popup.IsOpen = !popup.IsOpen;
+        SetStatus(popup.IsOpen ? "Popup opened" : "Popup closed");
+    };
+
+    contextButton.Click += (_, _) =>
+    {
+        contextMenu.IsOpen = true;
+        SetStatus("Context menu opened");
+    };
+
     foreach (UiWindow window in new[] { controlsWindow, layoutWindow, popupWindow, textInputWindow, collapseWindow, hideWindow, dockWindow, diagnosticsWindow })
     {
-        window.Visibility = UiVisibility.Visible;
-        window.Restore();
+        window.CloseRequested += (_, _) =>
+        {
+            window.Visibility = UiVisibility.Collapsed;
+            SetStatus($"{window.Title} closed");
+        };
     }
 
-    SetStatus("All windows restored");
-};
-
-Canvas.SetLeft(restoreAll, 18f);
-Canvas.SetTop(restoreAll, 18f);
-
-ui.Root.Children.Add(controlsWindow);
-ui.Root.Children.Add(layoutWindow);
-ui.Root.Children.Add(popupWindow);
-ui.Root.Children.Add(textInputWindow);
-ui.Root.Children.Add(collapseWindow);
-ui.Root.Children.Add(hideWindow);
-ui.Root.Children.Add(dockWindow);
-ui.Root.Children.Add(diagnosticsWindow);
-ui.Root.Children.Add(restoreAll);
-ui.Root.Children.Add(popup);
-ui.Root.Children.Add(contextMenu);
-ui.Root.Children.Add(showcaseToolTip);
-
-overlay.Render += frame =>
-{
-    frame.Clear(ColorRgba.Transparent);
-    if (frameCounter++ % 15 == 0)
+    Button restoreAll = new() { Text = "Restore windows", Width = 150f, TextHorizontalAlignment = UiHorizontalAlignment.Center };
+    restoreAll.Click += (_, _) =>
     {
-        OverlayUiMetrics uiMetrics = ui.Metrics;
-        metrics.Text = $"Elements {uiMetrics.ElementCount} | Layout {uiMetrics.LayoutPasses} | Render {uiMetrics.RenderPasses} | Popups {uiMetrics.ActivePopupCount}";
-        WindowBounds pixels = overlay.BoundsPixels;
-        RectF dips = overlay.BoundsDips;
-        DpiScale dpi = overlay.DpiScale;
-        bounds.Text = $"DPI {dpi.X:0.##} x {dpi.Y:0.##} | px {pixels.Width} x {pixels.Height} | DIPs {dips.Width:0} x {dips.Height:0}";
+        foreach (UiWindow window in new[] { controlsWindow, layoutWindow, popupWindow, textInputWindow, collapseWindow, hideWindow, dockWindow, diagnosticsWindow })
+        {
+            window.Visibility = UiVisibility.Visible;
+            window.Restore();
+        }
+
+        SetStatus("All windows restored");
+    };
+
+    Canvas.SetLeft(restoreAll, 18f);
+    Canvas.SetTop(restoreAll, 18f);
+
+    uiRoot.Root.Children.Add(controlsWindow);
+    uiRoot.Root.Children.Add(layoutWindow);
+    uiRoot.Root.Children.Add(popupWindow);
+    uiRoot.Root.Children.Add(textInputWindow);
+    uiRoot.Root.Children.Add(collapseWindow);
+    uiRoot.Root.Children.Add(hideWindow);
+    uiRoot.Root.Children.Add(dockWindow);
+    uiRoot.Root.Children.Add(diagnosticsWindow);
+    uiRoot.Root.Children.Add(restoreAll);
+    uiRoot.Root.Children.Add(popup);
+    uiRoot.Root.Children.Add(contextMenu);
+    uiRoot.Root.Children.Add(showcaseToolTip);
+
+    overlayWindow.Render += frame =>
+    {
+        frame.Clear(ColorRgba.Transparent);
+        if (frameCounter++ % 15 == 0)
+        {
+            OverlayUiMetrics uiMetrics = uiRoot.Metrics;
+            metrics.Text = $"Elements {uiMetrics.ElementCount} | Layout {uiMetrics.LayoutPasses} | Render {uiMetrics.RenderPasses} | Popups {uiMetrics.ActivePopupCount}";
+            WindowBounds pixels = overlayWindow.BoundsPixels;
+            RectF dips = overlayWindow.BoundsDips;
+            DpiScale dpi = overlayWindow.DpiScale;
+            bounds.Text = $"DPI {dpi.X:0.##} x {dpi.Y:0.##} | px {pixels.Width} x {pixels.Height} | DIPs {dips.Width:0} x {dips.Height:0}";
+        }
+
+        uiRoot.Render(frame);
+    };
+
+    await overlayWindow.RunAsync(CancellationToken.None);
+}
+finally
+{
+    sampleImage?.Dispose();
+    ui?.Dispose();
+    if (overlay is not null)
+    {
+        await overlay.DisposeAsync();
     }
-
-    ui.Render(frame);
-};
-
-await overlay.RunAsync(CancellationToken.None);
+}
 
 UiWindow CreateControlsWindow(
     TextBlock statusText,
@@ -169,7 +189,7 @@ UiWindow CreateControlsWindow(
     Action toggleCommand,
     Action toggleTheme,
     IUiLayoutStore store,
-    Action<string> showLayoutPreview,
+    Action<string> updateLayoutPreview,
     float windowWidth,
     float windowHeight)
 {
@@ -189,7 +209,7 @@ UiWindow CreateControlsWindow(
     NumberBox numberBox = new() { Minimum = 0d, Maximum = 100d, Step = 5d, Value = 55d };
     ColorPicker colorPicker = new()
     {
-        Label = "Selfmade indicator colour",
+        Label = "Custom indicator colour",
         ShowHexText = false,
         Value = ColorRgba.FromBytes(18, 240, 52, 254),
         Width = 230f,
@@ -262,7 +282,7 @@ UiWindow CreateControlsWindow(
     {
         if (listBox.SelectedItem is string layoutName)
         {
-            showLayoutPreview(layoutName);
+            updateLayoutPreview(layoutName);
             SetStatus($"Previewing {layoutName}");
         }
     };
@@ -354,15 +374,15 @@ UiWindow CreateControlsWindow(
     }
 }
 
-UiWindow CreateLayoutWindow(out Action<string> showLayoutPreview)
+UiWindow CreateLayoutWindow(out Action<string> updatePreview)
 {
     GroupBox preview = new() { Height = 190f };
-    showLayoutPreview = layoutName =>
+    updatePreview = layoutName =>
     {
         preview.Header = $"{layoutName} preview";
         preview.Content = CreateLayoutPreview(layoutName);
     };
-    showLayoutPreview("Canvas");
+    updatePreview("Canvas");
 
     StackPanel content = new() { Spacing = 8f };
     content.Children.Add(preview);
@@ -488,19 +508,19 @@ Button CreateLayoutBlock(string text, float width, float height)
     return block;
 }
 
-UiWindow CreatePopupWindow(out Button popupButton, out Button contextButton, out Button tooltipButton)
+UiWindow CreatePopupWindow(out Button popupTrigger, out Button contextTrigger, out Button tooltipTrigger)
 {
     TextBox target = new() { Placeholder = "Label focus target" };
     Label focusLabel = new() { Text = "Focus target label", Target = target };
-    popupButton = new Button { Text = "Popup", Width = 104f, TextHorizontalAlignment = UiHorizontalAlignment.Center };
-    contextButton = new Button { Text = "Context", Width = 104f, TextHorizontalAlignment = UiHorizontalAlignment.Center };
-    tooltipButton = new Button { Text = "Tooltip", Width = 104f, TextHorizontalAlignment = UiHorizontalAlignment.Center };
-    tooltipButton.Click += (_, _) => SetStatus("Tooltip button clicked");
+    popupTrigger = new Button { Text = "Popup", Width = 104f, TextHorizontalAlignment = UiHorizontalAlignment.Center };
+    contextTrigger = new Button { Text = "Context", Width = 104f, TextHorizontalAlignment = UiHorizontalAlignment.Center };
+    tooltipTrigger = new Button { Text = "Tooltip", Width = 104f, TextHorizontalAlignment = UiHorizontalAlignment.Center };
+    tooltipTrigger.Click += (_, _) => SetStatus("Tooltip button clicked");
 
     StackPanel buttons = new() { Orientation = UiOrientation.Horizontal, Spacing = 8f };
-    buttons.Children.Add(popupButton);
-    buttons.Children.Add(contextButton);
-    buttons.Children.Add(tooltipButton);
+    buttons.Children.Add(popupTrigger);
+    buttons.Children.Add(contextTrigger);
+    buttons.Children.Add(tooltipTrigger);
 
     StackPanel content = new() { Spacing = 8f };
     content.Children.Add(buttons);
@@ -593,7 +613,7 @@ Menu CreateMenu()
 
 Popup CreatePopup(Button owner)
 {
-    Popup popup = new()
+    Popup popupControl = new()
     {
         Owner = owner,
         PlacementMode = UiPopupPlacementMode.OwnerAnchor,
@@ -602,8 +622,8 @@ Popup CreatePopup(Button owner)
     StackPanel content = new() { Spacing = 6f };
     content.Children.Add(new TextBlock { Text = "Popup content" });
     content.Children.Add(new Button { Text = "Popup button", Width = 130f, TextHorizontalAlignment = UiHorizontalAlignment.Center });
-    popup.Children.Add(content);
-    return popup;
+    popupControl.Children.Add(content);
+    return popupControl;
 }
 
 ContextMenu CreateContextMenu(Button owner)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using ModernOverlay;
 using ModernOverlay.UI;
@@ -12,16 +13,6 @@ WindowBounds fullScreenBounds = screen.Width > 0 && screen.Height > 0
     ? new WindowBounds(screen.X, screen.Y, screen.Width, screen.Height)
     : new WindowBounds(0, 0, 1280, 720);
 
-byte[] samplePng =
-[
-    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
-    0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-    0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
-    0x0D, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x48, 0xAA, 0xE5, 0xFF,
-    0x1F, 0x00, 0x04, 0x8E, 0x01, 0xEA, 0xF7, 0x97, 0x64, 0x99, 0x00, 0x00,
-    0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
-];
-
 await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
 {
     Title = "ModernOverlay UI A/B Test",
@@ -33,7 +24,7 @@ await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayW
 });
 
 using OverlayUiRoot ui = OverlayUi.Attach(overlay);
-using ImageHandle sampleImage = overlay.Resources.CreateImage(samplePng);
+using ImageHandle sampleImage = overlay.Resources.CreateImage(ResolveAssetPath("modernoverlay-icon.png"));
 
 UiTheme themeA = UiTheme.Default;
 UiTheme themeB = UiTheme.Default with
@@ -202,10 +193,9 @@ UiWindow CreateControlsWindow(
     UiImage image = new()
     {
         Source = imageHandle,
-        SourceRect = new RectF(0f, 0f, 1f, 1f),
-        Width = 48f,
-        Height = 48f,
-        Stretch = UiImageStretch.Fill,
+        Width = 64f,
+        Height = 52f,
+        Stretch = UiImageStretch.Uniform,
         ImageOpacity = 0.55f,
     };
 
@@ -319,7 +309,7 @@ UiWindow CreateControlsWindow(
     content.Children.Add(progress);
     content.Children.Add(comboBox);
     content.Children.Add(listBox);
-    content.Children.Add(new GroupBox { Header = "Image + NumberBox", Height = 88f, Content = media });
+    content.Children.Add(new GroupBox { Header = "Icon + NumberBox", Height = 88f, Content = media });
     content.Children.Add(persistButton);
     content.Children.Add(toggle);
     content.Children.Add(tabs);
@@ -470,6 +460,23 @@ ContextMenu CreateContextMenu(Button owner)
     menu.Items.Add(new UiMenuItem("Restore", UiCommand.FromAction(() => SetStatus("Context restore"))));
     menu.Items.Add(new UiMenuItem("Unavailable") { IsEnabled = false });
     return menu;
+}
+
+static string ResolveAssetPath(string fileName)
+{
+    foreach (string start in new[] { Environment.CurrentDirectory, AppContext.BaseDirectory })
+    {
+        for (DirectoryInfo? directory = new(start); directory is not null; directory = directory.Parent)
+        {
+            string candidate = Path.Combine(directory.FullName, "assets", fileName);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+    }
+
+    throw new FileNotFoundException($"Could not find sample asset '{fileName}'.", fileName);
 }
 
 internal sealed class MemoryLayoutStore : IUiLayoutStore

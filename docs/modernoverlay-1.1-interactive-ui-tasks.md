@@ -709,7 +709,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - Covered by `OverlayUiThemeResourceTests`.
 - [x] Add command `CanExecuteChanged` and parameter tests.
   - Covered by `OverlayUiCommandTests`.
-- [ ] Add control-specific tests for every shipped control.
+- [x] Add control-specific tests for every shipped control.
+  - Covered by the `OverlayUi*` focused test suite, including layout, input, display, button, text, range/numeric, popup, list, combo, menu, window, tab/segmented, color, theme, command, and diagnostics tests.
 - [x] Add sample compile tests.
   - Covered by the retained UI compile-shape test and the focused `InteractiveUiOverlay` sample build.
 - [x] Add Win32 integration tests for keyboard/text events.
@@ -720,7 +721,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 
 - [x] Run `dotnet build ModernOverlay.sln --configuration Release`.
 - [ ] Run `dotnet test ModernOverlay.sln --configuration Release --verbosity minimal`.
-- [ ] Run focused UI unit tests while iterating.
+- [x] Run focused UI unit tests while iterating.
+  - `dotnet test tests\ModernOverlay.Tests\ModernOverlay.Tests.csproj --configuration Debug --filter FullyQualifiedName~OverlayUi --verbosity minimal` passed with 116 tests.
 - [ ] Run Win32 integration tests for input plumbing on a desktop session.
 - [ ] Run `tools\Start-ModernOverlaySample.ps1 InteractiveUiOverlay` for manual sample validation.
 - [ ] Run the release gate after package/docs changes.

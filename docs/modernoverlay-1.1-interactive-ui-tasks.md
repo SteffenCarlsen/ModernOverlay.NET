@@ -153,7 +153,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 
 - [x] Decide whether `Grid` is in 1.1 or deferred: include in 1.1 MVP.
 - [x] Implement fixed, auto, and star rows/columns.
-- [ ] Add row/column span support only if required by samples.
+- [x] Add row/column span support only if required by samples.
+  - `Grid` now exposes `SetRowSpan`, `SetColumnSpan`, `GetRowSpan`, and `GetColumnSpan`; span placement invalidates the parent layout like row/column changes.
 - [ ] Add tests for fixed/auto/star sizing and spans.
 
 ### 7.5 WrapPanel

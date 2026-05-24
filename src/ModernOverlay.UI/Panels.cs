@@ -375,13 +375,21 @@ public sealed class Grid : UiPanel
 
     public IList<GridDefinition> Columns { get; } = [];
 
-    public static void SetRow(UiElement element, int row) => GetPlacement(element).Row = ValidateIndex(row);
+    public static void SetRow(UiElement element, int row) => SetPlacement(element, placement => placement.Row = ValidateIndex(row));
 
-    public static void SetColumn(UiElement element, int column) => GetPlacement(element).Column = ValidateIndex(column);
+    public static void SetColumn(UiElement element, int column) => SetPlacement(element, placement => placement.Column = ValidateIndex(column));
 
     public static int GetRow(UiElement element) => GetPlacement(element).Row;
 
     public static int GetColumn(UiElement element) => GetPlacement(element).Column;
+
+    public static void SetRowSpan(UiElement element, int rowSpan) => SetPlacement(element, placement => placement.RowSpan = ValidateSpan(rowSpan));
+
+    public static void SetColumnSpan(UiElement element, int columnSpan) => SetPlacement(element, placement => placement.ColumnSpan = ValidateSpan(columnSpan));
+
+    public static int GetRowSpan(UiElement element) => GetPlacement(element).RowSpan;
+
+    public static int GetColumnSpan(UiElement element) => GetPlacement(element).ColumnSpan;
 
     protected override SizeF MeasureCore(SizeF availableSize)
     {
@@ -396,16 +404,11 @@ public sealed class Grid : UiPanel
             GridPlacement placement = GetPlacement(child);
             int row = Math.Min(placement.Row, rows.Length - 1);
             int column = Math.Min(placement.Column, columns.Length - 1);
+            int rowSpan = ResolveSpan(row, placement.RowSpan, rows.Length);
+            int columnSpan = ResolveSpan(column, placement.ColumnSpan, columns.Length);
             SizeF childSize = child.Measure(contentAvailable);
-            if (rows[row].Length.UnitType == GridUnitType.Auto)
-            {
-                rowSizes[row] = MathF.Max(rowSizes[row], childSize.Height);
-            }
-
-            if (columns[column].Length.UnitType == GridUnitType.Auto)
-            {
-                columnSizes[column] = MathF.Max(columnSizes[column], childSize.Width);
-            }
+            ApplyDesiredSpan(rows, rowSizes, row, rowSpan, childSize.Height);
+            ApplyDesiredSpan(columns, columnSizes, column, columnSpan, childSize.Width);
         }
 
         AllocateStar(rows, rowSizes, contentAvailable.Height);
@@ -426,15 +429,10 @@ public sealed class Grid : UiPanel
             GridPlacement placement = GetPlacement(child);
             int row = Math.Min(placement.Row, rows.Length - 1);
             int column = Math.Min(placement.Column, columns.Length - 1);
-            if (rows[row].Length.UnitType == GridUnitType.Auto)
-            {
-                rowSizes[row] = MathF.Max(rowSizes[row], child.DesiredSize.Height);
-            }
-
-            if (columns[column].Length.UnitType == GridUnitType.Auto)
-            {
-                columnSizes[column] = MathF.Max(columnSizes[column], child.DesiredSize.Width);
-            }
+            int rowSpan = ResolveSpan(row, placement.RowSpan, rows.Length);
+            int columnSpan = ResolveSpan(column, placement.ColumnSpan, columns.Length);
+            ApplyDesiredSpan(rows, rowSizes, row, rowSpan, child.DesiredSize.Height);
+            ApplyDesiredSpan(columns, columnSizes, column, columnSpan, child.DesiredSize.Width);
         }
 
         AllocateStar(rows, rowSizes, content.Height);
@@ -445,9 +443,13 @@ public sealed class Grid : UiPanel
             GridPlacement placement = GetPlacement(child);
             int row = Math.Min(placement.Row, rows.Length - 1);
             int column = Math.Min(placement.Column, columns.Length - 1);
+            int rowSpan = ResolveSpan(row, placement.RowSpan, rows.Length);
+            int columnSpan = ResolveSpan(column, placement.ColumnSpan, columns.Length);
             float x = content.X + columnSizes.Take(column).Sum();
             float y = content.Y + rowSizes.Take(row).Sum();
-            child.Arrange(new RectF(x, y, columnSizes[column], rowSizes[row]));
+            float width = columnSizes.Skip(column).Take(columnSpan).Sum();
+            float height = rowSizes.Skip(row).Take(rowSpan).Sum();
+            child.Arrange(new RectF(x, y, width, height));
         }
     }
 
@@ -487,13 +489,59 @@ public sealed class Grid : UiPanel
         return Placements.GetOrCreateValue(element);
     }
 
+    private static void SetPlacement(UiElement element, Action<GridPlacement> set)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        ArgumentNullException.ThrowIfNull(set);
+        set(GetPlacement(element));
+        element.Parent?.InvalidateMeasure();
+    }
+
     private static int ValidateIndex(int index)
         => index >= 0 ? index : throw new ArgumentOutOfRangeException(nameof(index), "Grid indexes must be non-negative.");
+
+    private static int ValidateSpan(int span)
+        => span > 0 ? span : throw new ArgumentOutOfRangeException(nameof(span), "Grid spans must be greater than zero.");
+
+    private static int ResolveSpan(int start, int span, int count)
+        => Math.Max(1, Math.Min(span, count - start));
+
+    private static void ApplyDesiredSpan(GridDefinition[] definitions, float[] sizes, int start, int span, float desired)
+    {
+        int growableCount = 0;
+        float current = 0f;
+        for (int index = start; index < start + span; index++)
+        {
+            current += sizes[index];
+            if (definitions[index].Length.UnitType == GridUnitType.Auto)
+            {
+                growableCount++;
+            }
+        }
+
+        if (growableCount == 0 || desired <= current)
+        {
+            return;
+        }
+
+        float extra = (desired - current) / growableCount;
+        for (int index = start; index < start + span; index++)
+        {
+            if (definitions[index].Length.UnitType == GridUnitType.Auto)
+            {
+                sizes[index] += extra;
+            }
+        }
+    }
 
     private sealed class GridPlacement
     {
         public int Row { get; set; }
 
         public int Column { get; set; }
+
+        public int RowSpan { get; set; } = 1;
+
+        public int ColumnSpan { get; set; } = 1;
     }
 }

@@ -303,7 +303,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add escape/enter command conventions for windows and buttons.
   - Buttons invoke only when Enter/Space and `CanExecute` are valid; windows close on Escape and restore from minimized state on Enter.
 - [x] Define how focus behaves when a focused element is disabled, hidden, removed, or moved to another root.
-- [ ] Add tests for focus set/clear, tab navigation, disabled elements, removed elements, and routed keyboard events.
+- [x] Add tests for focus set/clear, tab navigation, disabled elements, removed elements, and routed keyboard events.
+  - `OverlayUiFocusKeyboardTests` covers explicit focus/blur, ancestor focus state, tab/shift-tab order with disabled filtering, focus cleanup for disabled/hidden/removed elements, and routed keyboard pressed/released behavior.
 
 ## 15. Core Overlay Keyboard/Text Plumbing
 
@@ -673,7 +674,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add pointer capture tests.
   - Covered by `OverlayUiPointerCaptureTests`.
 - [ ] Add popup/focus/capture interaction tests.
-- [ ] Add focus/keyboard routing tests.
+- [x] Add focus/keyboard routing tests.
+  - Covered by `OverlayUiFocusKeyboardTests`.
 - [ ] Add text input tests after core keyboard/text plumbing exists.
 - [ ] Add text editing scope tests for supported Unicode/dead-key/clipboard behavior.
 - [ ] Add render-order tests with fake draw command sink.

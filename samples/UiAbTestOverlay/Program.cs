@@ -78,6 +78,7 @@ UiWindow controlsWindow = CreateControlsWindow(
     controlsWindowHeight);
 
 UiWindow popupWindow = CreatePopupWindow(out Button popupButton, out Button contextButton, out Button tooltipButton);
+UiWindow textInputWindow = CreateTextInputWindow();
 UiWindow collapseWindow = CreateMinimizeWindow("Collapse", MinimizeBehavior.CollapseToTitleBar, new Thickness(24f, 24f, 0f, 0f), OverlayAnchor.BottomLeft);
 UiWindow hideWindow = CreateMinimizeWindow("Hide", MinimizeBehavior.HideUntilRestored, new Thickness(236f, 24f, 0f, 0f), OverlayAnchor.BottomLeft);
 UiWindow dockWindow = CreateMinimizeWindow("Dock", MinimizeBehavior.Dock, new Thickness(448f, 24f, 0f, 0f), OverlayAnchor.BottomLeft);
@@ -105,7 +106,7 @@ contextButton.Click += (_, _) =>
     SetStatus("Context menu opened");
 };
 
-foreach (UiWindow window in new[] { controlsWindow, layoutWindow, popupWindow, collapseWindow, hideWindow, dockWindow, diagnosticsWindow })
+foreach (UiWindow window in new[] { controlsWindow, layoutWindow, popupWindow, textInputWindow, collapseWindow, hideWindow, dockWindow, diagnosticsWindow })
 {
     window.CloseRequested += (_, _) =>
     {
@@ -117,7 +118,7 @@ foreach (UiWindow window in new[] { controlsWindow, layoutWindow, popupWindow, c
 Button restoreAll = new() { Text = "Restore windows", Width = 150f, TextHorizontalAlignment = UiHorizontalAlignment.Center };
 restoreAll.Click += (_, _) =>
 {
-    foreach (UiWindow window in new[] { controlsWindow, layoutWindow, popupWindow, collapseWindow, hideWindow, dockWindow, diagnosticsWindow })
+    foreach (UiWindow window in new[] { controlsWindow, layoutWindow, popupWindow, textInputWindow, collapseWindow, hideWindow, dockWindow, diagnosticsWindow })
     {
         window.Visibility = UiVisibility.Visible;
         window.Restore();
@@ -132,6 +133,7 @@ Canvas.SetTop(restoreAll, 18f);
 ui.Root.Children.Add(controlsWindow);
 ui.Root.Children.Add(layoutWindow);
 ui.Root.Children.Add(popupWindow);
+ui.Root.Children.Add(textInputWindow);
 ui.Root.Children.Add(collapseWindow);
 ui.Root.Children.Add(hideWindow);
 ui.Root.Children.Add(dockWindow);
@@ -497,6 +499,41 @@ UiWindow CreatePopupWindow(out Button popupButton, out Button contextButton, out
         Height = 210f,
         MinimizeBehavior = MinimizeBehavior.HideUntilRestored,
         Placement = UiPlacement.AnchorTo(OverlayAnchor.BottomRight, new Thickness(0f, 0f, 32f, 220f)),
+        Content = content,
+    };
+}
+
+UiWindow CreateTextInputWindow()
+{
+    TextBox singleLine = new()
+    {
+        Text = "Single line",
+        Placeholder = "Single-line TextBox",
+    };
+    TextBox multiline = new()
+    {
+        Mode = TextBoxMode.MultiLine,
+        Text = "First line\nSecond line\nEdit me",
+        Placeholder = "Multiline TextBox",
+        Height = 112f,
+        MaxLines = 4,
+    };
+    singleLine.TextChanged += (_, _) => SetStatus($"Single-line length: {singleLine.Text.Length}");
+    multiline.TextChanged += (_, _) => SetStatus($"Multiline lines: {multiline.Text.AsSpan().Count('\n') + 1}");
+
+    StackPanel content = new() { Spacing = 8f };
+    content.Children.Add(new Label { Text = "Single-line TextBox", Target = singleLine });
+    content.Children.Add(singleLine);
+    content.Children.Add(new Label { Text = "Multiline TextBox", Target = multiline });
+    content.Children.Add(multiline);
+
+    return new UiWindow
+    {
+        Title = "Text Input",
+        Width = 420f,
+        Height = 252f,
+        MinimizeBehavior = MinimizeBehavior.HideUntilRestored,
+        Placement = UiPlacement.AnchorTo(OverlayAnchor.TopRight, new Thickness(0f, 324f, 32f, 0f)),
         Content = content,
     };
 }

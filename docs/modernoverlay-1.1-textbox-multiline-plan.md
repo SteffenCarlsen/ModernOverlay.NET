@@ -4,6 +4,8 @@ Date: 2026-05-24
 
 This document analyzes what it takes to add multiline editing support to `ModernOverlay.UI.TextBox` and breaks the work into implementation tasks. The target is one `TextBox` control with explicit multiline options, not a separate `MultiLineTextBox` control.
 
+Implementation status: completed in the 1.1 branch with `TextBoxMode.MultiLine`, multiline line layout, Enter/newline handling, vertical navigation, caret-visible viewport scrolling, focused tests, documentation, and a `UiAbTestOverlay` showcase.
+
 ## Verdict
 
 Use one `TextBox` control with multiline behavior enabled by properties.

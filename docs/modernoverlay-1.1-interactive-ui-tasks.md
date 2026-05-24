@@ -493,15 +493,17 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - Home/End move to line start/end, while Ctrl+Home/Ctrl+End move to document boundaries.
 - [x] Decide whether `MaxLines` limits editing, layout/rendering, or both.
   - `MaxLines` is a layout/render limit only.
-- [ ] Implement an internal text line model shared by multiline render, selection, caret placement, hit testing, and scrolling.
-- [ ] Normalize line breaks for editing while preserving public `Text` behavior.
-- [ ] Add multiline pointer hit testing and drag selection across lines.
-- [ ] Add multiline keyboard navigation for Enter, Up, Down, Home, End, Ctrl+Home, Ctrl+End, and Shift selection extension.
-- [ ] Add multiline selection rendering, caret rendering, placeholder rendering, clipping, and caret visibility.
-- [ ] Add multiline measurement and layout behavior for explicit and automatic heights.
-- [ ] Add focused multiline tests in `OverlayUiTextBoxTests`.
-- [ ] Update `samples/UiAbTestOverlay` with a multiline `TextBox` showcase.
-- [ ] Update `docs/interactive-ui.md` once the public API is final.
+- [x] Implement an internal text line model shared by multiline render, selection, caret placement, hit testing, and scrolling.
+- [x] Normalize line breaks for editing while preserving public `Text` behavior.
+- [x] Add multiline pointer hit testing and drag selection across lines.
+- [x] Add multiline keyboard navigation for Enter, Up, Down, Home, End, Ctrl+Home, Ctrl+End, and Shift selection extension.
+- [x] Add multiline selection rendering, caret rendering, placeholder rendering, clipping, and caret visibility.
+- [x] Add multiline measurement and layout behavior for explicit and automatic heights.
+- [x] Add focused multiline tests in `OverlayUiTextBoxTests`.
+  - `OverlayUiTextBoxTests` covers multiline default return/wrap behavior, CR/LF normalization, duplicate Enter suppression across key and text messages, vertical caret navigation, line-local and document-boundary navigation, selection rendering, multiline text rendering, and caret visibility inside an explicit-height viewport.
+- [x] Update `samples/UiAbTestOverlay` with a multiline `TextBox` showcase.
+  - The A/B sample now includes a separate `Text Input` window with single-line and multiline `TextBox` examples.
+- [x] Update `docs/interactive-ui.md` once the public API is final.
 
 ### 21.2 SearchBox
 

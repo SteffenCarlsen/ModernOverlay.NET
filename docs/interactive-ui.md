@@ -168,6 +168,14 @@ var textBox = new TextBox
     Placeholder = "Type here",
     MaxLength = 120,
 };
+
+var multiline = new TextBox
+{
+    Mode = TextBoxMode.MultiLine,
+    Text = "First line\nSecond line",
+    Height = 96,
+    MaxLines = 4,
+};
 ```
 
 ```csharp
@@ -233,7 +241,7 @@ Popup policy in 1.1:
 
 The UI root manages one focused element and one captured pointer element. `Tab` and `Shift+Tab` move focus through focusable controls by `TabIndex` and tree order. Controls render visible focus states.
 
-Focused text controls receive text through the overlay text-input event path. `TextBox` supports text entry, caret movement, selection, deletion, read-only mode, placeholder text, max length, password display, and horizontal scrolling for long single-line text. Multiline editing is planned as additional `TextBox` behavior rather than a separate control; see `docs/modernoverlay-1.1-textbox-multiline-plan.md` for the current task breakdown.
+Focused text controls receive text through the overlay text-input event path. `TextBox` supports text entry, caret movement, selection, deletion, read-only mode, placeholder text, max length, password display, horizontal scrolling for long single-line text, and multiline editing through `TextBoxMode.MultiLine`. Multiline mode defaults to wrapping and Enter-to-newline behavior, supports Up/Down and line-local Home/End navigation, and scrolls internally enough to keep the caret visible when content exceeds the arranged height.
 
 Set `OverlayWindowOptions.NoActivate = false` for overlays that need real keyboard focus and typed text. The default remains `true` so passive overlays can be shown without stealing focus.
 

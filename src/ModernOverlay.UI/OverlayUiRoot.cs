@@ -267,6 +267,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         VerifyAccess();
         using (EnterPhase(UiRootPhase.FocusChange))
         {
+            CleanupUnavailableFocusAndCapture();
             if (element is not null && element.Root != this)
             {
                 throw new InvalidOperationException("Cannot focus an element attached to another UI root.");
@@ -287,6 +288,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
     {
         ArgumentNullException.ThrowIfNull(element);
         VerifyAccess();
+        CleanupUnavailableFocusAndCapture();
         if (element.Root != this)
         {
             throw new InvalidOperationException("Cannot capture pointer for an element attached to another UI root.");
@@ -295,6 +297,15 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         if (element.Visibility != UiVisibility.Visible || !element.IsEffectivelyEnabled)
         {
             throw new InvalidOperationException("Only visible, enabled UI elements can capture the pointer.");
+        }
+
+        if (CapturedElement is { } previousCapture && !ReferenceEquals(previousCapture, element))
+        {
+            using (EnterPhase(UiRootPhase.CaptureRelease))
+            {
+                CapturedElement = null;
+                invalidation |= UiInvalidation.Render;
+            }
         }
 
         CapturedElement = element;
@@ -1034,6 +1045,35 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
 
     private static bool IsUnavailableForTreeInput(UiElement element)
         => element.Visibility != UiVisibility.Visible || !element.IsEffectivelyEnabled;
+
+    private void CleanupUnavailableFocusAndCapture()
+    {
+        UiElement? focused = FocusedElement;
+        if (focused is not null
+            && (focused.Root != this
+                || focused.Visibility != UiVisibility.Visible
+                || !focused.IsEffectivelyEnabled
+                || !focused.Focusable))
+        {
+            DismissPopupsOwnedBy(focused, UiPopupDismissReason.OwnerUnavailable);
+            FocusedElement = null;
+            invalidation |= UiInvalidation.Render | UiInvalidation.InputRegion | UiInvalidation.FocusState;
+        }
+
+        UiElement? captured = CapturedElement;
+        if (captured is not null
+            && (captured.Root != this
+                || captured.Visibility != UiVisibility.Visible
+                || !captured.IsEffectivelyEnabled))
+        {
+            DismissPopupsOwnedBy(captured, UiPopupDismissReason.OwnerUnavailable);
+            using (EnterPhase(UiRootPhase.CaptureRelease))
+            {
+                CapturedElement = null;
+                invalidation |= UiInvalidation.Render | UiInvalidation.InputRegion;
+            }
+        }
+    }
 
     private bool HasExceededDragThreshold(PointF position)
     {

@@ -99,7 +99,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Implement a per-root deferred operation queue for structural mutations requested during protected phases.
 - [x] Define FIFO ordering guarantees for deferred mutations within the same root.
   - `OverlayUiRoot.Defer` runs immediately when the root is idle, queues during protected phases or deferred-operation flushing, and avoids recursive flushes so nested deferred operations cannot reorder earlier queued work.
-- [ ] Apply capture release and popup cleanup before new focus/capture assignment when deferred operations conflict.
+- [x] Apply capture release and popup cleanup before new focus/capture assignment when deferred operations conflict.
+  - `OverlayUiRoot` prunes unavailable focus/capture state before assigning new focus/capture and releases old capture before replacing it.
 - [x] Allow click handlers to remove the clicked element without corrupting event dispatch.
 - [x] Allow popup close during event bubbling without invalidating the current route.
   - Routed pointer, keyboard, and text-input dispatch now snapshot the target-to-root route before invoking handlers.
@@ -108,6 +109,7 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Release capture predictably when the capture owner is removed, disabled, hidden, or detached.
 - [ ] Add tests for removal during click, popup close during bubbling, invalidation during arrange, capture-owner removal, and focus-owner removal.
   - Partial coverage exists in `OverlayUiDeferredOperationTests` for idle safe-point execution, render-phase child mutation deferral, and non-reentrant FIFO flush ordering.
+  - Partial coverage exists in `OverlayUiPopupPolicyTests` for deferred owner cleanup before new capture assignment.
 
 ## 5. Panel And Child Collection Model
 

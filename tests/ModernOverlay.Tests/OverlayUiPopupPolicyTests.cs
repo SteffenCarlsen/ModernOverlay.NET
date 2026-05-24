@@ -85,6 +85,35 @@ public sealed class OverlayUiPopupPolicyTests
         Assert.IsNull(ui.CapturedElement);
     }
 
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task DeferredOwnerCleanupRunsBeforeNewCaptureAssignment()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        UiButton owner = CreateOwnerButton();
+        Popup popup = CreateOwnedPopup(owner);
+        UiButton popupChild = new() { Text = "Popup drag", Width = 120f, Height = 28f };
+        UiButton nextCapture = new() { Text = "Next drag", Width = 120f, Height = 28f };
+        var trigger = new DeferredCleanupAndCaptureElement(owner, nextCapture)
+        {
+            Width = 1f,
+            Height = 1f,
+        };
+        popup.Children.Add(popupChild);
+        ui.Root.Children.Add(owner);
+        ui.Root.Children.Add(popup);
+        ui.Root.Children.Add(nextCapture);
+        ui.Root.Children.Add(trigger);
+        popup.IsOpen = true;
+        popupChild.CapturePointer();
+
+        ui.Render(new DrawContext());
+
+        Assert.IsFalse(popup.IsOpen);
+        Assert.AreSame(nextCapture, ui.CapturedElement);
+    }
+
     private static async ValueTask<OverlayWindow> CreateOverlayAsync()
         => await OverlayWindow.CreateAsync(new OverlayWindowOptions
         {
@@ -109,4 +138,29 @@ public sealed class OverlayUiPopupPolicyTests
             Height = 80f,
             PlacementMode = UiPopupPlacementMode.OwnerAnchor,
         };
+
+    private sealed class DeferredCleanupAndCaptureElement : UiElement
+    {
+        private readonly UiElement owner;
+        private readonly UiElement nextCapture;
+        private bool queued;
+
+        public DeferredCleanupAndCaptureElement(UiElement owner, UiElement nextCapture)
+        {
+            this.owner = owner;
+            this.nextCapture = nextCapture;
+        }
+
+        protected override void RenderCore(UiRenderContext context)
+        {
+            if (queued)
+            {
+                return;
+            }
+
+            queued = true;
+            Root!.Defer(() => owner.IsEnabled = false);
+            Root.Defer(nextCapture.CapturePointer);
+        }
+    }
 }

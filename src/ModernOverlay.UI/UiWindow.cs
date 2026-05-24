@@ -325,8 +325,8 @@ public sealed class UiWindow : UiPanel
             context.Draw.Draw.Text(Title, context.Theme.Font, enabled ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(header.X + 10f, header.Y + 7f));
         }
 
-        DrawChromeButton(context, MinimizeButtonBounds, "-");
-        DrawChromeButton(context, CloseButtonBounds, "x");
+        DrawMinimizeChromeButton(context, MinimizeButtonBounds);
+        DrawCloseChromeButton(context, CloseButtonBounds);
 
         if (!IsMinimized)
         {
@@ -453,13 +453,24 @@ public sealed class UiWindow : UiPanel
 
     private RectF ResizeGripBounds => new(Bounds.X + Bounds.Width - 16f, Bounds.Y + Bounds.Height - 16f, 12f, 12f);
 
-    private void DrawChromeButton(UiRenderContext context, RectF bounds, string text)
+    private void DrawMinimizeChromeButton(UiRenderContext context, RectF bounds)
     {
         context.Draw.Draw.RoundedRectangle(bounds, 4f, 4f, ResolveBorderBrush(context));
-        SizeF textSize = context.Draw.Measure.Text(text, context.Theme.Font);
-        float x = bounds.X + MathF.Max(0f, bounds.Width - textSize.Width) / 2f;
-        float y = bounds.Y + MathF.Max(0f, bounds.Height - textSize.Height) / 2f;
-        context.Draw.Draw.Text(text, context.Theme.Font, ResolveForeground(context), new PointF(x, y));
+        BrushHandle brush = ResolveForeground(context);
+        float centerY = bounds.Y + bounds.Height / 2f;
+        context.Draw.Draw.Line(new PointF(bounds.X + 5f, centerY), new PointF(bounds.X + bounds.Width - 5f, centerY), brush);
+    }
+
+    private void DrawCloseChromeButton(UiRenderContext context, RectF bounds)
+    {
+        context.Draw.Draw.RoundedRectangle(bounds, 4f, 4f, ResolveBorderBrush(context));
+        BrushHandle brush = ResolveForeground(context);
+        PointF topLeft = new(bounds.X + 5.5f, bounds.Y + 5.5f);
+        PointF topRight = new(bounds.X + bounds.Width - 5.5f, bounds.Y + 5.5f);
+        PointF bottomLeft = new(bounds.X + 5.5f, bounds.Y + bounds.Height - 5.5f);
+        PointF bottomRight = new(bounds.X + bounds.Width - 5.5f, bounds.Y + bounds.Height - 5.5f);
+        context.Draw.Draw.Line(topLeft, bottomRight, brush);
+        context.Draw.Draw.Line(topRight, bottomLeft, brush);
     }
 
     private void Minimize()

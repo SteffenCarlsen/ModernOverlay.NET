@@ -210,12 +210,16 @@ public sealed class OverlayUiWindowTests
 
         ui.Render(new DrawContext(sink));
 
-        TextRun minimize = sink.TextRuns.Single(run => run.Text == "-");
-        TextRun close = sink.TextRuns.Single(run => run.Text == "x");
-        Assert.AreEqual(80f + (18f - RecordingDrawCommandSink.MeasureTextWidth("-")) / 2f, minimize.Origin.X, 0.001f);
-        Assert.AreEqual(104f + (18f - RecordingDrawCommandSink.MeasureTextWidth("x")) / 2f, close.Origin.X, 0.001f);
-        Assert.AreEqual(18f, minimize.Origin.Y, 0.001f);
-        Assert.AreEqual(18f, close.Origin.Y, 0.001f);
+        LineRun minimize = sink.LineRuns.Single(line => line.Start.X == 85f && line.End.X == 93f);
+        Assert.AreEqual(25f, minimize.Start.Y, 0.001f);
+        Assert.AreEqual(25f, minimize.End.Y, 0.001f);
+
+        LineRun closeA = sink.LineRuns.Single(line => line.Start.X == 109.5f && line.Start.Y == 21.5f);
+        LineRun closeB = sink.LineRuns.Single(line => line.Start.X == 116.5f && line.Start.Y == 21.5f);
+        Assert.AreEqual(116.5f, closeA.End.X, 0.001f);
+        Assert.AreEqual(28.5f, closeA.End.Y, 0.001f);
+        Assert.AreEqual(109.5f, closeB.End.X, 0.001f);
+        Assert.AreEqual(28.5f, closeB.End.Y, 0.001f);
     }
 
     private static async ValueTask<OverlayWindow> CreateOverlayAsync()
@@ -282,6 +286,8 @@ public sealed class OverlayUiWindowTests
     {
         public List<TextRun> TextRuns { get; } = [];
 
+        public List<LineRun> LineRuns { get; } = [];
+
         public int CommandCount { get; private set; }
 
         public int PrimitiveCount { get; private set; }
@@ -301,7 +307,10 @@ public sealed class OverlayUiWindowTests
         public void PopTransform() => CommandCount++;
 
         public void DrawLine(PointF start, PointF end, BrushHandle brush, float strokeWidth, StrokeStyleHandle? strokeStyle)
-            => AddPrimitive();
+        {
+            LineRuns.Add(new LineRun(start, end));
+            AddPrimitive();
+        }
 
         public void DrawRectangle(RectF rect, BrushHandle brush, float strokeWidth, StrokeStyleHandle? strokeStyle)
             => AddPrimitive();
@@ -373,4 +382,6 @@ public sealed class OverlayUiWindowTests
     }
 
     private sealed record TextRun(string Text, PointF Origin);
+
+    private sealed record LineRun(PointF Start, PointF End);
 }

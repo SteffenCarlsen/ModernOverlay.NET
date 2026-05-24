@@ -12,3 +12,4 @@
 - For placed `UiWindow` resize bugs, verify that the manual placement size is updated during pointer movement. Frame-loop layout can run before pointer release and reapply stale placement bounds if only `Width`/`Height` changed.
 - For `TextBox` caret/selection bugs, do not rely on fixed `fontSize * 0.56` character advances once text is rendered with proportional fonts. Caret, selection, scrolling, and click-to-caret should share measured text advances when available.
 - For tooltip, popup, combo box, or context menu rendering issues, check whether activated `UiWindow` instances have climbed into the popup Z-index band. Floating windows should stay below `UiLayer.Popup` so transient UI draws above them.
+- For tiny window chrome glyphs, prefer drawn geometry over text glyphs. Font metrics can pass origin-based tests while `-` or `x` still looks visually off-center.

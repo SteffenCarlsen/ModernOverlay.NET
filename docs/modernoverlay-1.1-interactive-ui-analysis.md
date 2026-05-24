@@ -105,8 +105,9 @@ using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions
 UiWindow panel = ui.Root.Children.Add(new UiWindow
 {
     Title = "Overlay Controls",
-    Placement = UiPlacement.Anchor(OverlayAnchor.TopRight, margin: new Thickness(16)),
-    MinSize = new UiSize(260, 180),
+    Placement = UiPlacement.AnchorTo(OverlayAnchor.TopRight, new Thickness(16)),
+    MinWidth = 260,
+    MinHeight = 180,
     CanDrag = true,
     CanResize = true,
 });

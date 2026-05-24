@@ -109,7 +109,7 @@ public interface IUiLayoutStore
 }
 ```
 
-The core package intentionally does not ship a built-in JSON or file-backed layout store in 1.1. Samples can use in-memory stores. Durable file-backed storage should live in app code or a later helper package after the interface settles.
+The core package intentionally does not ship a built-in JSON or file-backed layout store in 1.1. Samples can use in-memory stores. Durable storage should live in app code or a later out-of-core helper after the interface settles.
 
 ## Property Changes
 

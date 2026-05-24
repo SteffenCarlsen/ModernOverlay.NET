@@ -47,7 +47,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - Use `ui.Root.Children.Add(...)`, with convenience `ui.Root.Add(...)`.
 - [x] Define fluent/builder helpers only after object-model APIs are stable.
   - Defer fluent/builder helpers until after the 1.1 object model is exercised by samples and tests; the MVP keeps plain constructors, properties, and `Children.Add(...)`.
-- [ ] Add sample compile tests for the intended public API shape.
+- [x] Add sample compile tests for the intended public API shape.
+  - `SpecExampleCompileTests.InteractiveUiPublicApiShapeCompiles` covers the intended retained UI object model, controls, command parameter, theme readability, popup/menu types, and interface-only `IUiLayoutStore` persistence shape.
 - [ ] Add XML doc comments for all public UI entry points.
 
 ## 3. Core UI Value Types
@@ -191,7 +192,7 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Convert dragged anchored panels to manual placement if configured.
 - [x] Add `IUiLayoutStore` or equivalent persistence abstraction.
 - [x] Decide not to ship a built-in JSON or file layout-store helper in the core 1.1 UI package.
-  - Layout persistence stays interface-only through `IUiLayoutStore`; any file-backed or JSON-backed adapter must live outside the core package or be revisited after the interface is stable.
+  - Layout persistence stays interface-only through `IUiLayoutStore`; any durable storage adapter must live outside the core package.
 - [x] Add initial placement tests for manual placement, overlay anchoring, cursor placement, clamping, persisted fallback, persisted stored bounds, and target-bound recompute.
 - [ ] Add tests for every placement kind, DPI changes, target-bound changes, clamping, and persisted fallback.
 
@@ -613,7 +614,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [ ] Add a stress/integration UI sample with multiple floating windows, popup/menu/context menu, text input, tab navigation, DPI movement, theme change, and persistence restore.
   - `InteractiveUiOverlay` now covers multiple floating windows, popup/menu/context-menu interactions, text input, tab navigation, runtime theme change, live metrics, and interface-only layout restore; DPI movement validation remains open.
 - [x] Keep both samples neutral with no game-specific content.
-- [ ] Add sample compile tests.
+- [x] Add sample compile tests.
+  - `SpecExampleCompileTests.InteractiveUiPublicApiShapeCompiles` covers public UI sample-style construction, and `samples\InteractiveUiOverlay\InteractiveUiOverlay.csproj` builds successfully.
 - [x] Add `tools\Start-ModernOverlaySample.ps1` support for the new sample.
 - [x] Update `samples/README.md`.
 
@@ -655,7 +657,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [ ] Add theme/resource lifetime tests.
 - [ ] Add command `CanExecuteChanged` and parameter tests.
 - [ ] Add control-specific tests for every shipped control.
-- [ ] Add sample compile tests.
+- [x] Add sample compile tests.
+  - Covered by the retained UI compile-shape test and the focused `InteractiveUiOverlay` sample build.
 - [ ] Add Win32 integration tests for keyboard/text events.
 - [ ] Add optional manual visual checklist for the interactive UI sample.
 

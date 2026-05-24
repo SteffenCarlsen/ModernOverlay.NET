@@ -275,7 +275,7 @@ public interface IUiLayoutStore
 }
 ```
 
-The core `ModernOverlay.UI` package should not ship a built-in file or JSON layout-store implementation in 1.1. Samples can demonstrate persistence with a small in-memory store. Any file-backed or JSON-backed adapter should be a later out-of-core sample or companion helper only after the core interface is stable.
+The core `ModernOverlay.UI` package should not ship a built-in file or JSON layout-store implementation in 1.1. Samples can demonstrate persistence with a small in-memory store. Durable storage belongs in application code or a later out-of-core companion after the core interface is stable, not in the core UI package.
 
 ### Sample strategy
 

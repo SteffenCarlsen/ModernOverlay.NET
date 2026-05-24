@@ -5,7 +5,7 @@
     <PackageId>ModernOverlay.UI</PackageId>
     <Description>Retained interactive UI controls and layout for ModernOverlay.</Description>
     <PackageTags>windows;overlay;ui;controls;layout;direct2d;win32;net11-preview</PackageTags>
-    <PackageReleaseNotes>Preview 1.1 interactive UI package. Includes retained controls, layout panels, selective click-through input-region integration, popup controls, text input, theme hooks/readability checks, and dynamic placement with interface-only layout persistence. Targets net11.0-windows on a .NET 11 preview SDK and follows the same DWM/color-key fallback caveats as the core overlay package; UI Automation providers, IME composition, clipboard editing, ScrollViewer, virtualization, and built-in JSON/file layout stores are deferred.</PackageReleaseNotes>
+    <PackageReleaseNotes>Preview 1.1 interactive UI package. Includes retained controls, layout panels, selective click-through input-region integration, popup controls, text input, theme hooks/readability checks, and dynamic placement with interface-only layout persistence. Targets net11.0-windows on a .NET 11 preview SDK and follows the same DWM/color-key fallback caveats as the core overlay package; UI Automation providers, IME composition, clipboard editing, ScrollViewer, virtualization, and built-in JSON/file layout stores are out of scope for the core package.</PackageReleaseNotes>
     <IsPackable>true</IsPackable>
   </PropertyGroup>
 

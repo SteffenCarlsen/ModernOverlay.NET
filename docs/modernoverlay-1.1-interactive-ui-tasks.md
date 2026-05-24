@@ -285,10 +285,14 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Decide text-entry input ownership: focused text controls should own keyboard/text messages while editing.
 - [x] Add text-entry activation handling so focused text controls own keyboard/text messages while editing.
   - Focused `TextBox` handles text-input events even when read-only or when characters are filtered, preventing text messages from bubbling to parents.
-- [ ] Define IME scope: `WM_IME_*` support, partial support, or explicit out-of-scope behavior for 1.1.
-- [ ] Define dead-key and keyboard-layout expectations.
-- [ ] Define surrogate pair / Unicode beyond BMP handling.
-- [ ] Define clipboard support scope and whether copy/paste ships in 1.1.
+- [x] Define IME scope: `WM_IME_*` support, partial support, or explicit out-of-scope behavior for 1.1.
+  - IME composition through `WM_IME_*` is out of scope for 1.1 unless a later implementation slice adds explicit composition state and tests.
+- [x] Define dead-key and keyboard-layout expectations.
+  - Dead keys and keyboard-layout behavior are supported only to the extent Windows delivers composed characters through `WM_CHAR`/`WM_SYSCHAR`.
+- [x] Define surrogate pair / Unicode beyond BMP handling.
+  - `TextBox` stores .NET strings and inserts delivered text, but caret movement/deletion are UTF-16 code-unit based in 1.1; full text-element/grapheme editing is deferred.
+- [x] Define clipboard support scope and whether copy/paste ships in 1.1.
+  - Clipboard copy/cut/paste is deferred for 1.1 to avoid adding a WinForms/STA clipboard dependency before the UI package boundary is stable.
 - [x] Define caret blink timing ownership in the UI root scheduler.
   - `OverlayUiRoot.CaretBlinkInterval` owns caret blink timing; `TextBox` restarts the blink on caret movement and renders the caret only when the root blink state is visible.
 - [ ] Add tests for Win32 message translation.

@@ -217,10 +217,10 @@ Resource ownership should be aligned with existing `docs/resource-lifetime.md` a
 - `WM_CHAR` text input is required;
 - key down/up routing is required;
 - caret movement, selection, deletion, and basic shortcuts are required;
-- surrogate pairs and Unicode beyond BMP should be handled as text elements where practical, not as isolated `char` assumptions;
+- surrogate pairs and Unicode beyond BMP can be inserted as delivered .NET strings, but caret movement and deletion are UTF-16 code-unit based in 1.1;
 - dead keys should work only to the extent they are delivered through normal Windows character messages;
-- IME composition through `WM_IME_*` should be documented as unsupported or partial unless implemented and tested;
-- clipboard support is optional and should be called out if deferred;
+- IME composition through `WM_IME_*` is out of scope for 1.1 unless a later implementation adds explicit composition state and tests;
+- clipboard copy/cut/paste is deferred for 1.1 to avoid adding a WinForms/STA clipboard dependency before the UI package boundary is stable;
 - caret blink timing belongs to the UI root scheduler, not ad hoc control timers.
 
 When a text input control is focused and enters editing mode, it should own keyboard/text message input for the overlay editing session. The implementation can temporarily use an activation-capable text-entry state if Windows requires it, then return to the previous selective click-through/no-activate behavior when editing completes or focus leaves the text input. This is the MVP default behavior, not an optional best-effort path.

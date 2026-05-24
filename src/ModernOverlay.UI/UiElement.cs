@@ -16,10 +16,7 @@ public abstract class UiElement
     private Thickness padding;
     private float width = float.NaN;
     private float height = float.NaN;
-    private float minWidth;
-    private float minHeight;
-    private float maxWidth = float.PositiveInfinity;
-    private float maxHeight = float.PositiveInfinity;
+    private UiConstraints constraints = UiConstraints.Unbounded;
     private UiHorizontalAlignment horizontalAlignment = UiHorizontalAlignment.Stretch;
     private UiVerticalAlignment verticalAlignment = UiVerticalAlignment.Stretch;
     private BrushHandle? background;
@@ -163,26 +160,32 @@ public abstract class UiElement
 
     public float MinWidth
     {
-        get => minWidth;
-        set => SetLayoutDimension(ref minWidth, value, allowAuto: false);
+        get => constraints.MinWidth;
+        set => SetConstraints(constraints.WithMinWidth(value));
     }
 
     public float MinHeight
     {
-        get => minHeight;
-        set => SetLayoutDimension(ref minHeight, value, allowAuto: false);
+        get => constraints.MinHeight;
+        set => SetConstraints(constraints.WithMinHeight(value));
     }
 
     public float MaxWidth
     {
-        get => maxWidth;
-        set => SetLayoutDimension(ref maxWidth, value, allowAuto: false);
+        get => constraints.MaxWidth;
+        set => SetConstraints(constraints.WithMaxWidth(value));
     }
 
     public float MaxHeight
     {
-        get => maxHeight;
-        set => SetLayoutDimension(ref maxHeight, value, allowAuto: false);
+        get => constraints.MaxHeight;
+        set => SetConstraints(constraints.WithMaxHeight(value));
+    }
+
+    public UiConstraints Constraints
+    {
+        get => constraints;
+        set => SetConstraints(value);
     }
 
     public UiHorizontalAlignment HorizontalAlignment
@@ -382,14 +385,10 @@ public abstract class UiElement
         }
 
         RectF contentSlot = UiGeometry.Deflate(finalRect, Margin);
-        SizeF desired = UiGeometry.Clamp(
+        SizeF desired = constraints.Constrain(
             new SizeF(
                 float.IsNaN(width) ? contentSlot.Width : width,
-                float.IsNaN(height) ? contentSlot.Height : height),
-            minWidth,
-            minHeight,
-            maxWidth,
-            maxHeight);
+                float.IsNaN(height) ? contentSlot.Height : height));
 
         float arrangedWidth = horizontalAlignment == UiHorizontalAlignment.Stretch
             ? contentSlot.Width
@@ -631,6 +630,9 @@ public abstract class UiElement
         SetProperty(ref field, value, UiInvalidation.Measure);
     }
 
+    private void SetConstraints(UiConstraints value)
+        => SetProperty(ref constraints, value, UiInvalidation.Measure);
+
     private SizeF ApplyExplicitConstraints(SizeF size, bool applyingAvailableSize)
     {
         float nextWidth = size.Width;
@@ -648,7 +650,7 @@ public abstract class UiElement
             }
         }
 
-        return UiGeometry.Clamp(new SizeF(nextWidth, nextHeight), minWidth, minHeight, maxWidth, maxHeight);
+        return constraints.Constrain(new SizeF(nextWidth, nextHeight));
     }
 
     private float AlignX(RectF slot, float arrangedWidth)

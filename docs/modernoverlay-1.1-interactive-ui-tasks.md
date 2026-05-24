@@ -53,7 +53,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Implement `UiSize` for width/height in DIPs.
 - [ ] Implement `UiPoint` only if `PointF` is not sufficient.
 - [ ] Implement `UiRect` only if `RectF` is not sufficient.
-- [ ] Implement `UiConstraints` or equivalent min/max layout constraints.
+- [x] Implement `UiConstraints` or equivalent min/max layout constraints.
+  - `UiConstraints` centralizes min/max validation and clamping while `UiElement` keeps the existing `MinWidth`, `MinHeight`, `MaxWidth`, and `MaxHeight` convenience properties.
 - [x] Implement `UiAlignment` for horizontal and vertical alignment.
 - [x] Implement `UiOrientation` for horizontal/vertical layout.
 - [x] Implement `UiVisibility`: visible, hidden, collapsed.

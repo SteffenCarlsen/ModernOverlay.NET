@@ -24,6 +24,68 @@ public readonly record struct UiSize(float Width, float Height)
     public static UiSize Zero { get; } = new(0f, 0f);
 }
 
+public readonly record struct UiConstraints
+{
+    public static UiConstraints Unbounded { get; } = new(0f, 0f, float.PositiveInfinity, float.PositiveInfinity);
+
+    public UiConstraints(float minWidth, float minHeight, float maxWidth, float maxHeight)
+    {
+        ValidateMinimum(minWidth, nameof(minWidth));
+        ValidateMinimum(minHeight, nameof(minHeight));
+        ValidateMaximum(maxWidth, nameof(maxWidth));
+        ValidateMaximum(maxHeight, nameof(maxHeight));
+        if (minWidth > maxWidth)
+        {
+            throw new ArgumentOutOfRangeException(nameof(minWidth), "Minimum width cannot be greater than maximum width.");
+        }
+
+        if (minHeight > maxHeight)
+        {
+            throw new ArgumentOutOfRangeException(nameof(minHeight), "Minimum height cannot be greater than maximum height.");
+        }
+
+        MinWidth = minWidth;
+        MinHeight = minHeight;
+        MaxWidth = maxWidth;
+        MaxHeight = maxHeight;
+    }
+
+    public float MinWidth { get; }
+
+    public float MinHeight { get; }
+
+    public float MaxWidth { get; }
+
+    public float MaxHeight { get; }
+
+    public SizeF Constrain(SizeF size)
+        => UiGeometry.Clamp(size, MinWidth, MinHeight, MaxWidth, MaxHeight);
+
+    public UiConstraints WithMinWidth(float value) => new(value, MinHeight, MaxWidth, MaxHeight);
+
+    public UiConstraints WithMinHeight(float value) => new(MinWidth, value, MaxWidth, MaxHeight);
+
+    public UiConstraints WithMaxWidth(float value) => new(MinWidth, MinHeight, value, MaxHeight);
+
+    public UiConstraints WithMaxHeight(float value) => new(MinWidth, MinHeight, MaxWidth, value);
+
+    private static void ValidateMinimum(float value, string parameterName)
+    {
+        if (value < 0f || !float.IsFinite(value))
+        {
+            throw new ArgumentOutOfRangeException(parameterName, "Minimum layout constraints must be finite and non-negative.");
+        }
+    }
+
+    private static void ValidateMaximum(float value, string parameterName)
+    {
+        if (value < 0f || (!float.IsFinite(value) && !float.IsPositiveInfinity(value)))
+        {
+            throw new ArgumentOutOfRangeException(parameterName, "Maximum layout constraints must be non-negative finite values or positive infinity.");
+        }
+    }
+}
+
 public enum UiOrientation
 {
     Vertical,

@@ -221,9 +221,10 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - UI theme handles remain device-independent descriptors; `OverlayUiRoot` invalidates render/resource state on `DeviceRestored` so native realizations are rebuilt lazily when drawn.
 - [x] Add fallback style behavior and diagnostics for resource creation failures.
   - Disposed element-level brush/font overrides are logged through `UiResourceRealizationFailure` and fall back to root theme resources instead of failing render.
-- [ ] Add high-contrast/readability checks for default colors.
+- [x] Add high-contrast/readability checks for default colors.
+  - `UiTheme.CheckReadability()` reports key foreground/background contrast ratios; the default theme passes the built-in readable contrast checks.
 - [ ] Add tests for theme resource creation, disposal, and backend generation behavior.
-  - Partial coverage exists in `OverlayUiThemeResourceTests` for disposed override fallback.
+  - Partial coverage exists in `OverlayUiThemeResourceTests` for default theme readability, low-contrast failure reporting, and disposed override fallback.
 
 ## 11. Input Event Model
 

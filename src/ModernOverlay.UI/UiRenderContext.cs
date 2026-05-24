@@ -33,11 +33,91 @@ public sealed record UiTheme
 
     public ColorRgba SurfacePressed { get; init; } = ColorRgba.FromBytes(54, 62, 72, 248);
 
-    public ColorRgba Border { get; init; } = ColorRgba.FromBytes(82, 94, 108, 230);
+    public ColorRgba Border { get; init; } = ColorRgba.FromBytes(120, 134, 150, 230);
 
     public ColorRgba Accent { get; init; } = ColorRgba.FromBytes(86, 156, 214);
 
-    public ColorRgba Disabled { get; init; } = ColorRgba.FromBytes(94, 101, 110, 180);
+    public ColorRgba Disabled { get; init; } = ColorRgba.FromBytes(130, 141, 153, 200);
+
+    public UiThemeReadabilityReport CheckReadability()
+    {
+        UiThemeContrastCheck[] checks =
+        [
+            UiThemeContrastCheck.Create("Foreground on surface", Foreground, Surface, 4.5f),
+            UiThemeContrastCheck.Create("Foreground on hover surface", Foreground, SurfaceHover, 4.5f),
+            UiThemeContrastCheck.Create("Foreground on pressed surface", Foreground, SurfacePressed, 4.5f),
+            UiThemeContrastCheck.Create("Muted foreground on surface", MutedForeground, Surface, 4.5f),
+            UiThemeContrastCheck.Create("Accent on surface", Accent, Surface, 3.0f),
+            UiThemeContrastCheck.Create("Border on surface", Border, Surface, 3.0f),
+            UiThemeContrastCheck.Create("Disabled on surface", Disabled, Surface, 3.0f),
+        ];
+        return new UiThemeReadabilityReport(checks);
+    }
+}
+
+public sealed record UiThemeReadabilityReport(IReadOnlyList<UiThemeContrastCheck> Checks)
+{
+    public bool IsReadable => Checks.Count > 0 && Checks.All(check => check.Passes);
+
+    public IReadOnlyList<UiThemeContrastCheck> Failures => Checks.Where(check => !check.Passes).ToArray();
+}
+
+public sealed record UiThemeContrastCheck(
+    string Name,
+    ColorRgba Foreground,
+    ColorRgba Background,
+    float ContrastRatio,
+    float MinimumContrastRatio)
+{
+    public bool Passes => ContrastRatio >= MinimumContrastRatio;
+
+    public static UiThemeContrastCheck Create(string name, ColorRgba foreground, ColorRgba background, float minimumContrastRatio)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        float validatedMinimumContrastRatio = minimumContrastRatio > 0f && float.IsFinite(minimumContrastRatio)
+            ? minimumContrastRatio
+            : throw new ArgumentOutOfRangeException(nameof(minimumContrastRatio), "Minimum contrast ratio must be finite and greater than zero.");
+
+        return new UiThemeContrastCheck(
+            name,
+            foreground,
+            background,
+            CalculateContrastRatio(foreground, background),
+            validatedMinimumContrastRatio);
+    }
+
+    public static float CalculateContrastRatio(ColorRgba foreground, ColorRgba background)
+    {
+        float foregroundLuminance = RelativeLuminance(CompositeOverOpaqueBackground(foreground, background));
+        float backgroundLuminance = RelativeLuminance(background);
+        float lighter = MathF.Max(foregroundLuminance, backgroundLuminance);
+        float darker = MathF.Min(foregroundLuminance, backgroundLuminance);
+        return (lighter + 0.05f) / (darker + 0.05f);
+    }
+
+    private static ColorRgba CompositeOverOpaqueBackground(ColorRgba foreground, ColorRgba background)
+    {
+        float alpha = Math.Clamp(foreground.A, 0f, 1f);
+        float inverseAlpha = 1f - alpha;
+        return new ColorRgba(
+            foreground.R * alpha + background.R * inverseAlpha,
+            foreground.G * alpha + background.G * inverseAlpha,
+            foreground.B * alpha + background.B * inverseAlpha,
+            1f);
+    }
+
+    private static float RelativeLuminance(ColorRgba color)
+        => 0.2126f * Linearize(color.R)
+            + 0.7152f * Linearize(color.G)
+            + 0.0722f * Linearize(color.B);
+
+    private static float Linearize(float channel)
+    {
+        float value = Math.Clamp(channel, 0f, 1f);
+        return value <= 0.03928f
+            ? value / 12.92f
+            : MathF.Pow((value + 0.055f) / 1.055f, 2.4f);
+    }
 }
 
 public sealed class UiThemeResources : IDisposable

@@ -33,6 +33,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
     private UiInvalidation invalidation = UiInvalidation.Measure | UiInvalidation.Arrange | UiInvalidation.Render | UiInvalidation.InputRegion;
     private RectF lastLayoutBounds;
     private UiRootPhase phase;
+    private bool flushingDeferredOperations;
     private bool disposed;
     private UiElement? pressedElement;
     private PointF pressedPosition;
@@ -345,7 +346,15 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
 
     public void Defer(Action operation)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         ArgumentNullException.ThrowIfNull(operation);
+        VerifyAccess();
+        if (phase == UiRootPhase.Idle && !flushingDeferredOperations)
+        {
+            operation();
+            return;
+        }
+
         deferredOperations.Enqueue(operation);
     }
 
@@ -821,9 +830,22 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
 
     private void FlushDeferredOperations()
     {
-        while (deferredOperations.TryDequeue(out Action? operation))
+        if (flushingDeferredOperations)
         {
-            operation();
+            return;
+        }
+
+        flushingDeferredOperations = true;
+        try
+        {
+            while (deferredOperations.TryDequeue(out Action? operation))
+            {
+                operation();
+            }
+        }
+        finally
+        {
+            flushingDeferredOperations = false;
         }
     }
 

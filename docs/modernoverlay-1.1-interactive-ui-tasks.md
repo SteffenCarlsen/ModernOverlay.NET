@@ -86,6 +86,7 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - `UiElement.VisualState` exposes normal, hover, pressed, disabled, and focused state; pointer, focus, enabled, and visibility updates already invalidate render/input/focus state through the root.
 - [x] Ensure property changes during protected phases are render-safe and schedule deferred consequences when needed.
 - [x] Define UI tree thread affinity and reject or marshal cross-thread mutation through an explicit root-owned API.
+  - 1.1 rejects cross-thread UI-tree mutation; `OverlayUiRoot.Defer` is a same-thread safe-point API, not a cross-thread dispatcher.
 - [ ] Add tests proving property setters trigger the correct invalidation category and do not over-invalidate unrelated phases.
 
 ### 4.2 Reentrancy And Deferred Operations
@@ -93,12 +94,14 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Define protected phases: measure, arrange, render, routed event dispatch, focus changes, popup dismissal, and capture release.
 - [x] Implement a per-root deferred operation queue for structural mutations requested during protected phases.
 - [x] Define FIFO ordering guarantees for deferred mutations within the same root.
+  - `OverlayUiRoot.Defer` runs immediately when the root is idle, queues during protected phases or deferred-operation flushing, and avoids recursive flushes so nested deferred operations cannot reorder earlier queued work.
 - [ ] Apply capture release and popup cleanup before new focus/capture assignment when deferred operations conflict.
 - [x] Allow click handlers to remove the clicked element without corrupting event dispatch.
 - [ ] Allow popup close during event bubbling without invalidating the current route.
 - [ ] Schedule a follow-up layout pass when layout is invalidated during arrange.
 - [x] Release capture predictably when the capture owner is removed, disabled, hidden, or detached.
 - [ ] Add tests for removal during click, popup close during bubbling, invalidation during arrange, capture-owner removal, and focus-owner removal.
+  - Partial coverage exists in `OverlayUiDeferredOperationTests` for idle safe-point execution, render-phase child mutation deferral, and non-reentrant FIFO flush ordering.
 
 ## 5. Panel And Child Collection Model
 

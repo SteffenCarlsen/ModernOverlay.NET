@@ -145,13 +145,13 @@ Inherited properties should be explicitly limited in 1.1. Theme and enabled/visi
 
 State changes should be render-safe. Property setters that run during protected phases can record the change immediately, but tree mutations and layout-affecting consequences should be deferred according to the reentrancy policy.
 
-The UI tree should be treated as thread-affine to the owning overlay/UI root. Cross-thread mutation is out of scope for the first implementation unless it goes through an explicit dispatcher/deferred-operation API. This keeps render, input dispatch, layout, and property invalidation deterministic without pretending that arbitrary control mutation is lock-free or safe from any thread.
+The UI tree should be treated as thread-affine to the owning overlay/UI root. Cross-thread mutation is out of scope for the first implementation. `OverlayUiRoot.Defer` is a same-thread safe-point API for code that wants to run after the current protected phase; it is not a cross-thread dispatcher or thread marshaller. This keeps render, input dispatch, layout, and property invalidation deterministic without pretending that arbitrary control mutation is lock-free or safe from any thread.
 
 ### Reentrancy and deferred operations
 
 The UI tree should define protected phases for measure, arrange, render, routed event dispatch, focus changes, popup dismissal, and capture release. During these phases, structural mutations should not modify the live tree immediately.
 
-Tree operations requested during protected phases should be queued and applied after the current phase completes. Ordering should be FIFO within the same root, with cleanup operations such as capture release and popup dismissal applied before new focus/capture assignment where needed.
+Tree operations requested during protected phases should be queued and applied after the current phase completes. `OverlayUiRoot.Defer` should run immediately while the root is idle, queue while a protected phase or deferred-operation flush is active, and preserve FIFO ordering within the same root. Cleanup operations such as capture release and popup dismissal should be applied before new focus/capture assignment where needed.
 
 Required behaviors:
 

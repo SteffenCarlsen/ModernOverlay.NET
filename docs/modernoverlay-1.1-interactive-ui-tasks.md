@@ -245,7 +245,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - Disposed element-level brush/font overrides are logged through `UiResourceRealizationFailure` and fall back to root theme resources instead of failing render.
 - [x] Add high-contrast/readability checks for default colors.
   - `UiTheme.CheckReadability()` reports key foreground/background contrast ratios; the default theme passes the built-in readable contrast checks.
-- [ ] Add tests for theme resource creation, disposal, and backend generation behavior.
+- [x] Add tests for theme resource creation, disposal, and backend generation behavior.
+  - `OverlayUiThemeResourceTests` covers theme handle creation, runtime theme swap disposal, root disposal cleanup, disposed override fallback, readability checks, and generation-aware theme recreation after backend recreation.
   - Partial coverage exists in `OverlayUiThemeResourceTests` for default theme readability, low-contrast failure reporting, and disposed override fallback.
 
 ## 11. Input Event Model
@@ -685,7 +686,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - `OverlayUiTextBoxTests` verifies delivered composed/Unicode text is stored and clipboard paste remains deferred/inert for 1.1.
 - [x] Add render-order tests with fake draw command sink.
   - Covered by `OverlayUiRenderOrderTests`.
-- [ ] Add theme/resource lifetime tests.
+- [x] Add theme/resource lifetime tests.
+  - Covered by `OverlayUiThemeResourceTests`.
 - [x] Add command `CanExecuteChanged` and parameter tests.
   - Covered by `OverlayUiCommandTests`.
 - [ ] Add control-specific tests for every shipped control.

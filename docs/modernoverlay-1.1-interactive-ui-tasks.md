@@ -264,7 +264,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Track hover target independent from captured target.
 - [x] Add double-click detection if useful for window title bars and list items.
   - `OverlayUiRoot` classifies same-target/same-button clicks within configurable time and distance; routed pointer and button click args expose `ClickCount` and `IsDoubleClick`.
-- [ ] Add tests for event routing, handled behavior, enter/leave, click, double-click if included, and wheel.
+- [x] Add tests for event routing, handled behavior, enter/leave, click, double-click if included, and wheel.
+  - `OverlayUiInputRoutingTests` covers direct-plus-bubble pointer routing, handled stop behavior, pointer enter/leave, button click counts including double-click, and vertical/horizontal wheel payloads.
 
 ## 12. Input Regions
 
@@ -279,7 +280,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - Transparent-looking panels remain pass-through unless `ReceivesInput` is enabled; visual transparency does not imply input capture, and `InputRegion` can narrow controls with transparent regions.
 - [x] Add popup-layer input-region resolution before normal content.
   - Open popup regions are resolved before normal root input so dropdown/content outside owner bounds can still receive pointer input.
-- [ ] Add tests for nested panels, clipping, z-index, popups, disabled elements, hidden/collapsed elements, and custom input regions.
+- [x] Add tests for nested panels, clipping, z-index, popups, disabled elements, hidden/collapsed elements, and custom input regions.
+  - `OverlayUiInputRoutingTests` covers nested clipping, custom input predicates, and popup-priority input; `OverlayUiElementModelTests` covers z-index order and disabled/hidden/collapsed input behavior.
 
 ## 13. Pointer Capture And Drag State
 
@@ -663,8 +665,10 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - Covered by `OverlayUiPlacementTests`.
 - [x] Add element-tree mutation tests.
   - Covered by `OverlayUiElementModelTests`.
-- [ ] Add input-region tests.
-- [ ] Add routed input tests.
+- [x] Add input-region tests.
+  - Covered by `OverlayUiInputRoutingTests` and `OverlayUiElementModelTests`.
+- [x] Add routed input tests.
+  - Covered by `OverlayUiInputRoutingTests`.
 - [ ] Add pointer capture tests.
 - [ ] Add popup/focus/capture interaction tests.
 - [ ] Add focus/keyboard routing tests.

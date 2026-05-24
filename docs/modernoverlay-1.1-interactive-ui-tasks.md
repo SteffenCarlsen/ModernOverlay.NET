@@ -723,7 +723,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [ ] Run `dotnet test ModernOverlay.sln --configuration Release --verbosity minimal`.
 - [x] Run focused UI unit tests while iterating.
   - `dotnet test tests\ModernOverlay.Tests\ModernOverlay.Tests.csproj --configuration Debug --filter FullyQualifiedName~OverlayUi --verbosity minimal` passed with 116 tests.
-- [ ] Run Win32 integration tests for input plumbing on a desktop session.
+- [x] Run Win32 integration tests for input plumbing on a desktop session.
+  - `dotnet test tests\ModernOverlay.Tests\ModernOverlay.Tests.csproj --configuration Debug --filter FullyQualifiedName~OverlayWindowThreadingTests --verbosity minimal` passed with 18 tests.
 - [ ] Run `tools\Start-ModernOverlaySample.ps1 InteractiveUiOverlay` for manual sample validation.
 - [ ] Run the release gate after package/docs changes.
 - [ ] Record the 1.1 validation result in a dated release validation doc or a dedicated UI validation doc.

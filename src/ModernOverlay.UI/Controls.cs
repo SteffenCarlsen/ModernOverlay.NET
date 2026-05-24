@@ -1,5 +1,8 @@
 namespace ModernOverlay.UI;
 
+/// <summary>
+/// Displays text using the current UI theme or an explicit font override.
+/// </summary>
 public class TextBlock : UiElement
 {
     private string text = string.Empty;
@@ -10,41 +13,62 @@ public class TextBlock : UiElement
     private int maxLines = int.MaxValue;
     private float lineSpacing = 1.35f;
 
+    /// <summary>
+    /// Initializes a text block.
+    /// </summary>
     public TextBlock()
     {
         ReceivesInput = false;
     }
 
+    /// <summary>
+    /// Gets or sets the displayed text.
+    /// </summary>
     public string Text
     {
         get => text;
         set => SetProperty(ref text, value ?? string.Empty, UiInvalidation.Measure | UiInvalidation.Render);
     }
 
+    /// <summary>
+    /// Gets or sets an optional font override.
+    /// </summary>
     public FontHandle? Font
     {
         get => font;
         set => SetProperty(ref font, value, UiInvalidation.Measure | UiInvalidation.Render | UiInvalidation.Resource);
     }
 
+    /// <summary>
+    /// Gets or sets horizontal alignment for rendered text lines.
+    /// </summary>
     public UiHorizontalAlignment TextAlignment
     {
         get => textAlignment;
         set => SetProperty(ref textAlignment, value, UiInvalidation.Render);
     }
 
+    /// <summary>
+    /// Gets or sets text wrapping behavior.
+    /// </summary>
     public UiTextWrapping TextWrapping
     {
         get => textWrapping;
         set => SetProperty(ref textWrapping, value, UiInvalidation.Measure | UiInvalidation.Render);
     }
 
+    /// <summary>
+    /// Gets or sets text trimming behavior.
+    /// </summary>
     public UiTextTrimming TextTrimming
     {
         get => textTrimming;
         set => SetProperty(ref textTrimming, value, UiInvalidation.Measure | UiInvalidation.Render);
     }
 
+    /// <summary>
+    /// Gets or sets the maximum number of rendered text lines.
+    /// </summary>
     public int MaxLines
     {
         get => maxLines;
@@ -55,6 +79,9 @@ public class TextBlock : UiElement
         }
     }
 
+    /// <summary>
+    /// Gets or sets line spacing as a multiplier of measured line height.
+    /// </summary>
     public float LineSpacing
     {
         get => lineSpacing;
@@ -185,15 +212,24 @@ public class TextBlock : UiElement
     private static float CharacterWidth(float fontSize) => MathF.Max(1f, fontSize * 0.56f);
 }
 
+/// <summary>
+/// Displays text that can optionally focus a target element when clicked.
+/// </summary>
 public sealed class Label : TextBlock
 {
     private UiElement? target;
 
+    /// <summary>
+    /// Initializes a label.
+    /// </summary>
     public Label()
     {
         ReceivesInput = true;
     }
 
+    /// <summary>
+    /// Gets or sets the focus target activated by the label.
+    /// </summary>
     public UiElement? Target
     {
         get => target;
@@ -215,6 +251,9 @@ public sealed class Label : TextBlock
     }
 }
 
+/// <summary>
+/// Displays an image resource.
+/// </summary>
 public sealed class Image : UiElement
 {
     private ImageHandle? source;
@@ -226,6 +265,9 @@ public sealed class Image : UiElement
     private UiHorizontalAlignment imageHorizontalAlignment = UiHorizontalAlignment.Center;
     private UiVerticalAlignment imageVerticalAlignment = UiVerticalAlignment.Center;
 
+    /// <summary>
+    /// Initializes an image element.
+    /// </summary>
     public Image()
     {
         ReceivesInput = false;
@@ -233,12 +275,18 @@ public sealed class Image : UiElement
         MinHeight = 0f;
     }
 
+    /// <summary>
+    /// Gets or sets the image resource to draw.
+    /// </summary>
     public ImageHandle? Source
     {
         get => source;
         set => SetProperty(ref source, value, UiInvalidation.Measure | UiInvalidation.Render);
     }
 
+    /// <summary>
+    /// Gets or sets the optional source rectangle within the image.
+    /// </summary>
     public RectF? SourceRect
     {
         get => sourceRect;
@@ -253,6 +301,9 @@ public sealed class Image : UiElement
         }
     }
 
+    /// <summary>
+    /// Gets or sets the image frame index for multi-frame images.
+    /// </summary>
     public int FrameIndex
     {
         get => frameIndex;
@@ -263,6 +314,9 @@ public sealed class Image : UiElement
         }
     }
 
+    /// <summary>
+    /// Gets or sets image opacity from 0 to 1.
+    /// </summary>
     public float ImageOpacity
     {
         get => imageOpacity;
@@ -277,24 +331,36 @@ public sealed class Image : UiElement
         }
     }
 
+    /// <summary>
+    /// Gets or sets how the image is scaled inside content bounds.
+    /// </summary>
     public UiImageStretch Stretch
     {
         get => stretch;
         set => SetProperty(ref stretch, value, UiInvalidation.Measure | UiInvalidation.Render);
     }
 
+    /// <summary>
+    /// Gets or sets the interpolation mode used when drawing the image.
+    /// </summary>
     public ImageInterpolationMode InterpolationMode
     {
         get => interpolationMode;
         set => SetProperty(ref interpolationMode, value, UiInvalidation.Render);
     }
 
+    /// <summary>
+    /// Gets or sets horizontal image alignment inside content bounds.
+    /// </summary>
     public UiHorizontalAlignment ImageHorizontalAlignment
     {
         get => imageHorizontalAlignment;
         set => SetProperty(ref imageHorizontalAlignment, value, UiInvalidation.Render);
     }
 
+    /// <summary>
+    /// Gets or sets vertical image alignment inside content bounds.
+    /// </summary>
     public UiVerticalAlignment ImageVerticalAlignment
     {
         get => imageVerticalAlignment;
@@ -392,12 +458,18 @@ public sealed class Image : UiElement
         };
 }
 
+/// <summary>
+/// Represents a clickable command or content button.
+/// </summary>
 public class Button : ContentControl
 {
     private string text = string.Empty;
     private UiCommand? command;
     private object? commandParameter;
 
+    /// <summary>
+    /// Initializes a button.
+    /// </summary>
     public Button()
     {
         ReceivesInput = true;
@@ -406,14 +478,23 @@ public class Button : ContentControl
         MinHeight = 28f;
     }
 
+    /// <summary>
+    /// Occurs when the button is activated by pointer or keyboard input.
+    /// </summary>
     public event EventHandler<UiClickEventArgs>? Click;
 
+    /// <summary>
+    /// Gets or sets button text used when <see cref="ContentControl.Content"/> is not set.
+    /// </summary>
     public string Text
     {
         get => text;
         set => SetProperty(ref text, value ?? string.Empty, UiInvalidation.Measure | UiInvalidation.Render);
     }
 
+    /// <summary>
+    /// Gets or sets the command invoked when the button activates.
+    /// </summary>
     public UiCommand? Command
     {
         get => command;
@@ -433,6 +514,9 @@ public class Button : ContentControl
         }
     }
 
+    /// <summary>
+    /// Gets or sets the parameter passed to <see cref="Command"/>.
+    /// </summary>
     public object? CommandParameter
     {
         get => commandParameter;
@@ -525,27 +609,45 @@ public class Button : ContentControl
     }
 }
 
+/// <summary>
+/// Represents a button with checked, unchecked, and optional indeterminate state.
+/// </summary>
 public class ToggleButton : Button
 {
     private UiToggleState checkState;
     private bool isThreeState;
 
+    /// <summary>
+    /// Occurs when the boolean checked state changes.
+    /// </summary>
     public event EventHandler? CheckedChanged;
 
+    /// <summary>
+    /// Occurs when the full toggle state changes.
+    /// </summary>
     public event EventHandler? CheckStateChanged;
 
+    /// <summary>
+    /// Gets or sets whether the button is checked.
+    /// </summary>
     public bool IsChecked
     {
         get => CheckState == UiToggleState.Checked;
         set => CheckState = value ? UiToggleState.Checked : UiToggleState.Unchecked;
     }
 
+    /// <summary>
+    /// Gets or sets whether the button is in the indeterminate state.
+    /// </summary>
     public bool IsIndeterminate
     {
         get => CheckState == UiToggleState.Indeterminate;
         set => CheckState = value ? UiToggleState.Indeterminate : UiToggleState.Unchecked;
     }
 
+    /// <summary>
+    /// Gets or sets whether the indeterminate state is allowed.
+    /// </summary>
     public bool IsThreeState
     {
         get => isThreeState;
@@ -560,6 +662,9 @@ public class ToggleButton : Button
         }
     }
 
+    /// <summary>
+    /// Gets or sets the full toggle state.
+    /// </summary>
     public UiToggleState CheckState
     {
         get => checkState;
@@ -614,8 +719,14 @@ public class ToggleButton : Button
         };
 }
 
+/// <summary>
+/// Represents a checkbox control.
+/// </summary>
 public sealed class CheckBox : ToggleButton
 {
+    /// <summary>
+    /// Initializes a checkbox.
+    /// </summary>
     public CheckBox()
     {
         Padding = new Thickness(28f, 5f, 8f, 5f);
@@ -649,16 +760,25 @@ public sealed class CheckBox : ToggleButton
     }
 }
 
+/// <summary>
+/// Represents a mutually exclusive radio button.
+/// </summary>
 public sealed class RadioButton : ToggleButton
 {
     private string? groupName;
 
+    /// <summary>
+    /// Initializes a radio button.
+    /// </summary>
     public RadioButton()
     {
         Padding = new Thickness(28f, 5f, 8f, 5f);
         MinHeight = 26f;
     }
 
+    /// <summary>
+    /// Gets or sets the radio group name.
+    /// </summary>
     public string? GroupName
     {
         get => groupName;
@@ -717,6 +837,9 @@ public sealed class RadioButton : ToggleButton
     }
 }
 
+/// <summary>
+/// Base class for controls that expose a numeric range value.
+/// </summary>
 public abstract class RangeBase : UiControl
 {
     private float minimum;
@@ -725,8 +848,14 @@ public abstract class RangeBase : UiControl
     private float smallChange = 1f;
     private float largeChange = 10f;
 
+    /// <summary>
+    /// Occurs when <see cref="Value"/> changes.
+    /// </summary>
     public event EventHandler? ValueChanged;
 
+    /// <summary>
+    /// Gets or sets the minimum value.
+    /// </summary>
     public float Minimum
     {
         get => minimum;
@@ -742,6 +871,9 @@ public abstract class RangeBase : UiControl
         }
     }
 
+    /// <summary>
+    /// Gets or sets the maximum value.
+    /// </summary>
     public float Maximum
     {
         get => maximum;
@@ -752,6 +884,9 @@ public abstract class RangeBase : UiControl
         }
     }
 
+    /// <summary>
+    /// Gets or sets the current value, clamped to <see cref="Minimum"/> and <see cref="Maximum"/>.
+    /// </summary>
     public float Value
     {
         get => value;
@@ -764,6 +899,9 @@ public abstract class RangeBase : UiControl
         }
     }
 
+    /// <summary>
+    /// Gets or sets the small keyboard increment.
+    /// </summary>
     public float SmallChange
     {
         get => smallChange;
@@ -778,6 +916,9 @@ public abstract class RangeBase : UiControl
         }
     }
 
+    /// <summary>
+    /// Gets or sets the large keyboard increment.
+    /// </summary>
     public float LargeChange
     {
         get => largeChange;
@@ -804,8 +945,14 @@ public abstract class RangeBase : UiControl
     protected void ChangeValueBy(float delta) => Value += delta;
 }
 
+/// <summary>
+/// Displays progress for a numeric range.
+/// </summary>
 public sealed class ProgressBar : RangeBase
 {
+    /// <summary>
+    /// Initializes a progress bar.
+    /// </summary>
     public ProgressBar()
     {
         MinHeight = 10f;
@@ -829,10 +976,16 @@ public sealed class ProgressBar : RangeBase
     }
 }
 
+/// <summary>
+/// Allows pointer and keyboard editing of a numeric range value.
+/// </summary>
 public sealed class Slider : RangeBase
 {
     private UiOrientation orientation = UiOrientation.Horizontal;
 
+    /// <summary>
+    /// Initializes a slider.
+    /// </summary>
     public Slider()
     {
         ReceivesInput = true;
@@ -842,6 +995,9 @@ public sealed class Slider : RangeBase
         Height = 22f;
     }
 
+    /// <summary>
+    /// Gets or sets the slider orientation.
+    /// </summary>
     public UiOrientation Orientation
     {
         get => orientation;
@@ -955,6 +1111,9 @@ public sealed class Slider : RangeBase
     }
 }
 
+/// <summary>
+/// Provides single-line text editing.
+/// </summary>
 public sealed class TextBox : UiControl
 {
     private string text = string.Empty;
@@ -968,6 +1127,9 @@ public sealed class TextBox : UiControl
     private int selectionAnchor;
     private float horizontalOffset;
 
+    /// <summary>
+    /// Initializes a text box.
+    /// </summary>
     public TextBox()
     {
         ReceivesInput = true;
@@ -978,8 +1140,14 @@ public sealed class TextBox : UiControl
         Height = 30f;
     }
 
+    /// <summary>
+    /// Occurs when <see cref="Text"/> changes.
+    /// </summary>
     public event EventHandler? TextChanged;
 
+    /// <summary>
+    /// Gets or sets the text value.
+    /// </summary>
     public string Text
     {
         get => text;
@@ -1001,12 +1169,18 @@ public sealed class TextBox : UiControl
         }
     }
 
+    /// <summary>
+    /// Gets or sets placeholder text displayed when <see cref="Text"/> is empty.
+    /// </summary>
     public string Placeholder
     {
         get => placeholder;
         set => SetProperty(ref placeholder, value ?? string.Empty, UiInvalidation.Render);
     }
 
+    /// <summary>
+    /// Gets or sets the zero-based caret index.
+    /// </summary>
     public int CaretIndex
     {
         get => caretIndex;
@@ -1020,6 +1194,9 @@ public sealed class TextBox : UiControl
         }
     }
 
+    /// <summary>
+    /// Gets or sets the zero-based selection start index.
+    /// </summary>
     public int SelectionStart
     {
         get => selectionStart;
@@ -1031,6 +1208,9 @@ public sealed class TextBox : UiControl
         }
     }
 
+    /// <summary>
+    /// Gets or sets the selection length.
+    /// </summary>
     public int SelectionLength
     {
         get => selectionLength;
@@ -1041,6 +1221,9 @@ public sealed class TextBox : UiControl
         }
     }
 
+    /// <summary>
+    /// Gets or sets the maximum text length.
+    /// </summary>
     public int MaxLength
     {
         get => maxLength;
@@ -1054,6 +1237,9 @@ public sealed class TextBox : UiControl
         }
     }
 
+    /// <summary>
+    /// Gets or sets whether text editing is disabled while focus and selection remain available.
+    /// </summary>
     public bool IsReadOnly
     {
         get => isReadOnly;
@@ -1334,10 +1520,16 @@ public sealed class TextBox : UiControl
     }
 }
 
+/// <summary>
+/// Displays selectable items in a vertical list.
+/// </summary>
 public sealed class ListBox : Selector
 {
     private float itemHeight = 24f;
 
+    /// <summary>
+    /// Initializes a list box.
+    /// </summary>
     public ListBox()
     {
         ReceivesInput = true;
@@ -1347,6 +1539,9 @@ public sealed class ListBox : Selector
         Height = 120f;
     }
 
+    /// <summary>
+    /// Gets or sets the row height in DIPs.
+    /// </summary>
     public float ItemHeight
     {
         get => itemHeight;
@@ -1436,6 +1631,9 @@ public sealed class ListBox : Selector
     }
 }
 
+/// <summary>
+/// Displays a selected value and an expandable popup list.
+/// </summary>
 public sealed class ComboBox : Selector, IUiPopup
 {
     private bool isDropDownOpen;
@@ -1444,6 +1642,9 @@ public sealed class ComboBox : Selector, IUiPopup
     private float maxDropDownHeight = 160f;
     private bool clampDropDownToOverlay = true;
 
+    /// <summary>
+    /// Initializes a combo box.
+    /// </summary>
     public ComboBox()
     {
         ReceivesInput = true;
@@ -1454,20 +1655,32 @@ public sealed class ComboBox : Selector, IUiPopup
         ZIndex = (int)UiLayer.Popup;
     }
 
+    /// <summary>
+    /// Gets or sets placeholder text displayed when no item is selected.
+    /// </summary>
     public string Placeholder
     {
         get => placeholder;
         set => SetProperty(ref placeholder, value ?? string.Empty, UiInvalidation.Render);
     }
 
+    /// <summary>
+    /// Gets or sets whether the dropdown list is open.
+    /// </summary>
     public bool IsDropDownOpen
     {
         get => isDropDownOpen;
         set => SetProperty(ref isDropDownOpen, value, UiInvalidation.Render | UiInvalidation.InputRegion);
     }
 
+    /// <summary>
+    /// Gets or sets whether outside pointer input closes the dropdown.
+    /// </summary>
     public bool DismissOnOutsidePointer { get; set; } = true;
 
+    /// <summary>
+    /// Gets or sets whether Escape closes the dropdown.
+    /// </summary>
     public bool DismissOnEscape { get; set; } = true;
 
     bool IUiPopup.IsPopupOpen => IsDropDownOpen;
@@ -1476,6 +1689,9 @@ public sealed class ComboBox : Selector, IUiPopup
 
     UiElement? IUiPopup.PopupOwner => this;
 
+    /// <summary>
+    /// Gets or sets the maximum dropdown height in DIPs.
+    /// </summary>
     public float MaxDropDownHeight
     {
         get => maxDropDownHeight;
@@ -1486,6 +1702,9 @@ public sealed class ComboBox : Selector, IUiPopup
         }
     }
 
+    /// <summary>
+    /// Gets or sets whether the dropdown is clamped to overlay bounds.
+    /// </summary>
     public bool ClampDropDownToOverlay
     {
         get => clampDropDownToOverlay;
@@ -1499,6 +1718,11 @@ public sealed class ComboBox : Selector, IUiPopup
     protected override bool HitTestCore(PointF point)
         => UiGeometry.Contains(Bounds, point) || (IsDropDownOpen && UiGeometry.Contains(DropDownBounds, point));
 
+    /// <summary>
+    /// Determines whether a point is within the combo box or its open dropdown.
+    /// </summary>
+    /// <param name="point">The overlay-local point in DIPs.</param>
+    /// <returns><see langword="true"/> when the point is within the combo box popup region.</returns>
     public bool ContainsPopupPoint(PointF point) => HitTestCore(point);
 
     void IUiPopup.DismissPopup(UiPopupDismissReason reason) => IsDropDownOpen = false;

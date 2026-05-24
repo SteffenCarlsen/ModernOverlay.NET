@@ -7,7 +7,7 @@ using ModernOverlay.UI;
 using Forms = System.Windows.Forms;
 using UiImage = ModernOverlay.UI.Image;
 
-Forms.Screen launchScreen = Forms.Screen.FromPoint(Forms.Cursor.Position);
+var launchScreen = Forms.Screen.FromPoint(Forms.Cursor.Position);
 System.Drawing.Rectangle screen = launchScreen.Bounds;
 WindowBounds fullScreenBounds = screen is { Width: > 0, Height: > 0 }
     ? new WindowBounds(screen.X, screen.Y, screen.Width, screen.Height)

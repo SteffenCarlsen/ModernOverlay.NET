@@ -1,3 +1,5 @@
+using ModernOverlay.Diagnostics;
+
 namespace ModernOverlay.UI;
 
 public abstract class UiElement
@@ -29,6 +31,7 @@ public abstract class UiElement
     private BrushHandle? focusBrush;
     private BrushHandle? popupBackground;
     private BrushHandle? windowChromeBackground;
+    private HashSet<long>? loggedDisposedResourceFallbacks;
 
     internal int InsertionOrder { get; set; }
 
@@ -507,40 +510,99 @@ public abstract class UiElement
     protected BrushHandle ResolveBackground(UiRenderContext context)
         => VisualState switch
         {
-            UiVisualState.Disabled => DisabledBrush ?? context.Theme.Disabled,
-            UiVisualState.Pressed => PressedBackground ?? Background ?? context.Theme.SurfacePressed,
-            UiVisualState.Hover => HoverBackground ?? Background ?? context.Theme.SurfaceHover,
-            _ => Background ?? context.Theme.Surface,
+            UiVisualState.Disabled => ResolveBrushOverride(nameof(DisabledBrush), DisabledBrush) ?? context.Theme.Disabled,
+            UiVisualState.Pressed => ResolveBrushOverride(nameof(PressedBackground), PressedBackground)
+                ?? ResolveBrushOverride(nameof(Background), Background)
+                ?? context.Theme.SurfacePressed,
+            UiVisualState.Hover => ResolveBrushOverride(nameof(HoverBackground), HoverBackground)
+                ?? ResolveBrushOverride(nameof(Background), Background)
+                ?? context.Theme.SurfaceHover,
+            _ => ResolveBrushOverride(nameof(Background), Background) ?? context.Theme.Surface,
         };
 
     protected BrushHandle ResolveForeground(UiRenderContext context)
         => IsEffectivelyEnabled
-            ? Foreground ?? context.Theme.Foreground
-            : DisabledBrush ?? context.Theme.Disabled;
+            ? ResolveBrushOverride(nameof(Foreground), Foreground) ?? context.Theme.Foreground
+            : ResolveBrushOverride(nameof(DisabledBrush), DisabledBrush) ?? context.Theme.Disabled;
 
     protected BrushHandle ResolveBorderBrush(UiRenderContext context)
-        => BorderBrush ?? context.Theme.Border;
+        => ResolveBrushOverride(nameof(BorderBrush), BorderBrush) ?? context.Theme.Border;
 
     protected BrushHandle ResolveAccentBrush(UiRenderContext context)
         => IsEffectivelyEnabled
-            ? AccentBrush ?? context.Theme.Accent
-            : DisabledBrush ?? context.Theme.Disabled;
+            ? ResolveBrushOverride(nameof(AccentBrush), AccentBrush) ?? context.Theme.Accent
+            : ResolveBrushOverride(nameof(DisabledBrush), DisabledBrush) ?? context.Theme.Disabled;
 
     protected BrushHandle ResolveDisabledBrush(UiRenderContext context)
-        => DisabledBrush ?? context.Theme.Disabled;
+        => ResolveBrushOverride(nameof(DisabledBrush), DisabledBrush) ?? context.Theme.Disabled;
 
     protected BrushHandle ResolveFocusBrush(UiRenderContext context)
-        => FocusBrush ?? AccentBrush ?? context.Theme.Accent;
+        => ResolveBrushOverride(nameof(FocusBrush), FocusBrush)
+            ?? ResolveBrushOverride(nameof(AccentBrush), AccentBrush)
+            ?? context.Theme.Accent;
 
     protected BrushHandle ResolvePopupBackground(UiRenderContext context)
         => IsEffectivelyEnabled
-            ? PopupBackground ?? Background ?? context.Theme.Surface
-            : DisabledBrush ?? context.Theme.Disabled;
+            ? ResolveBrushOverride(nameof(PopupBackground), PopupBackground)
+                ?? ResolveBrushOverride(nameof(Background), Background)
+                ?? context.Theme.Surface
+            : ResolveBrushOverride(nameof(DisabledBrush), DisabledBrush) ?? context.Theme.Disabled;
 
     protected BrushHandle ResolveWindowChromeBackground(UiRenderContext context)
         => IsEffectivelyEnabled
-            ? WindowChromeBackground ?? HoverBackground ?? context.Theme.SurfaceHover
-            : DisabledBrush ?? context.Theme.Disabled;
+            ? ResolveBrushOverride(nameof(WindowChromeBackground), WindowChromeBackground)
+                ?? ResolveBrushOverride(nameof(HoverBackground), HoverBackground)
+                ?? context.Theme.SurfaceHover
+            : ResolveBrushOverride(nameof(DisabledBrush), DisabledBrush) ?? context.Theme.Disabled;
+
+    protected FontHandle ResolveFontOverride(string propertyName, FontHandle? font, FontHandle fallback)
+    {
+        if (font is null)
+        {
+            return fallback;
+        }
+
+        if (!font.IsDisposed)
+        {
+            return font;
+        }
+
+        LogDisposedResourceFallback(propertyName, font, "Font override is disposed; using theme fallback.");
+        return fallback;
+    }
+
+    private BrushHandle? ResolveBrushOverride(string propertyName, BrushHandle? brush)
+    {
+        if (brush is null)
+        {
+            return null;
+        }
+
+        if (!brush.IsDisposed)
+        {
+            return brush;
+        }
+
+        LogDisposedResourceFallback(propertyName, brush, "Brush override is disposed; using theme fallback.");
+        return null;
+    }
+
+    private void LogDisposedResourceFallback(string propertyName, OverlayResourceHandle resource, string message)
+    {
+        loggedDisposedResourceFallbacks ??= [];
+        if (!loggedDisposedResourceFallbacks.Add(resource.Id))
+        {
+            return;
+        }
+
+        string elementName = string.IsNullOrWhiteSpace(Name)
+            ? GetType().Name
+            : Name!;
+        OverlayEventSource.Log.UiResourceRealizationFailure(
+            $"{elementName}.{propertyName}",
+            nameof(ObjectDisposedException),
+            message);
+    }
 
     protected virtual void OnPointerMoved(UiPointerEventArgs args)
     {

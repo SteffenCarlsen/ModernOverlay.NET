@@ -96,8 +96,9 @@ public class TextBlock : UiElement
         float resolvedFontSize = ResolveFontSize(context.Theme.Theme);
         float charWidth = CharacterWidth(resolvedFontSize);
         BrushHandle brush = ResolveForeground(context);
+        FontHandle font = ResolveFontOverride(nameof(Font), Font, context.Theme.Font);
         string[] lines = BuildLines(content.Width, charWidth);
-        float lineHeight = context.Draw.Measure.Text("M", Font ?? context.Theme.Font).Height * LineSpacing;
+        float lineHeight = context.Draw.Measure.Text("M", font).Height * LineSpacing;
         for (int index = 0; index < lines.Length; index++)
         {
             string line = lines[index];
@@ -106,14 +107,14 @@ public class TextBlock : UiElement
                 continue;
             }
 
-            float lineWidth = context.Draw.Measure.Text(line, Font ?? context.Theme.Font).Width;
+            float lineWidth = context.Draw.Measure.Text(line, font).Width;
             float x = TextAlignment switch
             {
                 UiHorizontalAlignment.Center => content.X + MathF.Max(0f, content.Width - lineWidth) / 2f,
                 UiHorizontalAlignment.Right => content.X + MathF.Max(0f, content.Width - lineWidth),
                 _ => content.X,
             };
-            context.Draw.Draw.Text(line, Font ?? context.Theme.Font, brush, new PointF(x, content.Y + index * lineHeight));
+            context.Draw.Draw.Text(line, font, brush, new PointF(x, content.Y + index * lineHeight));
         }
     }
 
@@ -163,12 +164,23 @@ public class TextBlock : UiElement
     }
 
     private float ResolveFontSize(UiTheme? theme = null)
-        => Font?.Options.Size ?? (theme ?? Root?.ThemeResources.Theme ?? UiTheme.Default).FontSize;
+        => Font is { IsDisposed: false }
+            ? Font.Options.Size
+            : (theme ?? Root?.ThemeResources.Theme ?? UiTheme.Default).FontSize;
 
     private SizeF MeasureText(string value, float resolvedFontSize)
-        => Root?.TryMeasureText(value, Font, out SizeF measured) == true
-            ? measured
-            : new SizeF(value.Length * CharacterWidth(resolvedFontSize), resolvedFontSize);
+    {
+        if (Root is { } root)
+        {
+            FontHandle font = ResolveFontOverride(nameof(Font), Font, root.ThemeResources.Font);
+            if (root.TryMeasureText(value, font, out SizeF measured))
+            {
+                return measured;
+            }
+        }
+
+        return new SizeF(value.Length * CharacterWidth(resolvedFontSize), resolvedFontSize);
+    }
 
     private static float CharacterWidth(float fontSize) => MathF.Max(1f, fontSize * 0.56f);
 }

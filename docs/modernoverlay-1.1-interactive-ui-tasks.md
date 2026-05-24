@@ -219,9 +219,11 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - `UiThemeResources` owns and disposes root theme handles; ad hoc element-created handles stay owned by the creating control or caller until dedicated override APIs exist.
 - [x] Re-realize UI resources on backend/device recreation using existing `OverlayResourceManager` generation behavior.
   - UI theme handles remain device-independent descriptors; `OverlayUiRoot` invalidates render/resource state on `DeviceRestored` so native realizations are rebuilt lazily when drawn.
-- [ ] Add fallback style behavior and diagnostics for resource creation failures.
+- [x] Add fallback style behavior and diagnostics for resource creation failures.
+  - Disposed element-level brush/font overrides are logged through `UiResourceRealizationFailure` and fall back to root theme resources instead of failing render.
 - [ ] Add high-contrast/readability checks for default colors.
 - [ ] Add tests for theme resource creation, disposal, and backend generation behavior.
+  - Partial coverage exists in `OverlayUiThemeResourceTests` for disposed override fallback.
 
 ## 11. Input Event Model
 

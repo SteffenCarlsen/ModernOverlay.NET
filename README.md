@@ -23,6 +23,13 @@ Package-facing caveats for the MVP/alpha release:
 3. `TransparencyMode.UpdateLayeredWindow` and `TransparencyMode.DirectComposition` are request modes that currently fall back to the DWM/color-key Direct2D HWND path with diagnostics. True CPU-copy layered alpha and DirectComposition/DXGI per-pixel alpha remain future backend work.
 4. The release bar is a hobbyist project aiming to be useful, buildable, sample-backed, and caveated.
 
+## Changelog
+
+| Version | Highlights |
+|---|---|
+| 1.1 preview | Adds the `ModernOverlay.UI` package with retained interactive controls, layout panels, popups, floating windows, text editing, selective click-through regions, themes, and interface-only layout persistence. |
+| 1.0 | Establishes the core overlay window lifecycle, Direct2D drawing backend, target tracking, input modes, diagnostics, cooperative IPC, samples, and release validation tooling. |
+
 ## Quick Start
 
 Install the `ModernOverlay.NET` package. The package includes the Direct2D backend assembly for the common path, and the core facade auto-discovers `ModernOverlay.Direct2D` when the assembly is present.

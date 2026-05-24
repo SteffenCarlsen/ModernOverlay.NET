@@ -297,7 +297,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Define caret blink timing ownership in the UI root scheduler.
   - `OverlayUiRoot.CaretBlinkInterval` owns caret blink timing; `TextBox` restarts the blink on caret movement and renders the caret only when the root blink state is visible.
 - [ ] Add tests for Win32 message translation.
-- [ ] Add sample coverage for text input once `TextBox` exists.
+- [x] Add sample coverage for text input once `TextBox` exists.
+  - `samples/InteractiveUiOverlay` includes a `TextBox` with `TextChanged` status updates.
 
 ## 16. Command And Binding Model
 
@@ -579,8 +580,10 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Demonstrate anchored and manual panels.
 - [x] Demonstrate draggable/resizable `UiWindow`.
 - [x] Demonstrate text block, button, checkbox, radio buttons, slider, progress bar, list/combo, textbox, tabs, segmented control, and color picker.
-- [ ] Demonstrate popup z-order.
-- [ ] Demonstrate keyboard focus and tab navigation.
+- [x] Demonstrate popup z-order.
+  - `samples/InteractiveUiOverlay` includes `ComboBox`, `ContextMenu`, and `ToolTip` instances hosted alongside a floating `UiWindow`, exercising popup-layer rendering above normal content.
+- [x] Demonstrate keyboard focus and tab navigation.
+  - `samples/InteractiveUiOverlay` now includes focusable text, menu, button, number, combo/list, tab, segmented, and color controls in one tab-order path.
 - [x] Demonstrate layout persistence with an in-memory `IUiLayoutStore` sample store.
 - [x] Add a quick-start UI sample with one window, a few controls, selective click-through, and explicit `ui.Render(frame)`.
 - [ ] Add a stress/integration UI sample with multiple floating windows, popup/menu/context menu, text input, tab navigation, DPI movement, theme change, and persistence restore.

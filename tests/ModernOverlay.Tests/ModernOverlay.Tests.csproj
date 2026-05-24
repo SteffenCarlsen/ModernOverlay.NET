@@ -16,6 +16,7 @@
     <ProjectReference Include="..\..\src\ModernOverlay.Direct2D\ModernOverlay.Direct2D.csproj" />
     <ProjectReference Include="..\..\src\ModernOverlay.Integration.Experimental\ModernOverlay.Integration.Experimental.csproj" />
     <ProjectReference Include="..\..\src\ModernOverlay.Integration\ModernOverlay.Integration.csproj" />
+    <ProjectReference Include="..\..\src\ModernOverlay.UI\ModernOverlay.UI.csproj" />
     <ProjectReference Include="..\..\src\ModernOverlay.Win32\ModernOverlay.Win32.csproj" />
   </ItemGroup>
 

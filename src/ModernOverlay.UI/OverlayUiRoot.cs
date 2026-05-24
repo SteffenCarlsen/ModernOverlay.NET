@@ -219,6 +219,7 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
         {
             BindAccess();
             VerifyAccess();
+            UpdatePointerPosition(position);
             EnsureLayout();
             inputRegionChecks++;
             return ResolveInputTarget(position) is not null || HasOpenOutsideDismissPopup()

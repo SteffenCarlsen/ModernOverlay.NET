@@ -177,6 +177,7 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add `IUiLayoutStore` or equivalent persistence abstraction.
 - [x] Decide not to ship a built-in JSON or file layout-store helper in the core 1.1 UI package.
   - Layout persistence stays interface-only through `IUiLayoutStore`; any file-backed or JSON-backed adapter must live outside the core package or be revisited after the interface is stable.
+- [x] Add initial placement tests for manual placement, overlay anchoring, cursor placement, clamping, persisted fallback, persisted stored bounds, and target-bound recompute.
 - [ ] Add tests for every placement kind, DPI changes, target-bound changes, clamping, and persisted fallback.
 
 ## 9. Rendering Foundation

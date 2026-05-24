@@ -1215,6 +1215,9 @@ public sealed class TextBox : UiControl
     private bool selecting;
     private int selectionAnchor;
     private float horizontalOffset;
+    private string measuredText = string.Empty;
+    private long measuredFontId = -1;
+    private float[] measuredTextAdvances = [0f];
 
     /// <summary>
     /// Initializes a text box.
@@ -1347,11 +1350,14 @@ public sealed class TextBox : UiControl
 
         RectF content = ContentBounds;
         float fontSize = context.Theme.Theme.FontSize;
-        float charWidth = CharacterWidth(fontSize);
+        FontHandle font = context.Theme.Font;
+        UpdateMeasuredTextAdvances(context, font);
+        EnsureCaretVisible();
         if (SelectionLength > 0 && Text.Length > 0)
         {
-            float selectionX = content.X + SelectionStart * charWidth - horizontalOffset;
-            float selectionWidth = SelectionLength * charWidth;
+            int selectionEnd = SelectionStart + SelectionLength;
+            float selectionX = content.X + TextAdvanceAt(SelectionStart, fontSize) - horizontalOffset;
+            float selectionWidth = TextAdvanceAt(selectionEnd, fontSize) - TextAdvanceAt(SelectionStart, fontSize);
             RectF selection = new(
                 MathF.Max(content.X, selectionX),
                 content.Y,
@@ -1368,12 +1374,12 @@ public sealed class TextBox : UiControl
         if (displayText.Length > 0)
         {
             float offset = Text.Length == 0 ? 0f : horizontalOffset;
-            context.Draw.Draw.Text(displayText, context.Theme.Font, IsReadOnly || !enabled ? ResolveDisabledBrush(context) : textBrush, new PointF(content.X - offset, content.Y));
+            context.Draw.Draw.Text(displayText, font, IsReadOnly || !enabled ? ResolveDisabledBrush(context) : textBrush, new PointF(content.X - offset, content.Y));
         }
 
         if (enabled && IsFocused && !IsReadOnly && (Root?.IsCaretVisible ?? true))
         {
-            float caretX = content.X + CaretIndex * charWidth - horizontalOffset;
+            float caretX = content.X + TextAdvanceAt(CaretIndex, fontSize) - horizontalOffset;
             context.Draw.Draw.Line(new PointF(caretX, content.Y), new PointF(caretX, content.Y + fontSize * 1.3f), ResolveAccentBrush(context));
         }
     }
@@ -1566,10 +1572,8 @@ public sealed class TextBox : UiControl
 
     private int CaretIndexFromPoint(PointF point)
     {
-        float fontSize = Root?.ThemeResources.Theme.FontSize ?? UiTheme.Default.FontSize;
-        float charWidth = CharacterWidth(fontSize);
-        int approximateIndex = (int)Math.Clamp(MathF.Round((point.X - ContentBounds.X + horizontalOffset) / charWidth), 0, Text.Length);
-        return CoerceCaretIndex(approximateIndex);
+        float relativeX = Math.Clamp(point.X - ContentBounds.X + horizontalOffset, 0f, TextAdvanceAt(Text.Length, ResolveFontSize()));
+        return CoerceCaretIndex(TextIndexFromAdvance(relativeX));
     }
 
     private void SelectFromAnchor(int anchor, int caret)
@@ -1589,9 +1593,8 @@ public sealed class TextBox : UiControl
             return;
         }
 
-        float fontSize = Root?.ThemeResources.Theme.FontSize ?? UiTheme.Default.FontSize;
-        float charWidth = CharacterWidth(fontSize);
-        float caretX = CaretIndex * charWidth;
+        float fontSize = ResolveFontSize();
+        float caretX = TextAdvanceAt(CaretIndex, fontSize);
         if (caretX < horizontalOffset)
         {
             horizontalOffset = caretX;
@@ -1601,8 +1604,73 @@ public sealed class TextBox : UiControl
             horizontalOffset = caretX - contentWidth;
         }
 
-        float maxOffset = MathF.Max(0f, Text.Length * charWidth - contentWidth);
+        float maxOffset = MathF.Max(0f, TextAdvanceAt(Text.Length, fontSize) - contentWidth);
         horizontalOffset = Math.Clamp(horizontalOffset, 0f, maxOffset);
+    }
+
+    private float ResolveFontSize()
+        => Root?.ThemeResources.Theme.FontSize ?? UiTheme.Default.FontSize;
+
+    private void UpdateMeasuredTextAdvances(UiRenderContext context, FontHandle font)
+    {
+        if (measuredFontId == font.Id
+            && string.Equals(measuredText, Text, StringComparison.Ordinal)
+            && measuredTextAdvances.Length == Text.Length + 1)
+        {
+            return;
+        }
+
+        measuredText = Text;
+        measuredFontId = font.Id;
+        measuredTextAdvances = new float[Text.Length + 1];
+        measuredTextAdvances[0] = 0f;
+        for (int index = 1; index <= Text.Length; index++)
+        {
+            measuredTextAdvances[index] = CoerceTextBoundaryAtOrBefore(Text, index) == index
+                ? context.Draw.Measure.Text(Text[..index], font).Width
+                : measuredTextAdvances[index - 1];
+        }
+    }
+
+    private float TextAdvanceAt(int index, float fontSize)
+    {
+        int coerced = CoerceCaretIndex(index);
+        return string.Equals(measuredText, Text, StringComparison.Ordinal)
+            && coerced >= 0
+            && coerced < measuredTextAdvances.Length
+                ? measuredTextAdvances[coerced]
+                : Root is { } root
+                    && root.TryMeasureText(Text[..coerced], root.ThemeResources.Font, out SizeF measured)
+                        ? measured.Width
+                        : coerced * CharacterWidth(fontSize);
+    }
+
+    private int TextIndexFromAdvance(float advance)
+    {
+        if (!string.Equals(measuredText, Text, StringComparison.Ordinal) || measuredTextAdvances.Length != Text.Length + 1)
+        {
+            float charWidth = CharacterWidth(ResolveFontSize());
+            return (int)Math.Clamp(MathF.Round(advance / charWidth), 0, Text.Length);
+        }
+
+        int bestIndex = 0;
+        float bestDistance = MathF.Abs(advance);
+        for (int index = 1; index <= Text.Length; index++)
+        {
+            if (CoerceTextBoundaryAtOrBefore(Text, index) != index)
+            {
+                continue;
+            }
+
+            float distance = MathF.Abs(measuredTextAdvances[index] - advance);
+            if (distance <= bestDistance)
+            {
+                bestIndex = index;
+                bestDistance = distance;
+            }
+        }
+
+        return bestIndex;
     }
 
     private static float CharacterWidth(float fontSize) => MathF.Max(1f, fontSize * 0.56f);

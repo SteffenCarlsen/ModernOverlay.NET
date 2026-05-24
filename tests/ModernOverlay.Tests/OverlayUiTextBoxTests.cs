@@ -188,6 +188,26 @@ public sealed class OverlayUiTextBoxTests
         Assert.IsTrue(sink.FilledRectangles.Count > 0);
     }
 
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task RenderPlacesCaretAtMeasuredTextAdvance()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        ui.CaretBlinkInterval = TimeSpan.Zero;
+        UiTextBox textBox = CreateTextBox("This is a test");
+        textBox.CaretIndex = textBox.Text.Length;
+        ui.Root.Children.Add(textBox);
+        textBox.Focus();
+        var sink = new RecordingDrawCommandSink();
+
+        ui.Render(new DrawContext(sink));
+
+        Assert.AreEqual(1, sink.Lines.Count);
+        float expectedX = textBox.ContentBounds.X + RecordingDrawCommandSink.MeasureVariableText(textBox.Text);
+        Assert.AreEqual(expectedX, sink.Lines[0].Start.X, 0.001f);
+    }
+
     private static async ValueTask<OverlayWindow> CreateOverlayAsync()
         => await OverlayWindow.CreateAsync(new OverlayWindowOptions
         {
@@ -229,6 +249,8 @@ public sealed class OverlayUiTextBoxTests
 
         public List<RectF> FilledRectangles { get; } = [];
 
+        public List<(PointF Start, PointF End)> Lines { get; } = [];
+
         public int LineCount { get; private set; }
 
         public int CommandCount { get; private set; }
@@ -251,6 +273,7 @@ public sealed class OverlayUiTextBoxTests
 
         public void DrawLine(PointF start, PointF end, BrushHandle brush, float strokeWidth, StrokeStyleHandle? strokeStyle)
         {
+            Lines.Add((start, end));
             LineCount++;
             AddPrimitive();
         }
@@ -307,10 +330,21 @@ public sealed class OverlayUiTextBoxTests
             => AddPrimitive();
 
         public SizeF MeasureText(string text, FontHandle font)
-            => new(text.Length, font.Options.Size);
+            => new(MeasureVariableText(text), font.Options.Size);
 
         public SizeF MeasureTextLayout(TextLayoutHandle layout)
-            => new(layout.Text.Length, layout.Font.Options.Size);
+            => new(MeasureVariableText(layout.Text), layout.Font.Options.Size);
+
+        public static float MeasureVariableText(string text)
+        {
+            float width = 0f;
+            foreach (char character in text)
+            {
+                width += character is 'i' or 'l' or ' ' ? 2f : 8f;
+            }
+
+            return width;
+        }
 
         private void AddPrimitive()
         {

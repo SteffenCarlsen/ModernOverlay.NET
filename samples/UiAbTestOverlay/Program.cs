@@ -49,6 +49,8 @@ var layoutStore = new MemoryLayoutStore();
 bool themeBActive = false;
 bool commandEnabled = true;
 int frameCounter = 0;
+float controlsWindowWidth = Math.Clamp(fullScreenBounds.Width - 64f, 360f, 860f);
+float controlsWindowHeight = Math.Clamp(fullScreenBounds.Height - 96f, 420f, 760f);
 
 TextBlock status = new() { Text = "Ready", TextWrapping = UiTextWrapping.Wrap, MaxLines = 2 };
 TextBlock metrics = new() { Text = "Metrics pending" };
@@ -78,7 +80,9 @@ UiWindow controlsWindow = CreateControlsWindow(
         ui.ApplyTheme(themeBActive ? themeB : themeA);
         SetStatus(themeBActive ? "Theme B active" : "Theme A active");
     },
-    layoutStore);
+    layoutStore,
+    controlsWindowWidth,
+    controlsWindowHeight);
 
 UiWindow layoutWindow = CreateLayoutWindow();
 UiWindow popupWindow = CreatePopupWindow(out Button popupButton, out Button contextButton, out Label focusLabel);
@@ -169,7 +173,9 @@ UiWindow CreateControlsWindow(
     UiCommand command,
     Action toggleCommand,
     Action toggleTheme,
-    IUiLayoutStore store)
+    IUiLayoutStore store,
+    float windowWidth,
+    float windowHeight)
 {
     Button commandButton = new() { Text = "Command", Width = 120f, Command = command };
     Button canExecuteButton = new() { Text = "CanExecute", Width = 120f };
@@ -223,7 +229,7 @@ UiWindow CreateControlsWindow(
     themeButton.Click += (_, _) => toggleTheme();
     persistButton.Click += (_, _) =>
     {
-        store.Save("ab-main", UiPlacement.Manual(32f, 64f, 860f, 700f));
+        store.Save("ab-main", UiPlacement.Manual(32f, 64f, windowWidth, windowHeight));
         SetStatus("Saved layout through IUiLayoutStore");
     };
     toggle.CheckStateChanged += (_, _) => SetStatus($"Toggle: {toggle.CheckState}");
@@ -317,8 +323,8 @@ UiWindow CreateControlsWindow(
     return new UiWindow
     {
         Title = "UI A/B Controls",
-        Width = 860f,
-        Height = 760f,
+        Width = windowWidth,
+        Height = windowHeight,
         LayoutKey = "ab-main",
         LayoutStore = store,
         Placement = UiPlacement.AnchorTo(OverlayAnchor.TopLeft, new Thickness(32f, 64f, 0f, 0f)),

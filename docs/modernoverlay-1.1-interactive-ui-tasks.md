@@ -750,3 +750,10 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 9. Core Win32 keyboard/text plumbing, UI keyboard routing, and `TextBox`.
 10. Required higher-level controls: `NumberBox`, tabs, segmented control, and `ColorPicker`.
 11. Quick-start UI sample, stress/integration UI sample, docs, package validation, and manual visual pass.
+
+## 35. Backlog
+
+- [ ] Add font weight/style support through `FontOptions`.
+  - Extend font descriptors beyond family and size with weight, and evaluate style/stretch at the same time so the rendering API can express common text emphasis without ad hoc alternate resources.
+  - Map the options through DirectWrite text format creation and cache keys.
+  - Update UI theme resources and sample controls so bold or emphasized states can use declared font options instead of render-time font creation.

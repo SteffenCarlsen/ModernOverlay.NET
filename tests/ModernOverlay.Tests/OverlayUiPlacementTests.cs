@@ -188,6 +188,32 @@ public sealed class OverlayUiPlacementTests
         AssertPlacement(window, 35f, 45f);
     }
 
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task DraggingAnchoredWindowWithLayoutStoreKeepsManualPlacement()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync(360, 240);
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        var store = new MemoryLayoutStore();
+        UiWindow window = CreateWindow(100f, 60f);
+        window.LayoutKey = "main";
+        window.LayoutStore = store;
+        window.Placement = UiPlacement.AnchorTo(OverlayAnchor.TopLeft, new Thickness(12f));
+        ui.Root.Children.Add(window);
+        ui.Render(new DrawContext());
+
+        DispatchPointer(overlay, Win32PointerEventKind.Pressed, Win32PointerButton.Left, 20, 20);
+        DispatchPointer(overlay, Win32PointerEventKind.Moved, Win32PointerButton.None, 70, 80);
+        DispatchPointer(overlay, Win32PointerEventKind.Released, Win32PointerButton.Left, 70, 80);
+        ui.Render(new DrawContext());
+
+        Assert.AreEqual(UiPlacementKind.Manual, window.Placement?.Kind);
+        AssertPlacement(window, 62f, 72f);
+        Assert.IsTrue(store.TryLoad("main", out UiPlacement saved));
+        Assert.AreEqual(62f, saved.Bounds.X, 0.001f);
+        Assert.AreEqual(72f, saved.Bounds.Y, 0.001f);
+    }
+
     private static async ValueTask<OverlayWindow> CreateOverlayAsync(int width, int height)
         => await OverlayWindow.CreateAsync(new OverlayWindowOptions
         {

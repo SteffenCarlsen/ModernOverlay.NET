@@ -458,7 +458,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add horizontal scroll for long single-line text.
 - [x] Document IME, dead-key, Unicode, clipboard, and international input limitations before release.
   - Covered in `docs/interactive-ui.md`.
-- [ ] Add tests for text input, caret movement, deletion, selection, focus, disabled/read-only state, and rendering.
+- [x] Add tests for text input, caret movement, deletion, selection, focus, disabled/read-only state, and rendering.
+  - `OverlayUiTextBoxTests` covers text insertion, max length, selection replacement, caret movement, deletion, focus-owned input, read-only/disabled behavior, and text/selection/caret render commands.
 
 ### 21.2 SearchBox
 
@@ -676,8 +677,10 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [ ] Add popup/focus/capture interaction tests.
 - [x] Add focus/keyboard routing tests.
   - Covered by `OverlayUiFocusKeyboardTests`.
-- [ ] Add text input tests after core keyboard/text plumbing exists.
-- [ ] Add text editing scope tests for supported Unicode/dead-key/clipboard behavior.
+- [x] Add text input tests after core keyboard/text plumbing exists.
+  - Covered by `OverlayUiTextBoxTests`.
+- [x] Add text editing scope tests for supported Unicode/dead-key/clipboard behavior.
+  - `OverlayUiTextBoxTests` verifies delivered composed/Unicode text is stored and clipboard paste remains deferred/inert for 1.1.
 - [ ] Add render-order tests with fake draw command sink.
 - [ ] Add theme/resource lifetime tests.
 - [ ] Add command `CanExecuteChanged` and parameter tests.

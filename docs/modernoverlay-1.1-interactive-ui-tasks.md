@@ -601,7 +601,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add `OverlayInputMode.SelectiveClickThrough`.
 - [x] Add a callback from core Win32 hit testing to the UI root's input-region resolver.
 - [x] Ensure non-UI overlay regions can remain click-through while UI controls receive input.
-- [ ] Add Win32 tests for `WM_NCHITTEST` behavior.
+- [x] Add Win32 tests for `WM_NCHITTEST` behavior.
+  - `OverlayWindowThreadingTests.SelectiveClickThroughNcHitTestUsesInputRegionResolver` verifies `HTCLIENT` for interactive regions and `HTTRANSPARENT` for pass-through regions after screen-to-client conversion.
 - [ ] Add sample validation for mixed click-through and interactive UI regions.
 - [x] Document selective click-through behavior, input-region behavior, limitations, and fallback behavior.
   - Covered in `docs/interactive-ui.md`.

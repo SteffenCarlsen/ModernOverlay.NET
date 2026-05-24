@@ -477,9 +477,35 @@ public sealed class OverlayWindowThreadingTests
         Assert.IsTrue(pointer.IsHorizontalWheel);
     }
 
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task SelectiveClickThroughNcHitTestUsesInputRegionResolver()
+    {
+        var resolver = new RecordingInputRegionResolver(point => point.X < 50f);
+        var bounds = new WindowBounds(100, 120, 160, 90);
+
+        await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
+        {
+            Bounds = bounds,
+            IsVisible = false,
+            InputMode = OverlayInputMode.SelectiveClickThrough,
+        });
+        overlay.SetInputRegionResolver(resolver);
+
+        nint interactive = SendMessage(overlay.Hwnd.Value, WmNcHitTest, 0, MakeLParam(125, 150));
+        nint passThrough = SendMessage(overlay.Hwnd.Value, WmNcHitTest, 0, MakeLParam(175, 150));
+
+        Assert.AreEqual(new nint(HtClient), interactive);
+        Assert.AreEqual(new nint(HtTransparent), passThrough);
+        CollectionAssert.AreEqual(new[] { new PointF(25f, 30f), new PointF(75f, 30f) }, resolver.Points);
+    }
+
     private const uint WmLButtonDown = 0x0201;
+    private const uint WmNcHitTest = 0x0084;
     private const uint WmMouseWheel = 0x020A;
     private const uint WmMouseHWheel = 0x020E;
+    private const int HtTransparent = -1;
+    private const int HtClient = 1;
 
     [DllImport("user32.dll", EntryPoint = "SendMessageW", ExactSpelling = true)]
     private static extern nint SendMessage(nint hwnd, uint message, nuint wParam, nint lParam);
@@ -493,6 +519,19 @@ public sealed class OverlayWindowThreadingTests
     private sealed class SingleBackendProvider(IRenderBackend backend) : IRenderBackendProvider
     {
         public IRenderBackend CreateBackend(OverlayWindowOptions options) => backend;
+    }
+
+    private sealed class RecordingInputRegionResolver(Func<PointF, bool> predicate) : IOverlayInputRegionResolver
+    {
+        public List<PointF> Points { get; } = [];
+
+        public OverlayInputRegionResult ResolveInputRegion(PointF position)
+        {
+            Points.Add(position);
+            return predicate(position)
+                ? OverlayInputRegionResult.Interactive
+                : OverlayInputRegionResult.PassThrough;
+        }
     }
 
     private sealed class RecreateRequestBackend : IRenderBackend

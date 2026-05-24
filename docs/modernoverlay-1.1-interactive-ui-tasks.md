@@ -66,7 +66,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Implement `UiOrientation` for horizontal/vertical layout.
 - [x] Implement `UiVisibility`: visible, hidden, collapsed.
 - [x] Implement `UiZLayer` or layer constants for content, floating windows, popups, adorners.
-- [ ] Add tests for value-type equality, defaults, invalid sizes, and clamping.
+- [x] Add tests for value-type equality, defaults, invalid sizes, and clamping.
+  - `OverlayUiValueTypeTests` covers `Thickness`, `UiSize`, `UiConstraints`, and grid lengths/definitions.
 
 ## 4. Retained Element Model
 

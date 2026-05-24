@@ -700,8 +700,17 @@ public sealed class UiWindow : UiPanel
             return;
         }
 
-        int maxZ = Parent.Children.Select(child => child.ZIndex).DefaultIfEmpty(ZIndex).Max();
-        ZIndex = Math.Max(ZIndex, maxZ + 1);
+        const int floatingBase = (int)UiLayer.Floating;
+        const int popupBase = (int)UiLayer.Popup;
+        const int maxFloatingZ = popupBase - 1;
+
+        int maxSiblingZ = Parent.Children
+            .Where(child => !ReferenceEquals(child, this) && child.ZIndex >= floatingBase && child.ZIndex < popupBase)
+            .Select(child => child.ZIndex)
+            .DefaultIfEmpty(floatingBase - 1)
+            .Max();
+
+        ZIndex = Math.Clamp(Math.Max(ZIndex, maxSiblingZ + 1), floatingBase, maxFloatingZ);
     }
 
     private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);

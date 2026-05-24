@@ -97,6 +97,30 @@ public sealed class OverlayUiWindowTests
 
     [TestMethod]
     [TestCategory("WindowsIntegration")]
+    public async Task PointerActivationKeepsWindowBelowPopupLayer()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        UiWindow window = CreateWindow(120f, 90f);
+        window.ZIndex = (int)UiLayer.Popup + 20;
+        ModernOverlay.UI.ToolTip toolTip = new()
+        {
+            Owner = window,
+            Text = "Tooltip",
+            IsOpen = true,
+        };
+        ui.Root.Children.Add(window);
+        ui.Root.Children.Add(toolTip);
+        ui.Render(new DrawContext());
+
+        DispatchPointer(overlay, Win32PointerEventKind.Pressed, Win32PointerButton.Left, 20, 20);
+
+        Assert.IsTrue(window.ZIndex < (int)UiLayer.Popup);
+        Assert.IsTrue(toolTip.ZIndex > window.ZIndex);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
     public async Task CloseChromeAndEscapeRequestCloseAndRemoveWindow()
     {
         await using OverlayWindow overlay = await CreateOverlayAsync();

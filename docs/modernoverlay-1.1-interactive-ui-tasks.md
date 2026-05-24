@@ -97,7 +97,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - `OverlayUiRoot.Defer` runs immediately when the root is idle, queues during protected phases or deferred-operation flushing, and avoids recursive flushes so nested deferred operations cannot reorder earlier queued work.
 - [ ] Apply capture release and popup cleanup before new focus/capture assignment when deferred operations conflict.
 - [x] Allow click handlers to remove the clicked element without corrupting event dispatch.
-- [ ] Allow popup close during event bubbling without invalidating the current route.
+- [x] Allow popup close during event bubbling without invalidating the current route.
+  - Routed pointer, keyboard, and text-input dispatch now snapshot the target-to-root route before invoking handlers.
 - [ ] Schedule a follow-up layout pass when layout is invalidated during arrange.
 - [x] Release capture predictably when the capture owner is removed, disabled, hidden, or detached.
 - [ ] Add tests for removal during click, popup close during bubbling, invalidation during arrange, capture-owner removal, and focus-owner removal.

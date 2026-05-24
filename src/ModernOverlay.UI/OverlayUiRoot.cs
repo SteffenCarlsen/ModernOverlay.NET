@@ -720,8 +720,13 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
     private static void RoutePointer(UiElement target, UiPointerEventArgs args)
     {
         args.OriginalSource = target;
-        for (UiElement? current = target; current is not null && !args.Handled; current = current.Parent)
+        foreach (UiElement current in BuildRoute(target))
         {
+            if (args.Handled)
+            {
+                break;
+            }
+
             args.Source = current;
             args.RoutePhase = ReferenceEquals(current, target) ? UiRoutedEventPhase.Direct : UiRoutedEventPhase.Bubble;
             switch (args.Kind)
@@ -764,8 +769,13 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
     private static void RouteKey(UiElement target, UiKeyboardEventArgs args, bool pressed)
     {
         args.OriginalSource = target;
-        for (UiElement? current = target; current is not null && !args.Handled; current = current.Parent)
+        foreach (UiElement current in BuildRoute(target))
         {
+            if (args.Handled)
+            {
+                break;
+            }
+
             args.Source = current;
             args.RoutePhase = ReferenceEquals(current, target) ? UiRoutedEventPhase.Direct : UiRoutedEventPhase.Bubble;
             if (pressed)
@@ -782,8 +792,13 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
     private static void RouteTextInput(UiElement target, UiTextInputEventArgs args)
     {
         args.OriginalSource = target;
-        for (UiElement? current = target; current is not null && !args.Handled; current = current.Parent)
+        foreach (UiElement current in BuildRoute(target))
         {
+            if (args.Handled)
+            {
+                break;
+            }
+
             args.Source = current;
             args.RoutePhase = ReferenceEquals(current, target) ? UiRoutedEventPhase.Direct : UiRoutedEventPhase.Bubble;
             current.RaiseTextInput(args);
@@ -1013,6 +1028,9 @@ public sealed class OverlayUiRoot : IDisposable, IOverlayInputRegionResolver
 
         return path;
     }
+
+    private static UiElement[] BuildRoute(UiElement target)
+        => BuildElementPath(target).ToArray();
 
     private static bool IsUnavailableForTreeInput(UiElement element)
         => element.Visibility != UiVisibility.Visible || !element.IsEffectivelyEnabled;

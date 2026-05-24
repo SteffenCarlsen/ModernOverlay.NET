@@ -624,7 +624,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - UI diagnostics emit `UiLayoutLoop`, `UiInvalidPlacement`, `UiUnhandledException`, and `UiResourceRealizationFailure` through `OverlayEventSource`.
 - [x] Decide whether diagnostics use `OverlayEventSource`, `Microsoft.Extensions.Logging`, or both.
   - Use `OverlayEventSource` as the primary UI diagnostics contract; applications can bridge to `Microsoft.Extensions.Logging` with the existing `OverlayEventSourceLogger`.
-- [ ] Add tests for diagnostics counters where practical.
+- [x] Add tests for diagnostics counters where practical.
+  - `OverlayUiDiagnosticsTests` covers element count, layout passes, render passes, input-region checks, routed events, and active popup count.
 - [x] Add diagnostics sample panel if useful.
   - `InteractiveUiOverlay` includes a live diagnostics window showing element, layout, render, and popup metrics.
 

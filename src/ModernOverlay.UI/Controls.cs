@@ -1756,7 +1756,9 @@ public sealed class TextBox : UiControl
 /// </summary>
 public sealed class ListBox : Selector
 {
+    private const float TitleHeight = 24f;
     private float itemHeight = 24f;
+    private string title = string.Empty;
 
     /// <summary>
     /// Initializes a list box.
@@ -1783,15 +1785,28 @@ public sealed class ListBox : Selector
         }
     }
 
+    /// <summary>
+    /// Gets or sets the optional title rendered above the selectable item rows.
+    /// </summary>
+    public string Title
+    {
+        get => title;
+        set => SetProperty(ref title, value ?? string.Empty, UiInvalidation.Measure | UiInvalidation.Render | UiInvalidation.InputRegion);
+    }
+
     protected override SizeF MeasureCore(SizeF availableSize)
-        => new(MathF.Min(availableSize.Width, MathF.Max(MinWidth, 160f)), MathF.Min(availableSize.Height, MathF.Max(MinHeight, Items.Count * ItemHeight + Padding.Vertical)));
+        => new(
+            MathF.Min(availableSize.Width, MathF.Max(MinWidth, 160f)),
+            MathF.Min(availableSize.Height, MathF.Max(MinHeight, Items.Count * ItemHeight + Padding.Vertical + HeaderHeight)));
 
     protected override void RenderCore(UiRenderContext context)
     {
         bool enabled = IsEffectivelyEnabled;
         context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, enabled ? ResolveBackground(context) : ResolveDisabledBrush(context));
         context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, IsFocused && enabled ? ResolveFocusBrush(context) : ResolveBorderBrush(context));
-        RectF content = ContentBounds;
+        RectF content = ItemsBounds;
+        RenderTitle(context, enabled);
+
         int visibleCount = UiGeometry.VisibleUniformBandCount(content.Height, ItemHeight, Items.Count);
         for (int index = 0; index < visibleCount; index++)
         {
@@ -1815,7 +1830,7 @@ public sealed class ListBox : Selector
         }
 
         Focus();
-        RectF content = ContentBounds;
+        RectF content = ItemsBounds;
         int visibleCount = UiGeometry.VisibleUniformBandCount(content.Height, ItemHeight, Items.Count);
         int index = UiGeometry.UniformBandIndex(args.Position.Y, content.Y, ItemHeight, visibleCount);
         if (IsItemEnabled(index))
@@ -1868,6 +1883,38 @@ public sealed class ListBox : Selector
                 args.Handled = true;
                 break;
         }
+    }
+
+    private bool HasTitle => Title.Length > 0;
+
+    private float HeaderHeight => HasTitle ? TitleHeight : 0f;
+
+    private RectF TitleBounds => HasTitle ? new RectF(ContentBounds.X, ContentBounds.Y, ContentBounds.Width, TitleHeight) : new RectF(0f, 0f, 0f, 0f);
+
+    private RectF ItemsBounds
+    {
+        get
+        {
+            RectF content = ContentBounds;
+            float headerHeight = HeaderHeight;
+            return new RectF(content.X, content.Y + headerHeight, content.Width, MathF.Max(0f, content.Height - headerHeight));
+        }
+    }
+
+    private void RenderTitle(UiRenderContext context, bool enabled)
+    {
+        if (!HasTitle)
+        {
+            return;
+        }
+
+        RectF titleBounds = TitleBounds;
+        context.Draw.Fill.Rectangle(titleBounds, enabled ? context.Theme.SurfaceHover : ResolveDisabledBrush(context));
+        context.Draw.Draw.Line(
+            new PointF(titleBounds.X, titleBounds.Y + titleBounds.Height),
+            new PointF(titleBounds.X + titleBounds.Width, titleBounds.Y + titleBounds.Height),
+            ResolveBorderBrush(context));
+        context.Draw.Draw.Text(Title, context.Theme.Font, enabled ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(titleBounds.X + 6f, titleBounds.Y + 4f));
     }
 }
 

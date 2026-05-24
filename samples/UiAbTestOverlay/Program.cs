@@ -54,6 +54,7 @@ void SetStatus(string value)
 
 UiCommand sampleCommand = new(_ => SetStatus("Command executed"), _ => commandEnabled);
 
+UiWindow layoutWindow = CreateLayoutWindow(out Action<string> showLayoutPreview);
 UiWindow controlsWindow = CreateControlsWindow(
     status,
     bounds,
@@ -72,10 +73,10 @@ UiWindow controlsWindow = CreateControlsWindow(
         SetStatus(themeBActive ? "Theme B active" : "Theme A active");
     },
     layoutStore,
+    showLayoutPreview,
     controlsWindowWidth,
     controlsWindowHeight);
 
-UiWindow layoutWindow = CreateLayoutWindow();
 UiWindow popupWindow = CreatePopupWindow(out Button popupButton, out Button contextButton, out Button tooltipButton);
 UiWindow collapseWindow = CreateMinimizeWindow("Collapse", MinimizeBehavior.CollapseToTitleBar, new Thickness(24f, 24f, 0f, 0f), OverlayAnchor.BottomLeft);
 UiWindow hideWindow = CreateMinimizeWindow("Hide", MinimizeBehavior.HideUntilRestored, new Thickness(236f, 24f, 0f, 0f), OverlayAnchor.BottomLeft);
@@ -166,6 +167,7 @@ UiWindow CreateControlsWindow(
     Action toggleCommand,
     Action toggleTheme,
     IUiLayoutStore store,
+    Action<string> showLayoutPreview,
     float windowWidth,
     float windowHeight)
 {
@@ -181,7 +183,7 @@ UiWindow CreateControlsWindow(
     Slider slider = new() { Minimum = 0f, Maximum = 100f, Value = 40f };
     ProgressBar progress = new() { Minimum = 0f, Maximum = 100f, Value = slider.Value, Height = 12f };
     ComboBox comboBox = new() { Placeholder = "Combo" };
-    ListBox listBox = new() { Height = 116f };
+    ListBox listBox = new() { Title = "Layout preview", Height = 140f };
     NumberBox numberBox = new() { Minimum = 0d, Maximum = 100d, Step = 5d, Value = 55d };
     ColorPicker colorPicker = new()
     {
@@ -216,6 +218,7 @@ UiWindow CreateControlsWindow(
     }
 
     segmented.SelectedIndex = 0;
+    listBox.SelectedIndex = 0;
 
     commandButton.Click += (_, _) => SetStatus("Command button clicked");
     canExecuteButton.Click += (_, _) => toggleCommand();
@@ -248,7 +251,14 @@ UiWindow CreateControlsWindow(
         SetStatus($"Slider: {slider.Value:0}");
     };
     comboBox.SelectionChanged += (_, _) => SetStatus($"Combo: {comboBox.SelectedItem}");
-    listBox.SelectionChanged += (_, _) => SetStatus($"List: {listBox.SelectedItem}");
+    listBox.SelectionChanged += (_, _) =>
+    {
+        if (listBox.SelectedItem is string layoutName)
+        {
+            showLayoutPreview(layoutName);
+            SetStatus($"Previewing {layoutName}");
+        }
+    };
     numberBox.ValueChanged += (_, _) =>
     {
         image.ImageOpacity = (float)(numberBox.Value / 100d);
@@ -327,19 +337,72 @@ UiWindow CreateControlsWindow(
     };
 }
 
-UiWindow CreateLayoutWindow()
+UiWindow CreateLayoutWindow(out Action<string> showLayoutPreview)
 {
-    Canvas canvas = new() { Height = 84f };
+    GroupBox preview = new() { Height = 170f };
+    showLayoutPreview = layoutName =>
+    {
+        preview.Header = $"{layoutName} preview";
+        preview.Content = CreateLayoutPreview(layoutName);
+    };
+    showLayoutPreview("Canvas");
+
+    StackPanel content = new() { Spacing = 8f };
+    content.Children.Add(new TextBlock { Text = "Select a layout in the main controls list to update this preview.", TextWrapping = UiTextWrapping.Wrap, MaxLines = 2 });
+    content.Children.Add(preview);
+
+    return new UiWindow
+    {
+        Title = "Layouts",
+        Width = 420f,
+        Height = 250f,
+        Placement = UiPlacement.AnchorTo(OverlayAnchor.TopRight, new Thickness(0f, 64f, 32f, 0f)),
+        Content = content,
+    };
+}
+
+UiElement CreateLayoutPreview(string layoutName)
+{
+    return layoutName switch
+    {
+        "StackPanel" => CreateStackPanelPreview(),
+        "DockPanel" => CreateDockPanelPreview(),
+        "WrapPanel" => CreateWrapPanelPreview(),
+        "Grid" => CreateGridPreview(),
+        _ => CreateCanvasPreview(),
+    };
+}
+
+Canvas CreateCanvasPreview()
+{
+    Canvas canvas = new() { Height = 112f };
     TextBlock canvasA = new() { Text = "Canvas A", Background = null };
     TextBlock canvasB = new() { Text = "Canvas B" };
+    TextBlock canvasC = new() { Text = "Manual position" };
     Canvas.SetLeft(canvasA, 8f);
     Canvas.SetTop(canvasA, 8f);
     Canvas.SetLeft(canvasB, 124f);
     Canvas.SetTop(canvasB, 42f);
+    Canvas.SetLeft(canvasC, 218f);
+    Canvas.SetTop(canvasC, 76f);
     canvas.Children.Add(canvasA);
     canvas.Children.Add(canvasB);
+    canvas.Children.Add(canvasC);
+    return canvas;
+}
 
-    DockPanel dock = new() { Height = 86f };
+StackPanel CreateStackPanelPreview()
+{
+    StackPanel stack = new() { Spacing = 6f, Height = 112f };
+    stack.Children.Add(new Button { Text = "First", Width = 120f });
+    stack.Children.Add(new Button { Text = "Second", Width = 160f });
+    stack.Children.Add(new Button { Text = "Third", Width = 96f });
+    return stack;
+}
+
+DockPanel CreateDockPanelPreview()
+{
+    DockPanel dock = new() { Height = 112f };
     TextBlock dockLeft = new() { Text = "Left", Width = 64f };
     TextBlock dockTop = new() { Text = "Top", Height = 24f };
     TextBlock dockFill = new() { Text = "Fill" };
@@ -348,26 +411,42 @@ UiWindow CreateLayoutWindow()
     dock.Children.Add(dockLeft);
     dock.Children.Add(dockTop);
     dock.Children.Add(dockFill);
+    return dock;
+}
 
-    WrapPanel wrap = new() { Spacing = 6f };
+WrapPanel CreateWrapPanelPreview()
+{
+    WrapPanel wrap = new() { Spacing = 6f, Height = 112f };
     foreach (string token in new[] { "Wrap", "Panel", "Flow", "Resizes", "Across", "Rows" })
     {
         wrap.Children.Add(new Button { Text = token, Width = 74f });
     }
 
-    StackPanel content = new() { Spacing = 8f };
-    content.Children.Add(new GroupBox { Header = "Canvas", Height = 104f, Content = canvas });
-    content.Children.Add(new GroupBox { Header = "DockPanel", Height = 106f, Content = dock });
-    content.Children.Add(new GroupBox { Header = "WrapPanel", Height = 116f, Content = wrap });
+    return wrap;
+}
 
-    return new UiWindow
-    {
-        Title = "Layouts",
-        Width = 420f,
-        Height = 390f,
-        Placement = UiPlacement.AnchorTo(OverlayAnchor.TopRight, new Thickness(0f, 64f, 32f, 0f)),
-        Content = content,
-    };
+Grid CreateGridPreview()
+{
+    Grid grid = new() { Height = 112f };
+    grid.Columns.Add(new GridDefinition(GridLength.Pixel(92f)));
+    grid.Columns.Add(new GridDefinition(GridLength.Star()));
+    grid.Rows.Add(new GridDefinition(GridLength.Pixel(36f)));
+    grid.Rows.Add(new GridDefinition(GridLength.Star()));
+
+    TextBlock fixedCell = new() { Text = "92px" };
+    TextBlock starCell = new() { Text = "Star column" };
+    TextBlock fillCell = new() { Text = "Grid fill" };
+    Grid.SetRow(fixedCell, 0);
+    Grid.SetColumn(fixedCell, 0);
+    Grid.SetRow(starCell, 0);
+    Grid.SetColumn(starCell, 1);
+    Grid.SetRow(fillCell, 1);
+    Grid.SetColumn(fillCell, 0);
+    Grid.SetColumnSpan(fillCell, 2);
+    grid.Children.Add(fixedCell);
+    grid.Children.Add(starCell);
+    grid.Children.Add(fillCell);
+    return grid;
 }
 
 UiWindow CreatePopupWindow(out Button popupButton, out Button contextButton, out Button tooltipButton)

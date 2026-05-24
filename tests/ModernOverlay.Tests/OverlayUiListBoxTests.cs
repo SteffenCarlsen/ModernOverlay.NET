@@ -49,6 +49,25 @@ public sealed class OverlayUiListBoxTests
 
     [TestMethod]
     [TestCategory("WindowsIntegration")]
+    public async Task TitleRendersAboveItemsAndDoesNotSelectRows()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        UiListBox listBox = CreateListBox("Alpha", "Bravo", "Charlie");
+        listBox.Title = "Layouts";
+        ui.Root.Children.Add(listBox);
+        ui.Render(new DrawContext());
+
+        DispatchPointer(overlay, Win32PointerEventKind.Pressed, Win32PointerButton.Left, 20, 20);
+        Assert.AreEqual(-1, listBox.SelectedIndex);
+
+        DispatchPointer(overlay, Win32PointerEventKind.Pressed, Win32PointerButton.Left, 20, 42);
+        Assert.AreEqual(0, listBox.SelectedIndex);
+        Assert.AreEqual("Alpha", listBox.SelectedItem);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
     public async Task PointerInUnrenderedPartialRowDoesNotSelectHiddenItem()
     {
         await using OverlayWindow overlay = await CreateOverlayAsync();

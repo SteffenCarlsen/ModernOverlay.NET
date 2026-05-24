@@ -533,8 +533,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Decide whether `Menu` and `ContextMenu` are part of the complete 1.1 MVP or explicit 1.2 follow-up controls: include both in 1.1 MVP.
 - [x] Implement `Menu`.
 - [x] Implement `ContextMenu`.
-- [ ] Add tests for menu open/close, keyboard navigation, submenu behavior if included, command invocation, and outside-click dismissal.
-  - Menu and context menu keyboard navigation are implemented; tests remain open.
+- [x] Add tests for menu open/close, keyboard navigation, submenu behavior if included, command invocation, and outside-click dismissal.
+  - `OverlayUiMenuTests` covers menu pointer commands, menu keyboard command invocation with disabled-item skipping, context-menu keyboard command invocation and close, plus outside-pointer and Escape dismissal. Submenus are not included in the 1.1 menu implementation.
 
 ## 23. Window And Panel Controls
 

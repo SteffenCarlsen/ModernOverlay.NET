@@ -41,6 +41,7 @@ public sealed class UiWindow : UiPanel
     private PointF dragOffset;
     private PointF resizeOrigin;
     private SizeF resizeStartSize;
+    private float? restoreMinHeight;
     private UiPlacement? placement;
     private UiPlacement? restorePlacement;
     private bool layoutRestored;
@@ -254,6 +255,12 @@ public sealed class UiWindow : UiPanel
     /// </summary>
     public void Restore()
     {
+        if (restoreMinHeight is { } minHeight)
+        {
+            MinHeight = minHeight;
+            restoreMinHeight = null;
+        }
+
         Visibility = UiVisibility.Visible;
         IsMinimized = false;
         if (restorePlacement is { } placement && Parent is Canvas)
@@ -453,8 +460,14 @@ public sealed class UiWindow : UiPanel
     {
         CaptureRestorePlacement();
         IsMinimized = true;
-        if (MinimizeBehavior == MinimizeBehavior.Dock && Parent is Canvas && Root is not null)
+        if (MinimizeBehavior == MinimizeBehavior.CollapseToTitleBar)
         {
+            CaptureRestoreMinHeight();
+            Height = HeaderHeight;
+        }
+        else if (MinimizeBehavior == MinimizeBehavior.Dock && Parent is Canvas && Root is not null)
+        {
+            CaptureRestoreMinHeight();
             Width = 200f;
             Height = HeaderHeight;
             Canvas.SetLeft(this, 8f);
@@ -471,6 +484,12 @@ public sealed class UiWindow : UiPanel
         }
 
         restorePlacement = UiPlacement.Manual(Canvas.GetLeft(this), Canvas.GetTop(this), Bounds.Width, Bounds.Height);
+    }
+
+    private void CaptureRestoreMinHeight()
+    {
+        restoreMinHeight ??= MinHeight;
+        MinHeight = MathF.Min(MinHeight, HeaderHeight);
     }
 
     private UiPlacement? ResolveActivePlacement()

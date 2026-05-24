@@ -554,7 +554,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add active/focused visual state.
 - [x] Bring to front on pointer press.
 - [x] Persist manual placement through `IUiLayoutStore` if configured.
-- [ ] Add tests for drag, resize, clamping, z-order, active state, close behavior, minimize behavior, and persistence callbacks.
+- [x] Add tests for drag, resize, clamping, z-order, active state, close behavior, minimize behavior, and persistence callbacks.
+  - `OverlayUiPlacementTests` covers placement clamping, persisted restore, and drag conversion. `OverlayUiWindowTests` covers drag/resize save callbacks, z-order and focus activation, close chrome/Escape close, and collapse/hide/dock minimize behavior.
 
 ### 23.2 GroupBox
 

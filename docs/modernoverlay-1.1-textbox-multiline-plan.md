@@ -30,7 +30,7 @@ This means multiline support needs a text layout model rather than only an `Acce
 
 ## Proposed Public API
 
-Initial recommended shape:
+Resolved public shape:
 
 ```csharp
 public enum TextBoxMode
@@ -46,15 +46,20 @@ public int MaxLines { get; set; }
 public float LineSpacing { get; set; }
 ```
 
-Recommended defaults:
+Resolved defaults and behavior:
 
 1. `Mode = TextBoxMode.SingleLine`.
-2. `AcceptsReturn = false`.
-3. `TextWrapping = UiTextWrapping.NoWrap`.
+2. `AcceptsReturn = false` in single-line mode.
+3. Multiline mode inserts new lines on Enter by default.
+4. Multiline mode defaults to wrapping.
+5. Explicit-height multiline boxes scroll internally enough to keep the caret visible.
+6. Home/End move to visual line start/end in multiline mode.
+7. Ctrl+Home/Ctrl+End move to document start/end in multiline mode.
+8. `MaxLines` is a layout/render limit, not an editing limit.
 4. `MaxLines = int.MaxValue`.
 5. `LineSpacing = 1.35f`.
 
-`Mode = MultiLine` should enable vertical layout and vertical viewport behavior. `AcceptsReturn` should decide whether Enter inserts a newline or is left available for form-level activation. This keeps multiline display/editing separate from return-key semantics.
+`Mode = MultiLine` enables vertical layout and vertical viewport behavior. `AcceptsReturn` remains public so callers can override Enter behavior when they want form-level activation instead of newline insertion.
 
 ## Internal Architecture
 
@@ -140,12 +145,12 @@ Update `samples/UiAbTestOverlay` with a visible multiline showcase:
 4. Show selection, caret movement, and text changes through existing status text.
 5. Keep it in the main controls window only if the window remains usable at common viewport sizes; otherwise put it in a dedicated text-input or editing panel.
 
-## Design Decisions Needed
+## Resolved Design Decisions
 
-1. Should the public mode be `TextBoxMode Mode` or a boolean property such as `IsMultiline`?
-2. Should multiline `TextBox` default `AcceptsReturn` to true when multiline mode is enabled, or should the user always opt into return insertion explicitly?
-3. Should `TextWrapping` default to `Wrap` or `NoWrap` in multiline mode?
-4. Should an explicit `Height` always imply internal vertical scrolling, or should overflow be clipped without scroll support for the first implementation?
-5. Should Home/End in multiline mode follow WinForms-style line navigation, with Ctrl+Home/Ctrl+End for document boundaries?
-6. Should `MaxLines` be an editing limit, a layout/render limit, or both?
-7. Should the AbTest showcase live in the existing main controls window or a separate small text-input window?
+1. Use `TextBoxMode Mode`, not `IsMultiline`.
+2. Multiline mode inserts new lines on Enter by default.
+3. Multiline mode defaults to wrapping.
+4. Explicit-height multiline boxes internally scroll enough to keep the caret visible.
+5. Home/End follows WinForms-style line navigation, with Ctrl+Home/Ctrl+End for document boundaries.
+6. `MaxLines` is a layout/render limit only.
+7. The AbTest showcase should live in a separate small text-input/editing window.

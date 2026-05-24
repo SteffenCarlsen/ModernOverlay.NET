@@ -481,12 +481,18 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - See `docs/modernoverlay-1.1-textbox-multiline-plan.md`.
 - [x] Decide whether multiline support is a separate control or part of `TextBox`.
   - Keep multiline support on `TextBox`; do not add a separate `MultiLineTextBox` control for 1.1.
-- [ ] Decide the exact public opt-in API: `TextBoxMode Mode`, `IsMultiline`, or another small property shape.
-- [ ] Decide return-key behavior for multiline editing.
-- [ ] Decide multiline wrapping defaults.
-- [ ] Decide internal vertical overflow behavior: scroll into view, clip only, or a staged combination.
-- [ ] Decide Home/End semantics for line versus document navigation.
-- [ ] Decide whether `MaxLines` limits editing, layout/rendering, or both.
+- [x] Decide the exact public opt-in API: `TextBoxMode Mode`, `IsMultiline`, or another small property shape.
+  - Use `TextBoxMode Mode`.
+- [x] Decide return-key behavior for multiline editing.
+  - Multiline mode inserts new lines on Enter by default, with `AcceptsReturn` available for callers that need to opt out.
+- [x] Decide multiline wrapping defaults.
+  - Multiline mode defaults to wrapping.
+- [x] Decide internal vertical overflow behavior: scroll into view, clip only, or a staged combination.
+  - Explicit-height multiline boxes scroll internally enough to keep the caret visible.
+- [x] Decide Home/End semantics for line versus document navigation.
+  - Home/End move to line start/end, while Ctrl+Home/Ctrl+End move to document boundaries.
+- [x] Decide whether `MaxLines` limits editing, layout/rendering, or both.
+  - `MaxLines` is a layout/render limit only.
 - [ ] Implement an internal text line model shared by multiline render, selection, caret placement, hit testing, and scrolling.
 - [ ] Normalize line breaks for editing while preserving public `Text` behavior.
 - [ ] Add multiline pointer hit testing and drag selection across lines.

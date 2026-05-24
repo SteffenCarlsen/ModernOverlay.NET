@@ -21,7 +21,7 @@ public sealed class OverlayUiColorPickerTests
         ui.Root.Children.Add(picker);
         ui.Render(new DrawContext());
 
-        ColorRgba selected = ColorRgba.FromBytes(32, 64, 128, 192);
+        var selected = ColorRgba.FromBytes(32, 64, 128, 192);
         picker.Value = selected;
         ui.Render(new DrawContext());
 
@@ -34,6 +34,23 @@ public sealed class OverlayUiColorPickerTests
         Assert.AreEqual(selected, sink.FilledRoundedRectangles[0].Brush.Color);
         Assert.Contains("Selfmade indicator colour", sink.TextRuns);
         Assert.Contains("#204080 (192)", sink.TextRuns);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task ShowHexTextCanHideHexReadout()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        ColorPicker picker = CreateColorPicker();
+        picker.ShowHexText = false;
+        picker.Value = ColorRgba.FromBytes(148, 36, 234, 173);
+        ui.Root.Children.Add(picker);
+        var sink = new RecordingDrawCommandSink();
+
+        ui.Render(new DrawContext(sink));
+
+        CollectionAssert.DoesNotContain(sink.TextRuns, "#9424EA (173)");
     }
 
     [TestMethod]

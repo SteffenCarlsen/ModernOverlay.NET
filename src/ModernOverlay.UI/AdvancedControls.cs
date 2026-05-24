@@ -652,10 +652,12 @@ public sealed class ColorPicker : UiPanel
     private const float AlphaHeight = 12f;
     private const float PreviewSize = 24f;
     private const float HeaderHeight = 28f;
+    private const float HexTextWidth = 96f;
 
     private ColorRgba value = ColorRgba.White;
     private string label = string.Empty;
     private bool isExpanded;
+    private bool showHexText = true;
     private float hue;
     private float saturation;
     private float brightness = 1f;
@@ -704,6 +706,15 @@ public sealed class ColorPicker : UiPanel
     }
 
     /// <summary>
+    /// Gets or sets whether the hexadecimal color value is rendered next to the preview.
+    /// </summary>
+    public bool ShowHexText
+    {
+        get => showHexText;
+        set => SetProperty(ref showHexText, value, UiInvalidation.Measure | UiInvalidation.Render);
+    }
+
+    /// <summary>
     /// Gets or sets the selected color value.
     /// </summary>
     public ColorRgba Value
@@ -714,8 +725,14 @@ public sealed class ColorPicker : UiPanel
 
     protected override SizeF MeasureCore(SizeF availableSize)
     {
-        float height = IsExpanded ? 174f : HeaderHeight;
-        return new SizeF(MathF.Min(availableSize.Width, MathF.Max(MinWidth, 190f)), MathF.Max(MinHeight, height));
+        float height = IsExpanded ? HeaderHeight + Gap + 132f + Gap + AlphaHeight + Gap + PreviewSize : HeaderHeight;
+        float width = MathF.Max(MinWidth, PreviewSize + (ShowHexText ? HexTextWidth + Gap : 0f));
+        if (Label.Length > 0)
+        {
+            width = MathF.Max(width, IsExpanded ? 230f : 190f);
+        }
+
+        return new SizeF(MathF.Min(availableSize.Width, width), MathF.Max(MinHeight, height));
     }
 
     protected override void ArrangeCore(RectF finalRect)
@@ -732,7 +749,7 @@ public sealed class ColorPicker : UiPanel
         }
 
         DrawPreview(context, preview, enabled);
-        context.Draw.Draw.Text(HexText(), context.Theme.Font, enabled ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(preview.X + PreviewSize + 8f, preview.Y + 4f));
+        DrawHexText(context, new PointF(preview.X + PreviewSize + Gap, preview.Y + 4f), enabled);
         if (!IsExpanded)
         {
             if (IsFocused && enabled)
@@ -760,7 +777,7 @@ public sealed class ColorPicker : UiPanel
         context.Draw.Draw.Rectangle(new RectF(alphaX - 2f, alphaStrip.Y - 2f, 4f, alphaStrip.Height + 4f), enabled ? ResolveForeground(context) : ResolveDisabledBrush(context));
 
         DrawPreview(context, expandedPreview, enabled);
-        context.Draw.Draw.Text(HexText(), context.Theme.Font, enabled ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(expandedPreview.X + PreviewSize + 8f, expandedPreview.Y + 4f));
+        DrawHexText(context, new PointF(expandedPreview.X + PreviewSize + Gap, expandedPreview.Y + 4f), enabled);
 
         if (IsFocused && enabled)
         {
@@ -867,9 +884,8 @@ public sealed class ColorPicker : UiPanel
         get
         {
             RectF content = ContentBounds;
-            float x = Label.Length > 0
-                ? MathF.Max(content.X, content.X + content.Width - PreviewSize - 88f)
-                : content.X;
+            float valueWidth = PreviewSize + (ShowHexText ? HexTextWidth + Gap : 0f);
+            float x = Label.Length > 0 ? MathF.Max(content.X, content.X + content.Width - valueWidth) : content.X;
             return new RectF(x, content.Y + MathF.Max(0f, HeaderHeight - PreviewSize) / 2f, PreviewSize, PreviewSize);
         }
     }
@@ -889,7 +905,8 @@ public sealed class ColorPicker : UiPanel
         {
             RectF content = ContentBounds;
             float y = content.Y + HeaderHeight + Gap;
-            return new RectF(content.X, y, content.Width, MathF.Max(0f, content.Y + content.Height - y));
+            float width = MathF.Min(content.Width, 230f);
+            return new RectF(content.X, y, width, MathF.Max(0f, content.Y + content.Height - y));
         }
     }
 
@@ -1022,6 +1039,16 @@ public sealed class ColorPicker : UiPanel
         DrawChecker(context, bounds);
         context.Draw.Fill.RoundedRectangle(bounds, 3f, 3f, enabled ? previewBrush ?? ResolveAccentBrush(context) : ResolveDisabledBrush(context));
         context.Draw.Draw.RoundedRectangle(bounds, 3f, 3f, ResolveBorderBrush(context));
+    }
+
+    private void DrawHexText(UiRenderContext context, PointF origin, bool enabled)
+    {
+        if (!ShowHexText)
+        {
+            return;
+        }
+
+        context.Draw.Draw.Text(HexText(), context.Theme.Font, enabled ? ResolveForeground(context) : ResolveDisabledBrush(context), origin);
     }
 
     private void RecreateColorResources()

@@ -49,7 +49,7 @@ var layoutStore = new MemoryLayoutStore();
 bool themeBActive = false;
 bool commandEnabled = true;
 int frameCounter = 0;
-float controlsWindowWidth = Math.Clamp(fullScreenBounds.Width - 64f, 360f, 860f);
+float controlsWindowWidth = Math.Clamp(fullScreenBounds.Width - 220f, 520f, 760f);
 float controlsWindowHeight = Math.Clamp(fullScreenBounds.Height - 96f, 420f, 760f);
 
 TextBlock status = new() { Text = "Ready", TextWrapping = UiTextWrapping.Wrap, MaxLines = 2 };
@@ -194,7 +194,9 @@ UiWindow CreateControlsWindow(
     ColorPicker colorPicker = new()
     {
         Label = "Selfmade indicator colour",
+        ShowHexText = false,
         Value = ColorRgba.FromBytes(18, 240, 52, 254),
+        Width = 230f,
     };
     SegmentedControl segmented = new() { Width = 260f };
     UiImage image = new()
@@ -305,7 +307,9 @@ UiWindow CreateControlsWindow(
     overview.Children.Add(segmented);
     overview.Children.Add(alignmentButtons);
     tabs.Add("Overview", overview);
-    tabs.Add("Color", colorPicker);
+    Canvas colorSurface = new();
+    colorSurface.Children.Add(colorPicker);
+    tabs.Add("Color", colorSurface);
 
     StackPanel content = new() { Spacing = 8f };
     content.Children.Add(CreateMenu());

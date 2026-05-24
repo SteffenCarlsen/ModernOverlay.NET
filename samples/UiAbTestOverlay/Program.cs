@@ -114,7 +114,7 @@ foreach (UiWindow window in new[] { controlsWindow, layoutWindow, popupWindow, c
     };
 }
 
-Button restoreAll = new() { Text = "Restore windows", Width = 150f };
+Button restoreAll = new() { Text = "Restore windows", Width = 150f, TextHorizontalAlignment = UiHorizontalAlignment.Center };
 restoreAll.Click += (_, _) =>
 {
     foreach (UiWindow window in new[] { controlsWindow, layoutWindow, popupWindow, collapseWindow, hideWindow, dockWindow, diagnosticsWindow })
@@ -171,11 +171,11 @@ UiWindow CreateControlsWindow(
     float windowWidth,
     float windowHeight)
 {
-    Button commandButton = new() { Text = "Command", Width = 120f, Command = command };
-    Button canExecuteButton = new() { Text = "CanExecute", Width = 120f };
-    Button themeButton = new() { Text = "Theme A/B", Width = 120f };
-    Button persistButton = new() { Text = "Persist", Width = 100f };
-    ToggleButton toggle = new() { Text = "Toggle", Width = 110f, IsThreeState = true };
+    Button commandButton = new() { Text = "Command", Width = 120f, Command = command, TextHorizontalAlignment = UiHorizontalAlignment.Center };
+    Button canExecuteButton = new() { Text = "CanExecute", Width = 120f, TextHorizontalAlignment = UiHorizontalAlignment.Center };
+    Button themeButton = new() { Text = "Theme A/B", Width = 120f, TextHorizontalAlignment = UiHorizontalAlignment.Center };
+    Button persistButton = new() { Text = "Persist", Width = 100f, TextHorizontalAlignment = UiHorizontalAlignment.Center };
+    ToggleButton toggle = new() { Text = "Toggle", Width = 110f, IsThreeState = true, TextHorizontalAlignment = UiHorizontalAlignment.Center };
     CheckBox checkBox = new() { Text = "Tri-state", IsThreeState = true };
     RadioButton alpha = new() { Text = "Alpha", GroupName = "ab", IsChecked = true };
     RadioButton beta = new() { Text = "Beta", GroupName = "ab" };
@@ -298,7 +298,7 @@ UiWindow CreateControlsWindow(
 
     StackPanel alignmentButtons = new() { Orientation = UiOrientation.Horizontal, Spacing = 6f };
     alignmentButtons.Children.Add(new Button { Text = "Left", Width = 82f, TextHorizontalAlignment = UiHorizontalAlignment.Left });
-    alignmentButtons.Children.Add(new Button { Text = "Center", Width = 82f });
+    alignmentButtons.Children.Add(new Button { Text = "Center", Width = 82f, TextHorizontalAlignment = UiHorizontalAlignment.Center });
     alignmentButtons.Children.Add(new Button { Text = "Right", Width = 82f, TextHorizontalAlignment = UiHorizontalAlignment.Right });
 
     TabControl tabs = new() { Height = 238f };
@@ -394,9 +394,9 @@ Canvas CreateCanvasPreview()
 StackPanel CreateStackPanelPreview()
 {
     StackPanel stack = new() { Spacing = 6f, Height = 112f };
-    stack.Children.Add(new Button { Text = "First", Width = 120f });
-    stack.Children.Add(new Button { Text = "Second", Width = 160f });
-    stack.Children.Add(new Button { Text = "Third", Width = 96f });
+    stack.Children.Add(new Button { Text = "First", Width = 120f, TextHorizontalAlignment = UiHorizontalAlignment.Center });
+    stack.Children.Add(new Button { Text = "Second", Width = 160f, TextHorizontalAlignment = UiHorizontalAlignment.Center });
+    stack.Children.Add(new Button { Text = "Third", Width = 96f, TextHorizontalAlignment = UiHorizontalAlignment.Center });
     return stack;
 }
 
@@ -419,7 +419,7 @@ WrapPanel CreateWrapPanelPreview()
     WrapPanel wrap = new() { Spacing = 6f, Height = 112f };
     foreach (string token in new[] { "Wrap", "Panel", "Flow", "Resizes", "Across", "Rows" })
     {
-        wrap.Children.Add(new Button { Text = token, Width = 74f });
+        wrap.Children.Add(new Button { Text = token, Width = 74f, TextHorizontalAlignment = UiHorizontalAlignment.Center });
     }
 
     return wrap;
@@ -453,9 +453,9 @@ UiWindow CreatePopupWindow(out Button popupButton, out Button contextButton, out
 {
     TextBox target = new() { Placeholder = "Label focus target" };
     Label focusLabel = new() { Text = "Focus target label", Target = target };
-    popupButton = new Button { Text = "Popup", Width = 104f };
-    contextButton = new Button { Text = "Context", Width = 104f };
-    tooltipButton = new Button { Text = "Tooltip", Width = 104f };
+    popupButton = new Button { Text = "Popup", Width = 104f, TextHorizontalAlignment = UiHorizontalAlignment.Center };
+    contextButton = new Button { Text = "Context", Width = 104f, TextHorizontalAlignment = UiHorizontalAlignment.Center };
+    tooltipButton = new Button { Text = "Tooltip", Width = 104f, TextHorizontalAlignment = UiHorizontalAlignment.Center };
     tooltipButton.Click += (_, _) => SetStatus("Tooltip button clicked");
 
     StackPanel buttons = new() { Orientation = UiOrientation.Horizontal, Spacing = 8f };
@@ -527,7 +527,7 @@ Popup CreatePopup(Button owner)
     };
     StackPanel content = new() { Spacing = 6f };
     content.Children.Add(new TextBlock { Text = "Popup content" });
-    content.Children.Add(new Button { Text = "Popup button", Width = 130f });
+    content.Children.Add(new Button { Text = "Popup button", Width = 130f, TextHorizontalAlignment = UiHorizontalAlignment.Center });
     popup.Children.Add(content);
     return popup;
 }

@@ -1,14 +1,14 @@
 namespace ModernOverlay.UI;
 
 /// <summary>
-/// Base class for interactive controls.
+/// Base class for interactive controls. It does not add behavior beyond <see cref="UiElement"/>; derived controls opt in to focus and hit testing.
 /// </summary>
 public class UiControl : UiElement
 {
 }
 
 /// <summary>
-/// Represents the item collection used by selector controls.
+/// Represents the item collection used by selector controls. Mutations automatically coerce selection and invalidate layout, render, and input regions.
 /// </summary>
 public class UiItemCollection : System.Collections.ObjectModel.Collection<object?>
 {
@@ -64,12 +64,12 @@ public abstract class Selector : UiControl
     public event EventHandler? SelectionChanged;
 
     /// <summary>
-    /// Gets the selectable items.
+    /// Gets the selectable items. Items may be any object; display text is resolved through <see cref="DisplayTextSelector"/> or <see cref="object.ToString()"/>.
     /// </summary>
     public UiItemCollection Items { get; }
 
     /// <summary>
-    /// Gets or sets the selected item index, or -1 when no item is selected.
+    /// Gets or sets the selected item index, or -1 when no item is selected. Values outside the current item range are coerced.
     /// </summary>
     public int SelectedIndex
     {
@@ -90,7 +90,7 @@ public abstract class Selector : UiControl
     public object? SelectedItem => IsSelectedIndexValid ? Items[SelectedIndex] : null;
 
     /// <summary>
-    /// Gets or sets a function used to convert items to display text.
+    /// Gets or sets a function used to convert items to display text for built-in selector renderers.
     /// </summary>
     public Func<object?, string>? DisplayTextSelector
     {
@@ -99,7 +99,7 @@ public abstract class Selector : UiControl
     }
 
     /// <summary>
-    /// Gets or sets a function used to decide whether an item can be selected through pointer or keyboard input.
+    /// Gets or sets a function used to decide whether an item can be selected through pointer or keyboard input. Disabled items remain visible but cannot become selected through built-in interaction.
     /// </summary>
     public Func<object?, bool>? IsItemEnabledSelector
     {
@@ -204,7 +204,7 @@ public class ContentControl : UiPanel
     private UiVerticalAlignment contentVerticalAlignment = UiVerticalAlignment.Stretch;
 
     /// <summary>
-    /// Gets or sets the hosted content element.
+    /// Gets or sets the hosted content element. Assigning a new element removes the previous content from the child tree.
     /// </summary>
     public UiElement? Content
     {
@@ -232,7 +232,7 @@ public class ContentControl : UiPanel
     }
 
     /// <summary>
-    /// Gets or sets horizontal alignment for the hosted content.
+    /// Gets or sets horizontal alignment for the hosted content within the content slot.
     /// </summary>
     public UiHorizontalAlignment ContentHorizontalAlignment
     {
@@ -241,7 +241,7 @@ public class ContentControl : UiPanel
     }
 
     /// <summary>
-    /// Gets or sets vertical alignment for the hosted content.
+    /// Gets or sets vertical alignment for the hosted content within the content slot.
     /// </summary>
     public UiVerticalAlignment ContentVerticalAlignment
     {
@@ -298,7 +298,7 @@ public class HeaderedContentControl : ContentControl
     private string header = string.Empty;
 
     /// <summary>
-    /// Gets or sets the header text.
+    /// Gets or sets the header text used by derived controls when they render a title or caption.
     /// </summary>
     public string Header
     {

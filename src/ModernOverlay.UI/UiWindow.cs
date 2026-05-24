@@ -6,12 +6,12 @@ namespace ModernOverlay.UI;
 public enum MinimizeBehavior
 {
     /// <summary>
-    /// Keep the window visible as a title bar.
+    /// Keep the window visible as a title bar at its current placement.
     /// </summary>
     CollapseToTitleBar,
 
     /// <summary>
-    /// Hide the window until it is restored.
+    /// Hide the window until it is restored through application code or a retained reference.
     /// </summary>
     HideUntilRestored,
 
@@ -68,7 +68,7 @@ public sealed class UiWindow : UiPanel
     }
 
     /// <summary>
-    /// Occurs when the user requests that the window close.
+    /// Occurs when the user requests that the window close through the close chrome or Escape key. The default close action removes the window from its parent.
     /// </summary>
     public event EventHandler? CloseRequested;
 
@@ -151,7 +151,7 @@ public sealed class UiWindow : UiPanel
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the window is minimized.
+    /// Gets or sets a value indicating whether the window is minimized. The resulting layout behavior is controlled by <see cref="MinimizeBehavior"/>.
     /// </summary>
     public bool IsMinimized
     {
@@ -179,7 +179,7 @@ public sealed class UiWindow : UiPanel
     }
 
     /// <summary>
-    /// Gets or sets the dynamic placement rule used when the window is arranged in a <see cref="Canvas"/>.
+    /// Gets or sets the dynamic placement rule used when the window is arranged in a <see cref="Canvas"/>. Manual placement writes canvas coordinates; anchored placement resolves against the overlay, target, or cursor depending on the placement kind.
     /// </summary>
     public UiPlacement? Placement
     {
@@ -194,7 +194,7 @@ public sealed class UiWindow : UiPanel
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether resolved placement is clamped to the overlay bounds.
+    /// Gets or sets a value indicating whether resolved placement is clamped to the overlay bounds after placement resolution.
     /// </summary>
     public bool ClampPlacementToOverlay
     {
@@ -203,7 +203,7 @@ public sealed class UiWindow : UiPanel
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether clamping should keep at least the header visible.
+    /// Gets or sets a value indicating whether clamping should keep at least the header visible when the window is taller than the overlay.
     /// </summary>
     public bool PreserveVisibleHeader
     {
@@ -212,7 +212,7 @@ public sealed class UiWindow : UiPanel
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether dragging converts dynamic placement into manual placement.
+    /// Gets or sets a value indicating whether dragging converts dynamic placement into manual placement so the user-moved position persists for later layout passes.
     /// </summary>
     public bool ConvertPlacementToManualOnDrag
     {
@@ -221,7 +221,7 @@ public sealed class UiWindow : UiPanel
     }
 
     /// <summary>
-    /// Gets or sets the optional layout persistence key used with <see cref="LayoutStore"/>.
+    /// Gets or sets the optional layout persistence key used with <see cref="LayoutStore"/> when <see cref="Placement"/> is not a persisted placement.
     /// </summary>
     public string? LayoutKey
     {
@@ -236,7 +236,7 @@ public sealed class UiWindow : UiPanel
     }
 
     /// <summary>
-    /// Gets or sets the optional layout persistence store used to restore and save manual placement.
+    /// Gets or sets the optional layout persistence store used to restore and save manual placement. Storage is application-owned; the UI package does not provide JSON or file persistence.
     /// </summary>
     public IUiLayoutStore? LayoutStore
     {
@@ -251,7 +251,7 @@ public sealed class UiWindow : UiPanel
     }
 
     /// <summary>
-    /// Restores the window from its minimized state.
+    /// Restores the window from its minimized state and reapplies the placement captured before minimizing when available.
     /// </summary>
     public void Restore()
     {

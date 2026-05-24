@@ -10,28 +10,28 @@ public sealed class Canvas : UiPanel
     private static readonly ConditionalWeakTable<UiElement, CanvasPlacement> Placements = [];
 
     /// <summary>
-    /// Sets the left attached coordinate for an element.
+    /// Sets the left attached coordinate for an element. When both left and right are set, the child stretches to the remaining width.
     /// </summary>
     /// <param name="element">The element to position.</param>
     /// <param name="value">The left coordinate in DIPs.</param>
     public static void SetLeft(UiElement element, float value) => SetCoordinate(element, placement => placement.Left = Validate(value));
 
     /// <summary>
-    /// Sets the top attached coordinate for an element.
+    /// Sets the top attached coordinate for an element. When both top and bottom are set, the child stretches to the remaining height.
     /// </summary>
     /// <param name="element">The element to position.</param>
     /// <param name="value">The top coordinate in DIPs.</param>
     public static void SetTop(UiElement element, float value) => SetCoordinate(element, placement => placement.Top = Validate(value));
 
     /// <summary>
-    /// Sets the right attached coordinate for an element.
+    /// Sets the right attached coordinate for an element. The coordinate is measured from the canvas content right edge.
     /// </summary>
     /// <param name="element">The element to position.</param>
     /// <param name="value">The right coordinate in DIPs.</param>
     public static void SetRight(UiElement element, float value) => SetCoordinate(element, placement => placement.Right = Validate(value));
 
     /// <summary>
-    /// Sets the bottom attached coordinate for an element.
+    /// Sets the bottom attached coordinate for an element. The coordinate is measured from the canvas content bottom edge.
     /// </summary>
     /// <param name="element">The element to position.</param>
     /// <param name="value">The bottom coordinate in DIPs.</param>
@@ -185,7 +185,7 @@ public sealed class StackPanel : UiPanel
     private float spacing;
 
     /// <summary>
-    /// Gets or sets the stacking direction.
+    /// Gets or sets the stacking direction. Vertical stacks stretch children to the available width; horizontal stacks stretch children to the available height.
     /// </summary>
     public UiOrientation Orientation
     {
@@ -278,7 +278,7 @@ public sealed class DockPanel : UiPanel
     private bool fillLastChild = true;
 
     /// <summary>
-    /// Gets or sets whether the last child fills the remaining space.
+    /// Gets or sets whether the last child fills the remaining space regardless of its attached dock value.
     /// </summary>
     public bool FillLastChild
     {
@@ -287,7 +287,7 @@ public sealed class DockPanel : UiPanel
     }
 
     /// <summary>
-    /// Sets the dock edge for a child element.
+    /// Sets the dock edge for a child element. Children are arranged in insertion order, each consuming space from the remaining rectangle.
     /// </summary>
     /// <param name="element">The child element.</param>
     /// <param name="dock">The dock edge.</param>
@@ -390,7 +390,7 @@ public sealed class WrapPanel : UiPanel
     private float spacing;
 
     /// <summary>
-    /// Gets or sets spacing between child elements in DIPs.
+    /// Gets or sets spacing between child elements in DIPs, applied both between items in a row and between wrapped rows.
     /// </summary>
     public float Spacing
     {
@@ -465,24 +465,24 @@ public sealed class Grid : UiPanel
     private static readonly ConditionalWeakTable<UiElement, GridPlacement> Placements = [];
 
     /// <summary>
-    /// Gets the grid row definitions.
+    /// Gets the grid row definitions. When no rows are defined, the grid behaves as if it had one star-sized row.
     /// </summary>
     public IList<GridDefinition> Rows { get; } = [];
 
     /// <summary>
-    /// Gets the grid column definitions.
+    /// Gets the grid column definitions. When no columns are defined, the grid behaves as if it had one star-sized column.
     /// </summary>
     public IList<GridDefinition> Columns { get; } = [];
 
     /// <summary>
-    /// Sets the row index for a child element.
+    /// Sets the row index for a child element. Indexes beyond the defined rows are clamped to the last effective row during layout.
     /// </summary>
     /// <param name="element">The child element.</param>
     /// <param name="row">The zero-based row index.</param>
     public static void SetRow(UiElement element, int row) => SetPlacement(element, placement => placement.Row = ValidateIndex(row));
 
     /// <summary>
-    /// Sets the column index for a child element.
+    /// Sets the column index for a child element. Indexes beyond the defined columns are clamped to the last effective column during layout.
     /// </summary>
     /// <param name="element">The child element.</param>
     /// <param name="column">The zero-based column index.</param>
@@ -503,14 +503,14 @@ public sealed class Grid : UiPanel
     public static int GetColumn(UiElement element) => GetPlacement(element).Column;
 
     /// <summary>
-    /// Sets the row span for a child element.
+    /// Sets the row span for a child element. The span is clamped so it cannot extend beyond the effective row count.
     /// </summary>
     /// <param name="element">The child element.</param>
     /// <param name="rowSpan">The number of rows to span.</param>
     public static void SetRowSpan(UiElement element, int rowSpan) => SetPlacement(element, placement => placement.RowSpan = ValidateSpan(rowSpan));
 
     /// <summary>
-    /// Sets the column span for a child element.
+    /// Sets the column span for a child element. The span is clamped so it cannot extend beyond the effective column count.
     /// </summary>
     /// <param name="element">The child element.</param>
     /// <param name="columnSpan">The number of columns to span.</param>

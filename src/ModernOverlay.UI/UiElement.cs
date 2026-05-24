@@ -140,7 +140,7 @@ public abstract class UiElement
     }
 
     /// <summary>
-    /// Gets or sets whether the element can render as enabled and participate in input.
+    /// Gets or sets whether the element can render as enabled and participate in input. Disabled ancestors also disable descendants.
     /// </summary>
     public bool IsEnabled
     {
@@ -154,7 +154,7 @@ public abstract class UiElement
     public bool IsEffectivelyEnabled => IsEnabled && (Parent?.IsEffectivelyEnabled ?? true);
 
     /// <summary>
-    /// Gets or sets whether this element can be returned by hit testing.
+    /// Gets or sets whether this element can be returned by hit testing. Panels can still route input to children when this is <see langword="false"/>.
     /// </summary>
     public bool ReceivesInput
     {
@@ -163,7 +163,7 @@ public abstract class UiElement
     }
 
     /// <summary>
-    /// Gets or sets a custom input-region predicate for selective click-through.
+    /// Gets or sets a custom input-region predicate for selective click-through. The predicate receives overlay-local DIPs and can narrow or expand the element's hittable area.
     /// </summary>
     public UiInputRegionHandler? InputRegion
     {
@@ -181,7 +181,7 @@ public abstract class UiElement
     }
 
     /// <summary>
-    /// Gets or sets the tab-order index used by focus navigation.
+    /// Gets or sets the tab-order index used by focus navigation. Lower values are visited first within the root.
     /// </summary>
     public int TabIndex
     {
@@ -207,7 +207,7 @@ public abstract class UiElement
     }
 
     /// <summary>
-    /// Gets or sets the z-order within the parent panel.
+    /// Gets or sets the z-order within the parent panel. Higher values render later and are hit-tested first.
     /// </summary>
     public int ZIndex
     {
@@ -315,7 +315,7 @@ public abstract class UiElement
     }
 
     /// <summary>
-    /// Gets or sets the background brush override.
+    /// Gets or sets the background brush override used by built-in controls instead of the current theme surface brush.
     /// </summary>
     public BrushHandle? Background
     {
@@ -324,7 +324,7 @@ public abstract class UiElement
     }
 
     /// <summary>
-    /// Gets or sets the foreground brush override.
+    /// Gets or sets the foreground brush override used by built-in controls instead of the current theme foreground brush.
     /// </summary>
     public BrushHandle? Foreground
     {
@@ -378,7 +378,7 @@ public abstract class UiElement
     }
 
     /// <summary>
-    /// Gets or sets the focus brush override.
+    /// Gets or sets the focus brush override used for keyboard-focus outlines.
     /// </summary>
     public BrushHandle? FocusBrush
     {
@@ -387,7 +387,7 @@ public abstract class UiElement
     }
 
     /// <summary>
-    /// Gets or sets the popup background brush override.
+    /// Gets or sets the popup background brush override used by popup-style controls.
     /// </summary>
     public BrushHandle? PopupBackground
     {
@@ -396,7 +396,7 @@ public abstract class UiElement
     }
 
     /// <summary>
-    /// Gets or sets the window chrome background brush override.
+    /// Gets or sets the window chrome background brush override used by <see cref="UiWindow"/> title bars.
     /// </summary>
     public BrushHandle? WindowChromeBackground
     {
@@ -506,7 +506,7 @@ public abstract class UiElement
     public void MoveFocusPrevious() => Root?.MoveFocusPrevious();
 
     /// <summary>
-    /// Captures pointer events for this element.
+    /// Captures pointer events for this element until <see cref="ReleasePointerCapture"/> is called or the element is detached.
     /// </summary>
     public void CapturePointer() => Root?.CapturePointer(this);
 

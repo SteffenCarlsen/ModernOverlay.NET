@@ -47,7 +47,7 @@ public sealed class NumberBox : UiPanel
     public event EventHandler? ValueChanged;
 
     /// <summary>
-    /// Gets or sets the minimum allowed value.
+    /// Gets or sets the minimum allowed value. Raising it above <see cref="Maximum"/> also raises <see cref="Maximum"/>.
     /// </summary>
     public double Minimum
     {
@@ -65,7 +65,7 @@ public sealed class NumberBox : UiPanel
     }
 
     /// <summary>
-    /// Gets or sets the maximum allowed value.
+    /// Gets or sets the maximum allowed value. Values lower than <see cref="Minimum"/> are coerced to <see cref="Minimum"/>.
     /// </summary>
     public double Maximum
     {
@@ -78,7 +78,7 @@ public sealed class NumberBox : UiPanel
     }
 
     /// <summary>
-    /// Gets or sets the increment used by the step buttons.
+    /// Gets or sets the increment used by the step buttons. The value must be finite and greater than zero.
     /// </summary>
     public double Step
     {
@@ -95,7 +95,7 @@ public sealed class NumberBox : UiPanel
     }
 
     /// <summary>
-    /// Gets or sets the current numeric value.
+    /// Gets or sets the current numeric value. Assigned values are clamped to <see cref="Minimum"/> and <see cref="Maximum"/>, and typed text is parsed using invariant culture.
     /// </summary>
     public double Value
     {
@@ -215,7 +215,7 @@ public sealed class GroupBox : UiPanel
     }
 
     /// <summary>
-    /// Gets or sets the group content element.
+    /// Gets or sets the group content element. Assigning a new element removes the previous content from the child tree.
     /// </summary>
     public UiElement? Content
     {
@@ -293,7 +293,7 @@ public sealed class TabItem
     public UiElement Content { get; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the tab can be selected.
+    /// Gets or sets a value indicating whether the tab can be selected by pointer or keyboard navigation.
     /// </summary>
     public bool IsEnabled { get; set; } = true;
 }
@@ -323,12 +323,12 @@ public sealed class TabControl : UiPanel
     public event EventHandler? SelectionChanged;
 
     /// <summary>
-    /// Gets the tab items displayed by the control.
+    /// Gets the tab items displayed by the control. Use <see cref="Add(string, UiElement)"/> to add tabs so the active content is synchronized.
     /// </summary>
     public IList<TabItem> Items { get; } = [];
 
     /// <summary>
-    /// Gets or sets the selected tab index, or -1 when no item is selected.
+    /// Gets or sets the selected tab index, or -1 when no item is selected. Values are clamped to the available item range.
     /// </summary>
     public int SelectedIndex
     {
@@ -546,12 +546,12 @@ public sealed class SegmentedControl : UiControl
     public event EventHandler? SelectionChanged;
 
     /// <summary>
-    /// Gets the segment labels displayed by the control.
+    /// Gets the segment labels displayed by the control. Segments are distributed evenly across the control width.
     /// </summary>
     public IList<string> Items { get; } = [];
 
     /// <summary>
-    /// Gets or sets the selected segment index, or -1 when no item is selected.
+    /// Gets or sets the selected segment index, or -1 when no item is selected. Values are clamped to the available item range.
     /// </summary>
     public int SelectedIndex
     {
@@ -639,7 +639,7 @@ public sealed class SegmentedControl : UiControl
 }
 
 /// <summary>
-/// Provides an HSV color picker with hue, alpha, preview, and hexadecimal readout.
+/// Provides an HSV color picker with hue, alpha, preview, and optional hexadecimal readout.
 /// </summary>
 public sealed class ColorPicker : UiPanel
 {
@@ -688,7 +688,7 @@ public sealed class ColorPicker : UiPanel
     public event EventHandler? ColorChanged;
 
     /// <summary>
-    /// Gets or sets optional label text rendered next to the selected color preview.
+    /// Gets or sets optional label text rendered next to the selected color preview. The label is display-only and does not affect the selected value.
     /// </summary>
     public string Label
     {
@@ -697,7 +697,7 @@ public sealed class ColorPicker : UiPanel
     }
 
     /// <summary>
-    /// Gets or sets whether the expanded HSV picker is visible.
+    /// Gets or sets whether the expanded HSV picker is visible. Clicking the preview toggles this value.
     /// </summary>
     public bool IsExpanded
     {
@@ -715,7 +715,7 @@ public sealed class ColorPicker : UiPanel
     }
 
     /// <summary>
-    /// Gets or sets the selected color value.
+    /// Gets or sets the selected color value. Assigning a value updates the internal hue, saturation, brightness, and alpha sliders.
     /// </summary>
     public ColorRgba Value
     {

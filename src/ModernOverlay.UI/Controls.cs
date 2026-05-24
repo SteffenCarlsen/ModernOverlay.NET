@@ -1,7 +1,7 @@
 namespace ModernOverlay.UI;
 
 /// <summary>
-/// Displays text using the current UI theme or an explicit font override.
+/// Displays read-only text using the current UI theme or an explicit font override.
 /// </summary>
 public class TextBlock : UiElement
 {
@@ -49,7 +49,7 @@ public class TextBlock : UiElement
     }
 
     /// <summary>
-    /// Gets or sets text wrapping behavior.
+    /// Gets or sets text wrapping behavior. Wrapping affects measurement and rendering but does not treat newline characters as separate paragraphs.
     /// </summary>
     public UiTextWrapping TextWrapping
     {
@@ -58,7 +58,7 @@ public class TextBlock : UiElement
     }
 
     /// <summary>
-    /// Gets or sets text trimming behavior.
+    /// Gets or sets text trimming behavior used when text cannot fit in the allowed line width.
     /// </summary>
     public UiTextTrimming TextTrimming
     {
@@ -67,7 +67,7 @@ public class TextBlock : UiElement
     }
 
     /// <summary>
-    /// Gets or sets the maximum number of rendered text lines.
+    /// Gets or sets the maximum number of rendered text lines. Extra text is omitted or trimmed according to <see cref="TextTrimming"/>.
     /// </summary>
     public int MaxLines
     {
@@ -228,7 +228,7 @@ public sealed class Label : TextBlock
     }
 
     /// <summary>
-    /// Gets or sets the focus target activated by the label.
+    /// Gets or sets the focus target activated by the label. The target must be focusable for the click to be handled.
     /// </summary>
     public UiElement? Target
     {
@@ -252,7 +252,7 @@ public sealed class Label : TextBlock
 }
 
 /// <summary>
-/// Displays an image resource.
+/// Displays an image resource with optional source clipping, frame selection, scaling, and alignment.
 /// </summary>
 public sealed class Image : UiElement
 {
@@ -285,7 +285,7 @@ public sealed class Image : UiElement
     }
 
     /// <summary>
-    /// Gets or sets the optional source rectangle within the image.
+    /// Gets or sets the optional source rectangle within the image, in source-image pixels. When set, measurement uses this rectangle size.
     /// </summary>
     public RectF? SourceRect
     {
@@ -302,7 +302,7 @@ public sealed class Image : UiElement
     }
 
     /// <summary>
-    /// Gets or sets the image frame index for multi-frame images.
+    /// Gets or sets the image frame index for multi-frame images. Single-frame images normally use zero.
     /// </summary>
     public int FrameIndex
     {
@@ -315,7 +315,7 @@ public sealed class Image : UiElement
     }
 
     /// <summary>
-    /// Gets or sets image opacity from 0 to 1.
+    /// Gets or sets image opacity from 0 to 1, where 0 is fully transparent and 1 is fully opaque.
     /// </summary>
     public float ImageOpacity
     {
@@ -332,7 +332,7 @@ public sealed class Image : UiElement
     }
 
     /// <summary>
-    /// Gets or sets how the image is scaled inside content bounds.
+    /// Gets or sets how the image is scaled inside content bounds before alignment is applied.
     /// </summary>
     public UiImageStretch Stretch
     {
@@ -350,7 +350,7 @@ public sealed class Image : UiElement
     }
 
     /// <summary>
-    /// Gets or sets horizontal image alignment inside content bounds.
+    /// Gets or sets horizontal image alignment inside content bounds when <see cref="Stretch"/> leaves unused horizontal space.
     /// </summary>
     public UiHorizontalAlignment ImageHorizontalAlignment
     {
@@ -359,7 +359,7 @@ public sealed class Image : UiElement
     }
 
     /// <summary>
-    /// Gets or sets vertical image alignment inside content bounds.
+    /// Gets or sets vertical image alignment inside content bounds when <see cref="Stretch"/> leaves unused vertical space.
     /// </summary>
     public UiVerticalAlignment ImageVerticalAlignment
     {
@@ -482,12 +482,12 @@ public class Button : ContentControl
     }
 
     /// <summary>
-    /// Occurs when the button is activated by pointer or keyboard input.
+    /// Occurs when the button is activated by a left pointer release inside the button, Enter, or Space.
     /// </summary>
     public event EventHandler<UiClickEventArgs>? Click;
 
     /// <summary>
-    /// Gets or sets button text used when <see cref="ContentControl.Content"/> is not set.
+    /// Gets or sets button text used when <see cref="ContentControl.Content"/> is not set. Custom content takes precedence over this text.
     /// </summary>
     public string Text
     {
@@ -514,7 +514,7 @@ public class Button : ContentControl
     }
 
     /// <summary>
-    /// Gets or sets the command invoked when the button activates.
+    /// Gets or sets the command invoked when the button activates. If <see cref="UiCommand.CanExecute(object?)"/> returns <see langword="false"/>, the button renders disabled and is removed from hit testing.
     /// </summary>
     public UiCommand? Command
     {
@@ -536,7 +536,7 @@ public class Button : ContentControl
     }
 
     /// <summary>
-    /// Gets or sets the parameter passed to <see cref="Command"/>.
+    /// Gets or sets the parameter passed to <see cref="Command"/> for both can-execute checks and execution.
     /// </summary>
     public object? CommandParameter
     {
@@ -689,17 +689,17 @@ public class ToggleButton : Button
     private bool isThreeState;
 
     /// <summary>
-    /// Occurs when the boolean checked state changes.
+    /// Occurs when the boolean checked state changes. This event also fires when the state moves to or from <see cref="UiToggleState.Indeterminate"/>.
     /// </summary>
     public event EventHandler? CheckedChanged;
 
     /// <summary>
-    /// Occurs when the full toggle state changes.
+    /// Occurs when the full <see cref="CheckState"/> value changes.
     /// </summary>
     public event EventHandler? CheckStateChanged;
 
     /// <summary>
-    /// Gets or sets whether the button is checked.
+    /// Gets or sets whether the button is checked. Setting <see langword="false"/> clears both checked and indeterminate states.
     /// </summary>
     public bool IsChecked
     {
@@ -708,7 +708,7 @@ public class ToggleButton : Button
     }
 
     /// <summary>
-    /// Gets or sets whether the button is in the indeterminate state.
+    /// Gets or sets whether the button is in the indeterminate state. If <see cref="IsThreeState"/> is <see langword="false"/>, setting this to <see langword="true"/> coerces the state to unchecked.
     /// </summary>
     public bool IsIndeterminate
     {
@@ -717,7 +717,7 @@ public class ToggleButton : Button
     }
 
     /// <summary>
-    /// Gets or sets whether the indeterminate state is allowed.
+    /// Gets or sets whether the indeterminate state is allowed during pointer or keyboard toggling.
     /// </summary>
     public bool IsThreeState
     {
@@ -734,7 +734,7 @@ public class ToggleButton : Button
     }
 
     /// <summary>
-    /// Gets or sets the full toggle state.
+    /// Gets or sets the full toggle state. Unsupported enum values throw, and indeterminate is coerced to unchecked unless <see cref="IsThreeState"/> is enabled.
     /// </summary>
     public UiToggleState CheckState
     {
@@ -791,7 +791,7 @@ public class ToggleButton : Button
 }
 
 /// <summary>
-/// Represents a checkbox control.
+/// Represents a checkbox control that renders a square check target and optional text or content.
 /// </summary>
 public sealed class CheckBox : ToggleButton
 {
@@ -848,7 +848,7 @@ public sealed class RadioButton : ToggleButton
     }
 
     /// <summary>
-    /// Gets or sets the radio group name.
+    /// Gets or sets the radio group name. Radio buttons clear checked peers with the same parent and group name.
     /// </summary>
     public string? GroupName
     {
@@ -925,7 +925,7 @@ public abstract class RangeBase : UiControl
     public event EventHandler? ValueChanged;
 
     /// <summary>
-    /// Gets or sets the minimum value.
+    /// Gets or sets the minimum value. Raising it above <see cref="Maximum"/> also raises <see cref="Maximum"/>.
     /// </summary>
     public float Minimum
     {
@@ -943,7 +943,7 @@ public abstract class RangeBase : UiControl
     }
 
     /// <summary>
-    /// Gets or sets the maximum value.
+    /// Gets or sets the maximum value. Values lower than <see cref="Minimum"/> are coerced to <see cref="Minimum"/>.
     /// </summary>
     public float Maximum
     {
@@ -971,7 +971,7 @@ public abstract class RangeBase : UiControl
     }
 
     /// <summary>
-    /// Gets or sets the small keyboard increment.
+    /// Gets or sets the small keyboard increment used by arrow-key adjustments.
     /// </summary>
     public float SmallChange
     {
@@ -988,7 +988,7 @@ public abstract class RangeBase : UiControl
     }
 
     /// <summary>
-    /// Gets or sets the large keyboard increment.
+    /// Gets or sets the large keyboard increment used by Page Up and Page Down adjustments.
     /// </summary>
     public float LargeChange
     {
@@ -1017,7 +1017,7 @@ public abstract class RangeBase : UiControl
 }
 
 /// <summary>
-/// Displays progress for a numeric range.
+/// Displays read-only progress for a numeric range.
 /// </summary>
 public sealed class ProgressBar : RangeBase
 {
@@ -1068,7 +1068,7 @@ public sealed class Slider : RangeBase
     }
 
     /// <summary>
-    /// Gets or sets the slider orientation.
+    /// Gets or sets the slider orientation. Horizontal sliders increase left-to-right; vertical sliders increase bottom-to-top.
     /// </summary>
     public UiOrientation Orientation
     {
@@ -1249,7 +1249,7 @@ public sealed class TextBox : UiControl
     public event EventHandler? TextChanged;
 
     /// <summary>
-    /// Gets or sets the text value.
+    /// Gets or sets the text value. Assigned text is clamped to <see cref="MaxLength"/> without splitting surrogate pairs.
     /// </summary>
     public string Text
     {
@@ -1279,7 +1279,7 @@ public sealed class TextBox : UiControl
     }
 
     /// <summary>
-    /// Gets or sets whether the text box edits one horizontal line or multiple visual lines.
+    /// Gets or sets whether the text box edits one horizontal line or multiple visual lines. Switching to multiline defaults <see cref="AcceptsReturn"/> to <see langword="true"/> and <see cref="TextWrapping"/> to <see cref="UiTextWrapping.Wrap"/> unless those properties were set explicitly.
     /// </summary>
     public TextBoxMode Mode
     {
@@ -1306,7 +1306,7 @@ public sealed class TextBox : UiControl
     }
 
     /// <summary>
-    /// Gets or sets whether Enter inserts a new line when <see cref="Mode"/> is <see cref="TextBoxMode.MultiLine"/>.
+    /// Gets or sets whether Enter inserts a new line when <see cref="Mode"/> is <see cref="TextBoxMode.MultiLine"/>. When disabled, Enter is handled without modifying text.
     /// </summary>
     public bool AcceptsReturn
     {
@@ -1319,7 +1319,7 @@ public sealed class TextBox : UiControl
     }
 
     /// <summary>
-    /// Gets or sets text wrapping behavior used by multiline text layout.
+    /// Gets or sets text wrapping behavior used by multiline text layout. Single-line text boxes always edit as one horizontal line.
     /// </summary>
     public UiTextWrapping TextWrapping
     {
@@ -1332,7 +1332,7 @@ public sealed class TextBox : UiControl
     }
 
     /// <summary>
-    /// Gets or sets the zero-based caret index.
+    /// Gets or sets the zero-based caret index in UTF-16 code units. Values are clamped to valid text boundaries.
     /// </summary>
     public int CaretIndex
     {
@@ -1348,7 +1348,7 @@ public sealed class TextBox : UiControl
     }
 
     /// <summary>
-    /// Gets or sets the zero-based selection start index.
+    /// Gets or sets the zero-based selection start index in UTF-16 code units. Values are clamped to valid text boundaries.
     /// </summary>
     public int SelectionStart
     {
@@ -1362,7 +1362,7 @@ public sealed class TextBox : UiControl
     }
 
     /// <summary>
-    /// Gets or sets the selection length.
+    /// Gets or sets the selection length in UTF-16 code units. The range is clamped so it remains inside <see cref="Text"/>.
     /// </summary>
     public int SelectionLength
     {
@@ -1375,7 +1375,7 @@ public sealed class TextBox : UiControl
     }
 
     /// <summary>
-    /// Gets or sets the maximum text length.
+    /// Gets or sets the maximum text length in UTF-16 code units. Existing text is truncated when the limit is reduced.
     /// </summary>
     public int MaxLength
     {
@@ -1391,7 +1391,7 @@ public sealed class TextBox : UiControl
     }
 
     /// <summary>
-    /// Gets or sets the maximum number of lines used for automatic multiline measurement.
+    /// Gets or sets the maximum number of lines used for automatic multiline measurement. The value does not reject additional text; it limits measured height.
     /// </summary>
     public int MaxLines
     {
@@ -1404,7 +1404,7 @@ public sealed class TextBox : UiControl
     }
 
     /// <summary>
-    /// Gets or sets the multiline line-spacing multiplier.
+    /// Gets or sets the multiline line-spacing multiplier applied to measured font height.
     /// </summary>
     public float LineSpacing
     {
@@ -1421,7 +1421,7 @@ public sealed class TextBox : UiControl
     }
 
     /// <summary>
-    /// Gets or sets whether text editing is disabled while focus and selection remain available.
+    /// Gets or sets whether text editing is disabled while focus, caret movement, and selection remain available.
     /// </summary>
     public bool IsReadOnly
     {
@@ -2225,7 +2225,7 @@ public sealed class ListBox : Selector
     }
 
     /// <summary>
-    /// Gets or sets the row height in DIPs.
+    /// Gets or sets the row height in DIPs. Hit testing and keyboard movement use the same uniform row height.
     /// </summary>
     public float ItemHeight
     {
@@ -2238,7 +2238,7 @@ public sealed class ListBox : Selector
     }
 
     /// <summary>
-    /// Gets or sets the optional title rendered above the selectable item rows.
+    /// Gets or sets the optional title rendered above the selectable item rows. The title is not selectable and reduces the visible item area.
     /// </summary>
     public string Title
     {
@@ -2406,7 +2406,7 @@ public sealed class ComboBox : Selector, IUiPopup
     }
 
     /// <summary>
-    /// Gets or sets whether the dropdown list is open.
+    /// Gets or sets whether the dropdown list is open. Opening expands the input region to include the dropdown rows.
     /// </summary>
     public bool IsDropDownOpen
     {
@@ -2421,7 +2421,7 @@ public sealed class ComboBox : Selector, IUiPopup
     }
 
     /// <summary>
-    /// Gets or sets whether outside pointer input closes the dropdown.
+    /// Gets or sets whether pointer input outside the header or dropdown closes the dropdown.
     /// </summary>
     public bool DismissOnOutsidePointer { get; set; } = true;
 
@@ -2437,7 +2437,7 @@ public sealed class ComboBox : Selector, IUiPopup
     UiElement? IUiPopup.PopupOwner => this;
 
     /// <summary>
-    /// Gets or sets the maximum dropdown height in DIPs.
+    /// Gets or sets the maximum dropdown height in DIPs. Items beyond the visible height are not virtualized or scrolled in this MVP control.
     /// </summary>
     public float MaxDropDownHeight
     {
@@ -2450,7 +2450,7 @@ public sealed class ComboBox : Selector, IUiPopup
     }
 
     /// <summary>
-    /// Gets or sets whether the dropdown is clamped to overlay bounds.
+    /// Gets or sets whether the dropdown is clamped to overlay bounds and may open above the header when there is not enough space below.
     /// </summary>
     public bool ClampDropDownToOverlay
     {

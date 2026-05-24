@@ -37,7 +37,7 @@ public enum UiPopupPlacementMode
     Absolute,
 
     /// <summary>
-    /// Place the popup by aligning owner and popup anchors.
+    /// Place the popup by aligning owner and popup anchors, then applying any placement offset.
     /// </summary>
     OwnerAnchor,
 }
@@ -152,7 +152,7 @@ public class Popup : UiPanel, IUiPopup
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the popup is visible and participates in layout.
+    /// Gets or sets a value indicating whether the popup is visible and participates in layout. Closed popups measure to zero and use hidden visibility.
     /// </summary>
     public bool IsOpen
     {
@@ -167,7 +167,7 @@ public class Popup : UiPanel, IUiPopup
     }
 
     /// <summary>
-    /// Gets or sets the element that owns this popup.
+    /// Gets or sets the element that owns this popup. Owner bounds are used for anchor placement and outside-click dismissal containment.
     /// </summary>
     public UiElement? Owner
     {
@@ -176,7 +176,7 @@ public class Popup : UiPanel, IUiPopup
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether pointer input outside the popup dismisses it.
+    /// Gets or sets a value indicating whether pointer input outside the popup and owner dismisses it.
     /// </summary>
     public bool DismissOnOutsidePointer { get; set; } = true;
 
@@ -204,7 +204,7 @@ public class Popup : UiPanel, IUiPopup
     }
 
     /// <summary>
-    /// Gets or sets the popup placement mode.
+    /// Gets or sets the popup placement mode. Absolute mode uses <see cref="Placement"/>; owner-anchor mode requires <see cref="Owner"/>.
     /// </summary>
     public UiPopupPlacementMode PlacementMode
     {
@@ -231,7 +231,7 @@ public class Popup : UiPanel, IUiPopup
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether popup placement should be clamped to the overlay bounds.
+    /// Gets or sets a value indicating whether popup placement should be clamped to the overlay bounds after anchor and offset resolution.
     /// </summary>
     public bool ClampToOverlay
     {
@@ -302,7 +302,7 @@ public sealed class UiMenuItem
     public string Text { get; set; }
 
     /// <summary>
-    /// Gets or sets the optional command executed by the item.
+    /// Gets or sets the optional command executed by the item. The item is not invoked when the command cannot execute.
     /// </summary>
     public UiCommand? Command { get; set; }
 
@@ -336,7 +336,7 @@ public class Menu : UiControl
     }
 
     /// <summary>
-    /// Gets the items displayed by the menu.
+    /// Gets the items displayed by the menu. Items are measured horizontally in insertion order.
     /// </summary>
     public IList<UiMenuItem> Items { get; } = [];
 
@@ -528,7 +528,7 @@ public sealed class ContextMenu : Menu, IUiPopup
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the context menu is visible and participates in layout.
+    /// Gets or sets a value indicating whether the context menu is visible and participates in layout. Closed menus measure to zero and use hidden visibility.
     /// </summary>
     public bool IsOpen
     {
@@ -561,7 +561,7 @@ public sealed class ContextMenu : Menu, IUiPopup
     }
 
     /// <summary>
-    /// Gets or sets the context menu placement mode.
+    /// Gets or sets the context menu placement mode. Absolute mode uses <see cref="Placement"/>; owner-anchor mode requires <see cref="Owner"/>.
     /// </summary>
     public UiPopupPlacementMode PlacementMode
     {
@@ -597,7 +597,7 @@ public sealed class ContextMenu : Menu, IUiPopup
     }
 
     /// <summary>
-    /// Gets or sets the element that owns this context menu.
+    /// Gets or sets the element that owns this context menu. Owner bounds are treated as part of the popup containment region.
     /// </summary>
     public UiElement? Owner
     {
@@ -606,7 +606,7 @@ public sealed class ContextMenu : Menu, IUiPopup
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether pointer input outside the menu dismisses it.
+    /// Gets or sets a value indicating whether pointer input outside the menu and owner dismisses it.
     /// </summary>
     public bool DismissOnOutsidePointer { get; set; } = true;
 
@@ -841,7 +841,7 @@ public sealed class ToolTip : UiControl, IUiPopup
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the tooltip is visible and participates in layout.
+    /// Gets or sets a value indicating whether the tooltip is visible and participates in layout. Closed tooltips measure to zero.
     /// </summary>
     public bool IsOpen
     {
@@ -856,7 +856,7 @@ public sealed class ToolTip : UiControl, IUiPopup
     }
 
     /// <summary>
-    /// Gets or sets the element that owns this tooltip.
+    /// Gets or sets the element that owns this tooltip. The tooltip subscribes to owner pointer events when hover opening is enabled.
     /// </summary>
     public UiElement? Owner
     {
@@ -874,7 +874,7 @@ public sealed class ToolTip : UiControl, IUiPopup
     }
 
     /// <summary>
-    /// Gets or sets the hover delay before the tooltip opens.
+    /// Gets or sets the hover delay before the tooltip opens. Negative values are rejected.
     /// </summary>
     public TimeSpan InitialDelay
     {
@@ -908,7 +908,7 @@ public sealed class ToolTip : UiControl, IUiPopup
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether owner hover can open the tooltip.
+    /// Gets or sets a value indicating whether owner hover can open the tooltip. Disabling this cancels any pending hover-open operation.
     /// </summary>
     public bool OpensOnHover
     {
@@ -923,7 +923,7 @@ public sealed class ToolTip : UiControl, IUiPopup
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether pointer input outside the tooltip dismisses it.
+    /// Gets or sets a value indicating whether pointer input outside the tooltip and owner dismisses it.
     /// </summary>
     public bool DismissOnOutsidePointer { get; set; }
 

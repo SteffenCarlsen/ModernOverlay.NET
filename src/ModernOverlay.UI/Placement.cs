@@ -38,19 +38,19 @@ public enum OverlayAnchor
 /// </summary>
 public enum UiPlacementKind
 {
-    /// <summary>Use explicit overlay-local bounds.</summary>
+    /// <summary>Use explicit overlay-local bounds in DIPs.</summary>
     Manual,
 
     /// <summary>Anchor the element to the overlay bounds.</summary>
     Anchor,
 
-    /// <summary>Anchor the element to the tracked target bounds.</summary>
+    /// <summary>Anchor the element to the tracked target bounds exposed by the overlay root.</summary>
     TargetAnchor,
 
     /// <summary>Anchor the element to the last known pointer position.</summary>
     Cursor,
 
-    /// <summary>Restore placement from an <see cref="IUiLayoutStore"/> with a fallback placement.</summary>
+    /// <summary>Restore placement from an <see cref="IUiLayoutStore"/> with a fallback placement when no stored value exists.</summary>
     Persisted,
 }
 
@@ -125,7 +125,7 @@ public readonly record struct UiPlacement(
 public interface IUiLayoutStore
 {
     /// <summary>
-    /// Attempts to load a placement for the specified key.
+    /// Attempts to load a placement for the specified key. Implementations decide where and how values are stored.
     /// </summary>
     /// <param name="key">The persistence key.</param>
     /// <param name="placement">The loaded placement when the method returns <see langword="true"/>.</param>
@@ -133,7 +133,7 @@ public interface IUiLayoutStore
     bool TryLoad(string key, out UiPlacement placement);
 
     /// <summary>
-    /// Saves a placement for the specified key.
+    /// Saves a placement for the specified key. The UI package calls this after user-driven placement changes such as window drag or resize.
     /// </summary>
     /// <param name="key">The persistence key.</param>
     /// <param name="placement">The placement to store.</param>

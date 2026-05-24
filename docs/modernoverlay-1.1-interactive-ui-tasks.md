@@ -45,7 +45,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - Do not let `OverlayUiRoot` silently mutate input behavior. Make selective click-through an explicit overlay/window option, then let `OverlayUiRoot` provide input-region resolution.
 - [x] Define how users add root content: `ui.Root.Add(...)`, `ui.Children`, or `ui.Content`.
   - Use `ui.Root.Children.Add(...)`, with convenience `ui.Root.Add(...)`.
-- [ ] Define fluent/builder helpers only after object-model APIs are stable.
+- [x] Define fluent/builder helpers only after object-model APIs are stable.
+  - Defer fluent/builder helpers until after the 1.1 object model is exercised by samples and tests; the MVP keeps plain constructors, properties, and `Children.Add(...)`.
 - [ ] Add sample compile tests for the intended public API shape.
 - [ ] Add XML doc comments for all public UI entry points.
 
@@ -102,7 +103,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Allow click handlers to remove the clicked element without corrupting event dispatch.
 - [x] Allow popup close during event bubbling without invalidating the current route.
   - Routed pointer, keyboard, and text-input dispatch now snapshot the target-to-root route before invoking handlers.
-- [ ] Schedule a follow-up layout pass when layout is invalidated during arrange.
+- [x] Schedule a follow-up layout pass when layout is invalidated during arrange.
+  - `OverlayUiRoot.EnsureLayout()` keeps running measure/arrange passes while measure or arrange invalidation remains, capped by `UiLayoutLoop` diagnostics for repeated same-frame invalidation.
 - [x] Release capture predictably when the capture owner is removed, disabled, hidden, or detached.
 - [ ] Add tests for removal during click, popup close during bubbling, invalidation during arrange, capture-owner removal, and focus-owner removal.
   - Partial coverage exists in `OverlayUiDeferredOperationTests` for idle safe-point execution, render-phase child mutation deferral, and non-reentrant FIFO flush ordering.
@@ -320,7 +322,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add optional command parameter support.
 - [x] Define control subscription/unsubscription behavior for `CanExecuteChanged`.
 - [x] Ensure command-enabled state automatically updates disabled visuals and input participation.
-- [ ] Add simple property changed helpers only if control state needs binding.
+- [x] Add simple property changed helpers only if control state needs binding.
+  - Full data binding is out of scope for 1.1 and direct changed events cover current controls, so no generic property-changed helper is added for the MVP.
 - [x] Decide whether full data binding is out of scope for 1.1.
   - Full data binding is out of scope for 1.1; controls expose direct properties plus explicit changed events.
 - [x] Add change callbacks for value controls: checked, selected item, slider value, text changed.
@@ -590,7 +593,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Decide whether diagnostics use `OverlayEventSource`, `Microsoft.Extensions.Logging`, or both.
   - Use `OverlayEventSource` as the primary UI diagnostics contract; applications can bridge to `Microsoft.Extensions.Logging` with the existing `OverlayEventSourceLogger`.
 - [ ] Add tests for diagnostics counters where practical.
-- [ ] Add diagnostics sample panel if useful.
+- [x] Add diagnostics sample panel if useful.
+  - `InteractiveUiOverlay` includes a live diagnostics window showing element, layout, render, and popup metrics.
 
 ## 30. Samples
 
@@ -629,7 +633,7 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Document safety boundary and non-goals.
 - [x] Update `docs/README.md` once `interactive-ui.md` exists.
 - [ ] Update root README feature table when the feature is implemented.
-- [ ] Update package README/release notes for 1.1.
+- [x] Update package README/release notes for 1.1.
 
 ## 32. Tests
 

@@ -11,7 +11,8 @@
 - `Canvas`, `StackPanel`, `DockPanel`, `Grid`, and `WrapPanel`.
 - `UiWindow` with drag, resize, close, minimize, placement, and `IUiLayoutStore` persistence hooks.
 - Text, image, button, toggle, checkbox, radio, progress, slider, number, text box, list, combo, menu, context menu, tooltip, tabs, segmented control, group box, and color picker controls.
-- Built-in theme resources with direct style overrides.
+- Built-in theme resources with direct style overrides and readability checks.
+- Interface-only layout persistence through `IUiLayoutStore`; no built-in JSON or file store is included in the core package.
 
 ## Quick Shape
 
@@ -51,3 +52,5 @@ overlay.Render += frame =>
 ## Known Preview Limits
 
 `TextBox` uses the Windows character-message path for text input. IME composition, clipboard editing, full grapheme-aware editing, `ScrollViewer`, virtualization, and UI Automation provider support are not part of the first 1.1 UI package.
+
+See `docs/interactive-ui.md` in the repository for the full retained UI guide, safety boundary, input-region behavior, accessibility baseline, and deferred feature list.

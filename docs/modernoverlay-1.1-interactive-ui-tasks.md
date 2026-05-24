@@ -515,7 +515,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Support selected index and selected item.
 - [x] Support keyboard up/down/home/end.
 - [x] Support simple wheel/keyboard list navigation without depending on a general `ScrollViewer`.
-- [ ] Add tests for selection, keyboard, pointer, disabled items, and dynamic items.
+- [x] Add tests for selection, keyboard, pointer, disabled items, and dynamic items.
+  - `OverlayUiListBoxTests` covers pointer selection, `SelectionChanged`, keyboard navigation, wheel navigation, disabled-item skipping through `Selector.IsItemEnabledSelector`, and dynamic item coercion.
 
 ### 22.3 ComboBox
 

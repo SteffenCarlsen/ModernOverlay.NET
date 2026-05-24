@@ -51,6 +51,7 @@ public abstract class Selector : UiControl
 {
     private int selectedIndex = -1;
     private Func<object?, string>? displayTextSelector;
+    private Func<object?, bool>? isItemEnabledSelector;
 
     protected Selector()
     {
@@ -97,6 +98,15 @@ public abstract class Selector : UiControl
         set => SetProperty(ref displayTextSelector, value, UiInvalidation.Measure | UiInvalidation.Render);
     }
 
+    /// <summary>
+    /// Gets or sets a function used to decide whether an item can be selected through pointer or keyboard input.
+    /// </summary>
+    public Func<object?, bool>? IsItemEnabledSelector
+    {
+        get => isItemEnabledSelector;
+        set => SetProperty(ref isItemEnabledSelector, value, UiInvalidation.Render | UiInvalidation.InputRegion);
+    }
+
     private protected virtual UiInvalidation SelectionInvalidation => UiInvalidation.Render;
 
     protected bool IsSelectedIndexValid => SelectedIndex >= 0 && SelectedIndex < Items.Count;
@@ -108,14 +118,61 @@ public abstract class Selector : UiControl
 
     protected void MoveSelection(int delta)
     {
-        if (Items.Count == 0)
+        int next = FindEnabledIndex(SelectedIndex, delta);
+        if (next >= 0)
         {
-            SelectedIndex = -1;
-            return;
+            SelectedIndex = next;
+        }
+    }
+
+    protected bool IsItemEnabled(int index)
+        => index >= 0
+            && index < Items.Count
+            && (IsItemEnabledSelector?.Invoke(Items[index]) ?? true);
+
+    protected int FirstEnabledIndex()
+    {
+        for (int index = 0; index < Items.Count; index++)
+        {
+            if (IsItemEnabled(index))
+            {
+                return index;
+            }
         }
 
-        int current = SelectedIndex < 0 ? 0 : SelectedIndex;
-        SelectedIndex = Math.Clamp(current + delta, 0, Items.Count - 1);
+        return -1;
+    }
+
+    protected int LastEnabledIndex()
+    {
+        for (int index = Items.Count - 1; index >= 0; index--)
+        {
+            if (IsItemEnabled(index))
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    protected int FindEnabledIndex(int startIndex, int direction)
+    {
+        if (Items.Count == 0 || direction == 0)
+        {
+            return -1;
+        }
+
+        int current = startIndex < 0 ? (direction > 0 ? -1 : Items.Count) : startIndex;
+        for (int index = current + direction; index >= 0 && index < Items.Count; index += direction)
+        {
+            if (IsItemEnabled(index))
+            {
+                return index;
+            }
+        }
+
+        return IsItemEnabled(startIndex) ? startIndex : -1;
     }
 
     internal void NotifyItemsChanged()

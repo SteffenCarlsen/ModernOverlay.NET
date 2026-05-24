@@ -1565,12 +1565,14 @@ public sealed class ListBox : Selector
         for (int index = 0; index < visibleCount; index++)
         {
             RectF row = new(content.X, content.Y + index * ItemHeight, content.Width, ItemHeight);
+            bool itemEnabled = IsItemEnabled(index);
             if (index == SelectedIndex)
             {
                 context.Draw.Fill.Rectangle(row, enabled ? ResolveAccentBrush(context) : ResolveBorderBrush(context));
             }
 
-            context.Draw.Draw.Text(GetItemText(index), context.Theme.Font, enabled ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(row.X + 6f, row.Y + 4f));
+            BrushHandle itemBrush = enabled && itemEnabled ? ResolveForeground(context) : ResolveDisabledBrush(context);
+            context.Draw.Draw.Text(GetItemText(index), context.Theme.Font, itemBrush, new PointF(row.X + 6f, row.Y + 4f));
         }
     }
 
@@ -1583,7 +1585,7 @@ public sealed class ListBox : Selector
 
         Focus();
         int index = (int)((args.Position.Y - ContentBounds.Y) / ItemHeight);
-        if (index >= 0 && index < Items.Count)
+        if (IsItemEnabled(index))
         {
             SelectedIndex = index;
             args.Handled = true;
@@ -1598,7 +1600,12 @@ public sealed class ListBox : Selector
         }
 
         int direction = args.WheelDelta > 0 ? -1 : 1;
-        SelectedIndex = Math.Clamp(SelectedIndex < 0 ? 0 : SelectedIndex + direction, 0, Items.Count - 1);
+        int next = FindEnabledIndex(SelectedIndex, direction);
+        if (next >= 0)
+        {
+            SelectedIndex = next;
+        }
+
         args.Handled = true;
     }
 
@@ -1612,19 +1619,19 @@ public sealed class ListBox : Selector
         switch (args.VirtualKey)
         {
             case UiVirtualKeys.Up:
-                SelectedIndex = Math.Clamp(SelectedIndex - 1, 0, Items.Count - 1);
+                MoveSelection(-1);
                 args.Handled = true;
                 break;
             case UiVirtualKeys.Down:
-                SelectedIndex = Math.Clamp(SelectedIndex + 1, 0, Items.Count - 1);
+                MoveSelection(1);
                 args.Handled = true;
                 break;
             case UiVirtualKeys.Home:
-                SelectedIndex = 0;
+                SelectedIndex = FirstEnabledIndex();
                 args.Handled = true;
                 break;
             case UiVirtualKeys.End:
-                SelectedIndex = Items.Count - 1;
+                SelectedIndex = LastEnabledIndex();
                 args.Handled = true;
                 break;
         }
@@ -1763,7 +1770,7 @@ public sealed class ComboBox : Selector, IUiPopup
         if (IsDropDownOpen && UiGeometry.Contains(DropDownBounds, args.Position))
         {
             int index = (int)((args.Position.Y - DropDownBounds.Y) / itemHeight);
-            if (index >= 0 && index < Items.Count)
+            if (IsItemEnabled(index))
             {
                 SelectedIndex = index;
             }
@@ -1791,19 +1798,19 @@ public sealed class ComboBox : Selector, IUiPopup
                 args.Handled = true;
                 break;
             case UiVirtualKeys.Down:
-                SelectedIndex = Math.Clamp(SelectedIndex + 1, 0, Math.Max(0, Items.Count - 1));
+                MoveSelection(1);
                 args.Handled = true;
                 break;
             case UiVirtualKeys.Up:
-                SelectedIndex = Math.Clamp(SelectedIndex - 1, 0, Math.Max(0, Items.Count - 1));
+                MoveSelection(-1);
                 args.Handled = true;
                 break;
             case UiVirtualKeys.Home:
-                SelectedIndex = Items.Count == 0 ? -1 : 0;
+                SelectedIndex = FirstEnabledIndex();
                 args.Handled = true;
                 break;
             case UiVirtualKeys.End:
-                SelectedIndex = Items.Count == 0 ? -1 : Items.Count - 1;
+                SelectedIndex = LastEnabledIndex();
                 args.Handled = true;
                 break;
         }
@@ -1831,12 +1838,14 @@ public sealed class ComboBox : Selector, IUiPopup
         for (int index = 0; index < visibleCount; index++)
         {
             RectF row = new(dropdown.X, dropdown.Y + index * itemHeight, dropdown.Width, itemHeight);
+            bool itemEnabled = IsItemEnabled(index);
             if (index == SelectedIndex)
             {
                 context.Draw.Fill.Rectangle(row, enabled ? ResolveAccentBrush(context) : ResolveBorderBrush(context));
             }
 
-            context.Draw.Draw.Text(GetItemText(index), context.Theme.Font, enabled ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(row.X + 8f, row.Y + 4f));
+            BrushHandle itemBrush = enabled && itemEnabled ? ResolveForeground(context) : ResolveDisabledBrush(context);
+            context.Draw.Draw.Text(GetItemText(index), context.Theme.Font, itemBrush, new PointF(row.X + 8f, row.Y + 4f));
         }
     }
 }

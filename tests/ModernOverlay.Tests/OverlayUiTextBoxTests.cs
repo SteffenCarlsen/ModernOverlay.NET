@@ -131,6 +131,44 @@ public sealed class OverlayUiTextBoxTests
 
     [TestMethod]
     [TestCategory("WindowsIntegration")]
+    public async Task EditingDoesNotSplitSurrogatePairs()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        UiTextBox textBox = CreateTextBox("A🚀B");
+        ui.Root.Children.Add(textBox);
+        textBox.Focus();
+
+        textBox.CaretIndex = 3;
+        DispatchKey(overlay, VirtualKeyBackspace, pressed: true);
+
+        Assert.AreEqual("AB", textBox.Text);
+        Assert.AreEqual(1, textBox.CaretIndex);
+
+        DispatchText(overlay, "🚀");
+        Assert.AreEqual("A🚀B", textBox.Text);
+
+        textBox.CaretIndex = 1;
+        DispatchKey(overlay, VirtualKeyDelete, pressed: true);
+
+        Assert.AreEqual("AB", textBox.Text);
+        Assert.AreEqual(1, textBox.CaretIndex);
+    }
+
+    [TestMethod]
+    public void MaxLengthDoesNotKeepHalfSurrogatePair()
+    {
+        UiTextBox textBox = CreateTextBox(string.Empty);
+
+        textBox.MaxLength = 1;
+        textBox.Text = "🚀";
+
+        Assert.AreEqual(string.Empty, textBox.Text);
+        Assert.AreEqual(0, textBox.CaretIndex);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
     public async Task RenderDrawsTextSelectionAndCaretForFocusedTextBox()
     {
         await using OverlayWindow overlay = await CreateOverlayAsync();

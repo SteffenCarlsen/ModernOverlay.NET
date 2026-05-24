@@ -466,6 +466,7 @@ public class Button : ContentControl
     private string text = string.Empty;
     private UiCommand? command;
     private object? commandParameter;
+    private bool commandSubscribed;
 
     /// <summary>
     /// Initializes a button.
@@ -505,10 +506,10 @@ public class Button : ContentControl
                 return;
             }
 
-            command?.CanExecuteChanged -= HandleCanExecuteChanged;
+            UnsubscribeCommand();
 
             command = value;
-            command?.CanExecuteChanged += HandleCanExecuteChanged;
+            SubscribeCommand();
 
             InvalidateRender();
         }
@@ -594,6 +595,21 @@ public class Button : ContentControl
         }
     }
 
+    protected override bool HitTestCore(PointF point)
+        => CanExecute() && base.HitTestCore(point);
+
+    protected override void OnAttached()
+    {
+        base.OnAttached();
+        SubscribeCommand();
+    }
+
+    protected override void OnDetached()
+    {
+        UnsubscribeCommand();
+        base.OnDetached();
+    }
+
     protected bool CanExecute() => IsEffectivelyEnabled && (Command?.CanExecute(CommandParameter) ?? true);
 
     protected virtual void InvokeClick(PointF position, OverlayPointerButton button, int clickCount = 1)
@@ -606,6 +622,28 @@ public class Button : ContentControl
     {
         InvalidateRender();
         Root?.Invalidate(UiInvalidation.InputRegion);
+    }
+
+    private void SubscribeCommand()
+    {
+        if (commandSubscribed || command is null || Root is null)
+        {
+            return;
+        }
+
+        command.CanExecuteChanged += HandleCanExecuteChanged;
+        commandSubscribed = true;
+    }
+
+    private void UnsubscribeCommand()
+    {
+        if (!commandSubscribed || command is null)
+        {
+            return;
+        }
+
+        command.CanExecuteChanged -= HandleCanExecuteChanged;
+        commandSubscribed = false;
     }
 }
 
@@ -1154,16 +1192,13 @@ public sealed class TextBox : UiControl
         set
         {
             string next = value ?? string.Empty;
-            if (next.Length > MaxLength)
-            {
-                next = next[..MaxLength];
-            }
+            next = ClampTextToMaxLength(next);
 
             if (SetProperty(ref text, next, UiInvalidation.Measure | UiInvalidation.Render))
             {
-                CaretIndex = Math.Min(CaretIndex, text.Length);
-                selectionStart = Math.Min(selectionStart, text.Length);
-                selectionLength = Math.Min(selectionLength, text.Length - selectionStart);
+                CaretIndex = CoerceTextBoundaryAtOrBefore(text, CaretIndex);
+                selectionStart = CoerceTextBoundaryAtOrBefore(text, selectionStart);
+                selectionLength = CoerceSelectionLength(selectionStart, selectionLength);
                 TextChanged?.Invoke(this, EventArgs.Empty);
             }
         }
@@ -1186,7 +1221,7 @@ public sealed class TextBox : UiControl
         get => caretIndex;
         set
         {
-            if (SetProperty(ref caretIndex, Math.Clamp(value, 0, Text.Length), UiInvalidation.Render))
+            if (SetProperty(ref caretIndex, CoerceCaretIndex(value), UiInvalidation.Render))
             {
                 EnsureCaretVisible();
                 Root?.RestartCaretBlink();
@@ -1202,8 +1237,8 @@ public sealed class TextBox : UiControl
         get => selectionStart;
         set
         {
-            selectionStart = Math.Clamp(value, 0, Text.Length);
-            selectionLength = Math.Min(selectionLength, Text.Length - selectionStart);
+            selectionStart = CoerceCaretIndex(value);
+            selectionLength = CoerceSelectionLength(selectionStart, selectionLength);
             InvalidateRender();
         }
     }
@@ -1216,7 +1251,7 @@ public sealed class TextBox : UiControl
         get => selectionLength;
         set
         {
-            selectionLength = Math.Clamp(value, 0, Text.Length - SelectionStart);
+            selectionLength = CoerceSelectionLength(SelectionStart, value);
             InvalidateRender();
         }
     }
@@ -1232,7 +1267,7 @@ public sealed class TextBox : UiControl
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
             if (SetProperty(ref maxLength, value, UiInvalidation.None) && Text.Length > value)
             {
-                Text = Text[..value];
+                Text = ClampTextToMaxLength(Text);
             }
         }
     }
@@ -1361,11 +1396,11 @@ public sealed class TextBox : UiControl
         switch (args.VirtualKey)
         {
             case UiVirtualKeys.Left:
-                MoveCaret(Math.Max(0, CaretIndex - 1), shift);
+                MoveCaret(PreviousTextBoundary(CaretIndex), shift);
                 args.Handled = true;
                 break;
             case UiVirtualKeys.Right:
-                MoveCaret(Math.Min(Text.Length, CaretIndex + 1), shift);
+                MoveCaret(NextTextBoundary(CaretIndex), shift);
                 args.Handled = true;
                 break;
             case UiVirtualKeys.Home:
@@ -1403,7 +1438,12 @@ public sealed class TextBox : UiControl
             return;
         }
 
-        string insert = value.Length > available ? value[..available] : value;
+        string insert = value.Length > available ? value[..SafeTextBoundaryAtOrBefore(value, available)] : value;
+        if (insert.Length == 0)
+        {
+            return;
+        }
+
         Text = Text.Insert(CaretIndex, insert);
         CaretIndex += insert.Length;
         ClearSelection();
@@ -1421,8 +1461,9 @@ public sealed class TextBox : UiControl
             return;
         }
 
-        Text = Text.Remove(CaretIndex - 1, 1);
-        CaretIndex--;
+        int previous = PreviousTextBoundary(CaretIndex);
+        Text = Text.Remove(previous, CaretIndex - previous);
+        CaretIndex = previous;
     }
 
     private void Delete()
@@ -1437,7 +1478,8 @@ public sealed class TextBox : UiControl
             return;
         }
 
-        Text = Text.Remove(CaretIndex, 1);
+        int next = NextTextBoundary(CaretIndex);
+        Text = Text.Remove(CaretIndex, next - CaretIndex);
     }
 
     private bool DeleteSelection()
@@ -1475,13 +1517,16 @@ public sealed class TextBox : UiControl
     {
         float fontSize = Root?.ThemeResources.Theme.FontSize ?? UiTheme.Default.FontSize;
         float charWidth = CharacterWidth(fontSize);
-        return (int)Math.Clamp(MathF.Round((point.X - ContentBounds.X + horizontalOffset) / charWidth), 0, Text.Length);
+        int approximateIndex = (int)Math.Clamp(MathF.Round((point.X - ContentBounds.X + horizontalOffset) / charWidth), 0, Text.Length);
+        return CoerceCaretIndex(approximateIndex);
     }
 
     private void SelectFromAnchor(int anchor, int caret)
     {
-        selectionStart = Math.Min(anchor, caret);
-        selectionLength = Math.Abs(caret - anchor);
+        int start = CoerceCaretIndex(Math.Min(anchor, caret));
+        int end = CoerceCaretIndex(Math.Max(anchor, caret));
+        selectionStart = start;
+        selectionLength = end - start;
         InvalidateRender();
     }
 
@@ -1510,6 +1555,73 @@ public sealed class TextBox : UiControl
     }
 
     private static float CharacterWidth(float fontSize) => MathF.Max(1f, fontSize * 0.56f);
+
+    private string ClampTextToMaxLength(string value)
+    {
+        if (value.Length <= MaxLength)
+        {
+            return value;
+        }
+
+        int boundary = SafeTextBoundaryAtOrBefore(value, MaxLength);
+        return boundary == value.Length ? value : value[..boundary];
+    }
+
+    private int CoerceCaretIndex(int value)
+        => CoerceTextBoundaryAtOrBefore(Text, Math.Clamp(value, 0, Text.Length));
+
+    private int CoerceSelectionLength(int start, int length)
+    {
+        int requestedEnd = length > Text.Length - start ? Text.Length : start + Math.Max(0, length);
+        int end = CoerceTextBoundaryAtOrBefore(Text, requestedEnd);
+        return end - start;
+    }
+
+    private int PreviousTextBoundary(int index)
+    {
+        int current = CoerceCaretIndex(index);
+        if (current <= 0)
+        {
+            return 0;
+        }
+
+        int previous = current - 1;
+        return CoerceTextBoundaryAtOrBefore(Text, previous);
+    }
+
+    private int NextTextBoundary(int index)
+    {
+        int current = CoerceCaretIndex(index);
+        if (current >= Text.Length)
+        {
+            return Text.Length;
+        }
+
+        int next = current + 1;
+        if (next < Text.Length && char.IsLowSurrogate(Text[next]) && char.IsHighSurrogate(Text[next - 1]))
+        {
+            next++;
+        }
+
+        return next;
+    }
+
+    private static int SafeTextBoundaryAtOrBefore(string value, int index)
+    {
+        int boundary = Math.Clamp(index, 0, value.Length);
+        if (boundary > 0
+            && boundary < value.Length
+            && char.IsHighSurrogate(value[boundary - 1])
+            && char.IsLowSurrogate(value[boundary]))
+        {
+            boundary--;
+        }
+
+        return boundary;
+    }
+
+    private static int CoerceTextBoundaryAtOrBefore(string value, int index)
+        => SafeTextBoundaryAtOrBefore(value, index);
 
     private void ClearSelection()
     {

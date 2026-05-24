@@ -336,9 +336,9 @@ public sealed class Win32OverlayWindow : IDisposable
             return 0;
         }
 
-        if (TryGetTextInputEvent(message, wParam, out Win32TextInputEvent textInputEvent)
-            && TryGetWindowState(hwnd, out state)
-            && state is not null)
+        if (TryGetWindowState(hwnd, out state)
+            && state is not null
+            && state.TextInputTranslator.TryGetTextInputEvent(message, wParam, out Win32TextInputEvent textInputEvent))
         {
             state.TextInputEvent?.Invoke(textInputEvent);
             return 0;
@@ -512,18 +512,6 @@ public sealed class Win32OverlayWindow : IDisposable
         return true;
     }
 
-    private static bool TryGetTextInputEvent(uint message, nuint wParam, out Win32TextInputEvent textInputEvent)
-    {
-        if (message is not NativeMethods.WmChar and not NativeMethods.WmSysChar)
-        {
-            textInputEvent = default;
-            return false;
-        }
-
-        textInputEvent = new Win32TextInputEvent(char.ConvertFromUtf32(unchecked((int)wParam)), message == NativeMethods.WmSysChar);
-        return true;
-    }
-
     private static Win32ModifierKeys GetModifierKeys()
     {
         Win32ModifierKeys modifiers = Win32ModifierKeys.None;
@@ -606,6 +594,87 @@ public sealed class Win32OverlayWindow : IDisposable
         public Action<Win32TextInputEvent>? TextInputEvent { get; set; }
 
         public Func<int, int, bool>? InputRegion { get; set; }
+
+        public Win32TextInputTranslator TextInputTranslator { get; } = new();
+    }
+}
+
+internal sealed class Win32TextInputTranslator
+{
+    private const char ReplacementCharacter = '\uFFFD';
+
+    private char? pendingHighSurrogate;
+    private bool pendingHighSurrogateIsSystemCharacter;
+
+    public bool TryGetTextInputEvent(uint message, nuint wParam, out Win32TextInputEvent textInputEvent)
+    {
+        if (message is not NativeMethods.WmChar and not NativeMethods.WmSysChar)
+        {
+            textInputEvent = default;
+            return false;
+        }
+
+        bool isSystemCharacter = message == NativeMethods.WmSysChar;
+        uint value = unchecked((uint)wParam);
+        if (value > char.MaxValue)
+        {
+            pendingHighSurrogate = null;
+            pendingHighSurrogateIsSystemCharacter = false;
+            string text = value <= 0x10FFFF
+                ? char.ConvertFromUtf32(unchecked((int)value))
+                : ReplacementCharacter.ToString();
+            textInputEvent = new Win32TextInputEvent(text, isSystemCharacter);
+            return true;
+        }
+
+        char character = unchecked((char)value);
+        if (char.IsHighSurrogate(character))
+        {
+            if (pendingHighSurrogate is not null)
+            {
+                bool previousIsSystemCharacter = pendingHighSurrogateIsSystemCharacter;
+                pendingHighSurrogate = character;
+                pendingHighSurrogateIsSystemCharacter = isSystemCharacter;
+                textInputEvent = new Win32TextInputEvent(ReplacementCharacter.ToString(), previousIsSystemCharacter);
+                return true;
+            }
+
+            pendingHighSurrogate = character;
+            pendingHighSurrogateIsSystemCharacter = isSystemCharacter;
+            textInputEvent = default;
+            return false;
+        }
+
+        if (char.IsLowSurrogate(character))
+        {
+            if (pendingHighSurrogate is { } highSurrogate)
+            {
+                bool combinedIsSystemCharacter = pendingHighSurrogateIsSystemCharacter || isSystemCharacter;
+                pendingHighSurrogate = null;
+                pendingHighSurrogateIsSystemCharacter = false;
+                textInputEvent = new Win32TextInputEvent(new string([highSurrogate, character]), combinedIsSystemCharacter);
+                return true;
+            }
+
+            textInputEvent = new Win32TextInputEvent(ReplacementCharacter.ToString(), isSystemCharacter);
+            return true;
+        }
+
+        if (pendingHighSurrogate is not null)
+        {
+            bool combinedIsSystemCharacter = pendingHighSurrogateIsSystemCharacter || isSystemCharacter;
+            pendingHighSurrogate = null;
+            pendingHighSurrogateIsSystemCharacter = false;
+            textInputEvent = new Win32TextInputEvent(string.Create(2, character, static (buffer, value) =>
+            {
+                buffer[0] = ReplacementCharacter;
+                buffer[1] = value;
+            }), combinedIsSystemCharacter);
+            return true;
+        }
+
+        textInputEvent = new Win32TextInputEvent(character.ToString(), isSystemCharacter);
+        return true;
     }
 }
 

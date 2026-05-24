@@ -93,6 +93,47 @@ public sealed class OverlayUiCommandTests
 
     [TestMethod]
     [TestCategory("WindowsIntegration")]
+    public async Task DisabledCommandStateIsExcludedFromInputRegions()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        bool canExecute = false;
+        UiCommand command = new(_ => { }, _ => canExecute);
+        UiButton button = CreateButton();
+        button.Command = command;
+        ui.Root.Children.Add(button);
+        ui.Render(new DrawContext());
+
+        Assert.AreEqual(OverlayInputRegionResult.PassThrough, ui.ResolveInputRegion(new PointF(20f, 20f)));
+
+        canExecute = true;
+        command.RaiseCanExecuteChanged();
+
+        Assert.AreEqual(OverlayInputRegionResult.Interactive, ui.ResolveInputRegion(new PointF(20f, 20f)));
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task DetachedButtonUnsubscribesCommandStateChanges()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        bool canExecute = true;
+        UiCommand command = new(_ => { }, _ => canExecute);
+        UiButton button = CreateButton();
+        button.Command = command;
+        ui.Root.Children.Add(button);
+        ui.Render(new DrawContext());
+
+        Assert.AreEqual(1, GetCanExecuteSubscriberCount(command));
+
+        _ = ui.Root.Children.Remove(button);
+
+        Assert.AreEqual(0, GetCanExecuteSubscriberCount(command));
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
     public async Task ReplacingCommandUnsubscribesOldCommandState()
     {
         await using OverlayWindow overlay = await CreateOverlayAsync();
@@ -165,5 +206,14 @@ public sealed class OverlayUiCommandTests
         MethodInfo method = typeof(OverlayWindow).GetMethod("HandleKeyboardEvent", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new MissingMethodException(nameof(OverlayWindow), "HandleKeyboardEvent");
         method.Invoke(overlay, [new Win32KeyboardEvent(virtualKey, pressed, false, 1, 0, false, false, !pressed, Win32ModifierKeys.None)]);
+    }
+
+    private static int GetCanExecuteSubscriberCount(UiCommand command)
+    {
+        FieldInfo field = typeof(UiCommand).GetField("CanExecuteChanged", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingFieldException(nameof(UiCommand), "CanExecuteChanged");
+        return field.GetValue(command) is MulticastDelegate subscribers
+            ? subscribers.GetInvocationList().Length
+            : 0;
     }
 }

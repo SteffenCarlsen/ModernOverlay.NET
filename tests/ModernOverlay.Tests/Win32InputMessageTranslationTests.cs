@@ -69,9 +69,9 @@ public sealed class Win32InputMessageTranslationTests
     [TestMethod]
     public void CharacterMessagesTranslateTextAndSystemFlag()
     {
-        Win32TextInputEvent? normal = TranslateText(WmChar, 'A');
-        Win32TextInputEvent? system = TranslateText(WmSysChar, 'x');
-        Win32TextInputEvent? emoji = TranslateText(WmChar, 0x1F680);
+        object translator = CreateTextTranslator();
+        Win32TextInputEvent? normal = TranslateText(translator, WmChar, 'A');
+        Win32TextInputEvent? system = TranslateText(translator, WmSysChar, 'x');
 
         Assert.IsNotNull(normal);
         Assert.AreEqual("A", normal.Value.Text);
@@ -80,6 +80,43 @@ public sealed class Win32InputMessageTranslationTests
         Assert.IsNotNull(system);
         Assert.AreEqual("x", system.Value.Text);
         Assert.IsTrue(system.Value.IsSystemCharacter);
+    }
+
+    [TestMethod]
+    public void CharacterMessagesBufferUtf16SurrogatePairs()
+    {
+        object translator = CreateTextTranslator();
+
+        Win32TextInputEvent? high = TranslateText(translator, WmChar, '\uD83D');
+        Win32TextInputEvent? low = TranslateText(translator, WmChar, '\uDE80');
+
+        Assert.IsNull(high);
+        Assert.IsNotNull(low);
+        Assert.AreEqual("🚀", low.Value.Text);
+    }
+
+    [TestMethod]
+    public void CharacterMessagesReplaceUnpairedSurrogates()
+    {
+        object translator = CreateTextTranslator();
+
+        Win32TextInputEvent? unpairedLow = TranslateText(translator, WmChar, '\uDE80');
+        _ = TranslateText(translator, WmSysChar, '\uD83D');
+        Win32TextInputEvent? pendingHighThenText = TranslateText(translator, WmChar, 'A');
+
+        Assert.IsNotNull(unpairedLow);
+        Assert.AreEqual("\uFFFD", unpairedLow.Value.Text);
+        Assert.IsNotNull(pendingHighThenText);
+        Assert.AreEqual("\uFFFDA", pendingHighThenText.Value.Text);
+        Assert.IsTrue(pendingHighThenText.Value.IsSystemCharacter);
+    }
+
+    [TestMethod]
+    public void CharacterMessagesCanTranslateFullCodePointInput()
+    {
+        object translator = CreateTextTranslator();
+
+        Win32TextInputEvent? emoji = TranslateText(translator, WmChar, 0x1F680);
 
         Assert.IsNotNull(emoji);
         Assert.AreEqual("🚀", emoji.Value.Text);
@@ -88,7 +125,8 @@ public sealed class Win32InputMessageTranslationTests
     [TestMethod]
     public void UnsupportedTextMessageIsIgnored()
     {
-        Win32TextInputEvent? text = TranslateText(WmKeyDown, 'A');
+        object translator = CreateTextTranslator();
+        Win32TextInputEvent? text = TranslateText(translator, WmKeyDown, 'A');
 
         Assert.IsNull(text);
     }
@@ -125,12 +163,20 @@ public sealed class Win32InputMessageTranslationTests
             : null;
     }
 
-    private static Win32TextInputEvent? TranslateText(uint message, int codePoint)
+    private static object CreateTextTranslator()
     {
-        MethodInfo method = typeof(Win32OverlayWindow).GetMethod("TryGetTextInputEvent", BindingFlags.Static | BindingFlags.NonPublic)
-            ?? throw new MissingMethodException(nameof(Win32OverlayWindow), "TryGetTextInputEvent");
+        Type type = typeof(Win32OverlayWindow).Assembly.GetType("ModernOverlay.Win32.Win32TextInputTranslator")
+            ?? throw new MissingMemberException("ModernOverlay.Win32.Win32TextInputTranslator");
+        return Activator.CreateInstance(type, nonPublic: true)
+            ?? throw new MissingMethodException("ModernOverlay.Win32.Win32TextInputTranslator", ".ctor");
+    }
+
+    private static Win32TextInputEvent? TranslateText(object translator, uint message, int codePoint)
+    {
+        MethodInfo method = translator.GetType().GetMethod("TryGetTextInputEvent", BindingFlags.Instance | BindingFlags.Public)
+            ?? throw new MissingMethodException("Win32TextInputTranslator", "TryGetTextInputEvent");
         object?[] args = [message, new nuint((uint)codePoint), default(Win32TextInputEvent)];
-        return (bool)method.Invoke(null, args)!
+        return (bool)method.Invoke(translator, args)!
             ? (Win32TextInputEvent)args[2]!
             : null;
     }

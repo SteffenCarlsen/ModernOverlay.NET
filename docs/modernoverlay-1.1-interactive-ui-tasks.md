@@ -582,8 +582,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Decide whether to ship `TabControl`, `SegmentedControl`, or both: include both in 1.1 MVP.
 - [x] Implement `TabControl`, `TabItem`, selected index, header layout, and content switching.
 - [x] Implement a lightweight `SegmentedControl` for mode switching.
-- [ ] Add tests for selection, keyboard navigation, disabled tabs, and layout.
-  - Tab keyboard navigation is implemented for arrow, Home, and End keys while skipping disabled tabs; tests remain open.
+- [x] Add tests for selection, keyboard navigation, disabled tabs, and layout.
+  - `OverlayUiTabSegmentedTests` covers tab pointer selection, disabled-tab skipping, keyboard navigation, active content layout, and segmented pointer/keyboard selection.
 
 ## 26. Color Controls
 

@@ -1,0 +1,137 @@
+using ModernOverlay.Win32;
+using System.Reflection;
+
+namespace ModernOverlay.Tests;
+
+[TestClass]
+public sealed class Win32InputMessageTranslationTests
+{
+    private const uint WmKeyDown = 0x0100;
+    private const uint WmChar = 0x0102;
+    private const uint WmSysKeyDown = 0x0104;
+    private const uint WmSysKeyUp = 0x0105;
+    private const uint WmSysChar = 0x0106;
+    private const uint WmMouseMove = 0x0200;
+    private const int VirtualKeyA = 0x41;
+    private const int VirtualKeyMenu = 0x12;
+
+    [TestMethod]
+    public void KeyboardMessagesTranslateRepeatScanAndStateFlags()
+    {
+        Win32KeyboardEvent? keyDown = TranslateKeyboard(
+            WmKeyDown,
+            VirtualKeyA,
+            CreateKeyLParam(repeatCount: 3, scanCode: 0x1E, extended: true, wasDown: true, transition: false));
+
+        Assert.IsNotNull(keyDown);
+        Assert.AreEqual(VirtualKeyA, keyDown.Value.VirtualKey);
+        Assert.IsTrue(keyDown.Value.IsPressed);
+        Assert.IsFalse(keyDown.Value.IsSystemKey);
+        Assert.AreEqual(3, keyDown.Value.RepeatCount);
+        Assert.AreEqual(0x1E, keyDown.Value.ScanCode);
+        Assert.IsTrue(keyDown.Value.IsExtendedKey);
+        Assert.IsTrue(keyDown.Value.WasDown);
+        Assert.IsFalse(keyDown.Value.IsTransitionState);
+    }
+
+    [TestMethod]
+    public void SystemKeyboardMessagesTranslatePressedAndReleasedState()
+    {
+        Win32KeyboardEvent? sysDown = TranslateKeyboard(
+            WmSysKeyDown,
+            VirtualKeyMenu,
+            CreateKeyLParam(repeatCount: 1, scanCode: 0x38, extended: false, wasDown: false, transition: false));
+        Win32KeyboardEvent? sysUp = TranslateKeyboard(
+            WmSysKeyUp,
+            VirtualKeyMenu,
+            CreateKeyLParam(repeatCount: 1, scanCode: 0x38, extended: false, wasDown: true, transition: true));
+
+        Assert.IsNotNull(sysDown);
+        Assert.IsTrue(sysDown.Value.IsPressed);
+        Assert.IsTrue(sysDown.Value.IsSystemKey);
+        Assert.IsFalse(sysDown.Value.IsTransitionState);
+
+        Assert.IsNotNull(sysUp);
+        Assert.IsFalse(sysUp.Value.IsPressed);
+        Assert.IsTrue(sysUp.Value.IsSystemKey);
+        Assert.IsTrue(sysUp.Value.WasDown);
+        Assert.IsTrue(sysUp.Value.IsTransitionState);
+    }
+
+    [TestMethod]
+    public void UnsupportedKeyboardMessageIsIgnored()
+    {
+        Win32KeyboardEvent? keyboard = TranslateKeyboard(WmMouseMove, VirtualKeyA, 0);
+
+        Assert.IsNull(keyboard);
+    }
+
+    [TestMethod]
+    public void CharacterMessagesTranslateTextAndSystemFlag()
+    {
+        Win32TextInputEvent? normal = TranslateText(WmChar, 'A');
+        Win32TextInputEvent? system = TranslateText(WmSysChar, 'x');
+        Win32TextInputEvent? emoji = TranslateText(WmChar, 0x1F680);
+
+        Assert.IsNotNull(normal);
+        Assert.AreEqual("A", normal.Value.Text);
+        Assert.IsFalse(normal.Value.IsSystemCharacter);
+
+        Assert.IsNotNull(system);
+        Assert.AreEqual("x", system.Value.Text);
+        Assert.IsTrue(system.Value.IsSystemCharacter);
+
+        Assert.IsNotNull(emoji);
+        Assert.AreEqual("🚀", emoji.Value.Text);
+    }
+
+    [TestMethod]
+    public void UnsupportedTextMessageIsIgnored()
+    {
+        Win32TextInputEvent? text = TranslateText(WmKeyDown, 'A');
+
+        Assert.IsNull(text);
+    }
+
+    private static nint CreateKeyLParam(int repeatCount, int scanCode, bool extended, bool wasDown, bool transition)
+    {
+        uint value = (ushort)repeatCount;
+        value |= ((uint)scanCode & 0xFF) << 16;
+        if (extended)
+        {
+            value |= 1u << 24;
+        }
+
+        if (wasDown)
+        {
+            value |= 1u << 30;
+        }
+
+        if (transition)
+        {
+            value |= 1u << 31;
+        }
+
+        return new nint(unchecked((int)value));
+    }
+
+    private static Win32KeyboardEvent? TranslateKeyboard(uint message, int virtualKey, nint lParam)
+    {
+        MethodInfo method = typeof(Win32OverlayWindow).GetMethod("TryGetKeyboardEvent", BindingFlags.Static | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(nameof(Win32OverlayWindow), "TryGetKeyboardEvent");
+        object?[] args = [message, new nuint((uint)virtualKey), lParam, default(Win32KeyboardEvent)];
+        return (bool)method.Invoke(null, args)!
+            ? (Win32KeyboardEvent)args[3]!
+            : null;
+    }
+
+    private static Win32TextInputEvent? TranslateText(uint message, int codePoint)
+    {
+        MethodInfo method = typeof(Win32OverlayWindow).GetMethod("TryGetTextInputEvent", BindingFlags.Static | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(nameof(Win32OverlayWindow), "TryGetTextInputEvent");
+        object?[] args = [message, new nuint((uint)codePoint), default(Win32TextInputEvent)];
+        return (bool)method.Invoke(null, args)!
+            ? (Win32TextInputEvent)args[2]!
+            : null;
+    }
+}

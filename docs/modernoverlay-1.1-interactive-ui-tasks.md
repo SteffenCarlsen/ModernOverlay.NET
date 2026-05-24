@@ -331,7 +331,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - Clipboard copy/cut/paste is deferred for 1.1 to avoid adding a WinForms/STA clipboard dependency before the UI package boundary is stable.
 - [x] Define caret blink timing ownership in the UI root scheduler.
   - `OverlayUiRoot.CaretBlinkInterval` owns caret blink timing; `TextBox` restarts the blink on caret movement and renders the caret only when the root blink state is visible.
-- [ ] Add tests for Win32 message translation.
+- [x] Add tests for Win32 message translation.
+  - `Win32InputMessageTranslationTests` covers keyboard repeat/scan/extended/previous/transition flags, system key messages, character text messages, system characters, Unicode code points, and unsupported message filtering.
 - [x] Add sample coverage for text input once `TextBox` exists.
   - `samples/InteractiveUiOverlay` includes a `TextBox` with `TextChanged` status updates.
 

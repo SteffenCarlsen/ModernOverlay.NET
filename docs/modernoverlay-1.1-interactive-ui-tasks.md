@@ -53,8 +53,10 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 
 - [x] Implement `Thickness` with uniform, horizontal/vertical, and full constructors.
 - [x] Implement `UiSize` for width/height in DIPs.
-- [ ] Implement `UiPoint` only if `PointF` is not sufficient.
-- [ ] Implement `UiRect` only if `RectF` is not sufficient.
+- [x] Implement `UiPoint` only if `PointF` is not sufficient.
+  - `PointF` is sufficient for 1.1 and keeps UI coordinates aligned with the existing drawing/window primitives.
+- [x] Implement `UiRect` only if `RectF` is not sufficient.
+  - `RectF` is sufficient for 1.1 and avoids duplicate rectangle types at the UI boundary.
 - [x] Implement `UiConstraints` or equivalent min/max layout constraints.
   - `UiConstraints` centralizes min/max validation and clamping while `UiElement` keeps the existing `MinWidth`, `MinHeight`, `MaxWidth`, and `MaxHeight` convenience properties.
 - [x] Implement `UiAlignment` for horizontal and vertical alignment.
@@ -198,7 +200,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add deterministic sort by layer, z-index, and insertion order.
 - [x] Add default focus visuals and hover/pressed visuals.
   - Interactive controls resolve default hover, pressed, and focus brushes through shared style helpers.
-- [ ] Add opacity support if it can be implemented without expensive per-control offscreen composition.
+- [x] Add opacity support if it can be implemented without expensive per-control offscreen composition.
+  - Full subtree opacity is deferred because `DrawContext` has no cheap global opacity stack; `UiElement.Opacity == 0` gates render/input participation and `Image.ImageOpacity` covers image-specific alpha.
 - [ ] Add tests using a fake draw command sink to verify render order and clipping calls.
 
 ## 10. Theming And Styling

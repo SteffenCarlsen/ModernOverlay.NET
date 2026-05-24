@@ -211,6 +211,8 @@ Runtime theme changes should be explicit and deterministic:
 
 Resource ownership should be aligned with existing `docs/resource-lifetime.md` and `docs/device-recreation.md` rather than inventing a separate lifetime model for UI.
 
+General subtree opacity is not part of the 1.1 MVP because `DrawContext` does not expose a cheap global opacity stack and implementing it correctly would require offscreen composition or per-command resource rewriting. `UiElement.Opacity` remains a render/input participation gate where `0` skips render and input; image-specific alpha remains available through the `Image` control's image opacity setting.
+
 ### Text editing scope
 
 `TextBox` is part of the MVP, but robust international text support is a separate depth problem. The 1.1 text scope should be explicit before release:

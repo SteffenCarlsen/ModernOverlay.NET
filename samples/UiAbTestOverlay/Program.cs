@@ -76,7 +76,7 @@ UiWindow controlsWindow = CreateControlsWindow(
     controlsWindowHeight);
 
 UiWindow layoutWindow = CreateLayoutWindow();
-UiWindow popupWindow = CreatePopupWindow(out Button popupButton, out Button contextButton, out Label focusLabel);
+UiWindow popupWindow = CreatePopupWindow(out Button popupButton, out Button contextButton, out Button tooltipButton);
 UiWindow collapseWindow = CreateMinimizeWindow("Collapse", MinimizeBehavior.CollapseToTitleBar, new Thickness(24f, 24f, 0f, 0f), OverlayAnchor.BottomLeft);
 UiWindow hideWindow = CreateMinimizeWindow("Hide", MinimizeBehavior.HideUntilRestored, new Thickness(236f, 24f, 0f, 0f), OverlayAnchor.BottomLeft);
 UiWindow dockWindow = CreateMinimizeWindow("Dock", MinimizeBehavior.Dock, new Thickness(448f, 24f, 0f, 0f), OverlayAnchor.BottomLeft);
@@ -84,11 +84,12 @@ UiWindow diagnosticsWindow = CreateDiagnosticsWindow(metrics);
 
 Popup popup = CreatePopup(popupButton);
 ContextMenu contextMenu = CreateContextMenu(contextButton);
-ToolTip labelToolTip = new()
+ToolTip showcaseToolTip = new()
 {
-    Owner = focusLabel,
-    Text = "Label tooltip",
+    Owner = tooltipButton,
+    Text = "ToolTip opened from hover",
     InitialDelay = TimeSpan.FromMilliseconds(250),
+    ShowDuration = TimeSpan.FromSeconds(4),
 };
 
 popupButton.Click += (_, _) =>
@@ -137,7 +138,7 @@ ui.Root.Children.Add(diagnosticsWindow);
 ui.Root.Children.Add(restoreAll);
 ui.Root.Children.Add(popup);
 ui.Root.Children.Add(contextMenu);
-ui.Root.Children.Add(labelToolTip);
+ui.Root.Children.Add(showcaseToolTip);
 
 overlay.Render += frame =>
 {
@@ -309,7 +310,7 @@ UiWindow CreateControlsWindow(
     content.Children.Add(progress);
     content.Children.Add(comboBox);
     content.Children.Add(listBox);
-    content.Children.Add(new GroupBox { Header = "Icon + NumberBox", Height = 88f, Content = media });
+    content.Children.Add(new GroupBox { Header = "Icon + NumberBox for opacity", Height = 88f, Content = media });
     content.Children.Add(persistButton);
     content.Children.Add(toggle);
     content.Children.Add(tabs);
@@ -369,16 +370,19 @@ UiWindow CreateLayoutWindow()
     };
 }
 
-UiWindow CreatePopupWindow(out Button popupButton, out Button contextButton, out Label focusLabel)
+UiWindow CreatePopupWindow(out Button popupButton, out Button contextButton, out Button tooltipButton)
 {
     TextBox target = new() { Placeholder = "Label focus target" };
-    focusLabel = new Label { Text = "Focus target label", Target = target };
+    Label focusLabel = new() { Text = "Focus target label", Target = target };
     popupButton = new Button { Text = "Popup", Width = 120f };
     contextButton = new Button { Text = "Context", Width = 120f };
+    tooltipButton = new Button { Text = "Tooltip", Width = 120f };
+    tooltipButton.Click += (_, _) => SetStatus("Tooltip button clicked");
 
     StackPanel buttons = new() { Orientation = UiOrientation.Horizontal, Spacing = 8f };
     buttons.Children.Add(popupButton);
     buttons.Children.Add(contextButton);
+    buttons.Children.Add(tooltipButton);
 
     StackPanel content = new() { Spacing = 8f };
     content.Children.Add(buttons);

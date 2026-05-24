@@ -399,7 +399,9 @@ public sealed class TabControl : UiPanel
                 context.Draw.Fill.Rectangle(new RectF(tab.X + 8f, tab.Y + tab.Height - 4f, MathF.Max(0f, tab.Width - 16f), 4f), context.Theme.Accent);
             }
 
-            context.Draw.Draw.Text(item.Header, context.Theme.Font, itemEnabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(tab.X + 10f, tab.Y + 7f));
+            SizeF textSize = context.Draw.Measure.Text(item.Header, context.Theme.Font);
+            float textX = tab.X + MathF.Max(0f, tab.Width - textSize.Width) / 2f;
+            context.Draw.Draw.Text(item.Header, context.Theme.Font, itemEnabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(textX, tab.Y + 7f));
             x += width + 2f;
         }
 

@@ -594,6 +594,7 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Demonstrate layout persistence with an in-memory `IUiLayoutStore` sample store.
 - [x] Add a quick-start UI sample with one window, a few controls, selective click-through, and explicit `ui.Render(frame)`.
 - [ ] Add a stress/integration UI sample with multiple floating windows, popup/menu/context menu, text input, tab navigation, DPI movement, theme change, and persistence restore.
+  - `InteractiveUiOverlay` now covers multiple floating windows, popup/menu/context-menu interactions, text input, tab navigation, runtime theme change, live metrics, and interface-only layout restore; DPI movement validation remains open.
 - [x] Keep both samples neutral with no game-specific content.
 - [ ] Add sample compile tests.
 - [x] Add `tools\Start-ModernOverlaySample.ps1` support for the new sample.

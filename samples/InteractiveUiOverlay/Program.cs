@@ -23,11 +23,26 @@ await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayW
 using OverlayUiRoot ui = OverlayUi.Attach(overlay);
 using ImageHandle sampleImage = overlay.Resources.CreateImage(samplePng);
 var layoutStore = new MemoryLayoutStore();
+UiPlacement mainPlacement = UiPlacement.Persisted("main-window", UiPlacement.AnchorTo(OverlayAnchor.TopLeft, new Thickness(24f)));
+UiTheme alternateTheme = UiTheme.Default with
+{
+    Accent = ColorRgba.FromBytes(113, 191, 134),
+    Surface = ColorRgba.FromBytes(26, 35, 38, 236),
+    SurfaceHover = ColorRgba.FromBytes(38, 50, 53, 242),
+    SurfacePressed = ColorRgba.FromBytes(50, 65, 68, 248),
+    Border = ColorRgba.FromBytes(90, 126, 120, 230),
+};
+bool alternateThemeActive = false;
+int metricsFrameCounter = 0;
 
 TextBlock status = new()
 {
     Text = "Ready",
     Padding = new Thickness(0f, 0f, 0f, 4f),
+};
+TextBlock metricsStatus = new()
+{
+    Text = "Metrics pending",
 };
 TextBox textBox = new()
 {
@@ -103,7 +118,7 @@ UiWindow window = new()
     Height = 640f,
     LayoutKey = "main-window",
     LayoutStore = layoutStore,
-    Placement = UiPlacement.Persisted("main-window", UiPlacement.AnchorTo(OverlayAnchor.TopLeft, new Thickness(24f))),
+    Placement = mainPlacement,
 };
 
 StackPanel content = new()
@@ -120,6 +135,16 @@ Button button = new()
 Button contextButton = new()
 {
     Text = "Context",
+    Width = 120f,
+};
+Button themeButton = new()
+{
+    Text = "Theme",
+    Width = 120f,
+};
+Button restoreButton = new()
+{
+    Text = "Restore",
     Width = 120f,
 };
 CheckBox checkbox = new()
@@ -152,6 +177,18 @@ contextButton.Click += (_, _) =>
 {
     contextMenu.IsOpen = true;
     status.Text = "Context menu opened";
+};
+themeButton.Click += (_, _) =>
+{
+    alternateThemeActive = !alternateThemeActive;
+    ui.ApplyTheme(alternateThemeActive ? alternateTheme : UiTheme.Default);
+    status.Text = alternateThemeActive ? "Applied alternate theme" : "Applied default theme";
+};
+restoreButton.Click += (_, _) =>
+{
+    layoutStore.Save("main-window", UiPlacement.Manual(24f, 24f, 520f, 640f));
+    window.Placement = mainPlacement;
+    status.Text = "Layout restored through IUiLayoutStore";
 };
 checkbox.CheckStateChanged += (_, _) => status.Text = $"Check state: {checkbox.CheckState}";
 firstRadio.CheckedChanged += (_, _) =>
@@ -188,6 +225,7 @@ content.Children.Add(CreateMenu(status));
 content.Children.Add(status);
 content.Children.Add(textBox);
 content.Children.Add(CreateControlsGrid(button, contextButton, checkbox, firstRadio, secondRadio));
+content.Children.Add(CreateActionGroup(themeButton, restoreButton));
 content.Children.Add(slider);
 content.Children.Add(progress);
 content.Children.Add(comboBox);
@@ -196,12 +234,19 @@ content.Children.Add(CreateMediaGroup(opacityBox, image));
 content.Children.Add(CreateTabs(segmented, colorPicker));
 
 ui.Root.Children.Add(window);
+ui.Root.Children.Add(CreateDiagnosticsWindow(metricsStatus));
 ui.Root.Children.Add(contextMenu);
 ui.Root.Children.Add(buttonToolTip);
 
 overlay.Render += frame =>
 {
     frame.Clear(ColorRgba.Transparent);
+    if (metricsFrameCounter++ % 15 == 0)
+    {
+        OverlayUiMetrics metrics = ui.Metrics;
+        metricsStatus.Text = $"Elements {metrics.ElementCount} | Layout {metrics.LayoutPasses} | Render {metrics.RenderPasses} | Popups {metrics.ActivePopupCount}";
+    }
+
     ui.Render(frame);
 };
 
@@ -244,6 +289,37 @@ static Grid CreateControlsGrid(Button button, Button contextButton, CheckBox che
     grid.Children.Add(checkbox);
     grid.Children.Add(radioRow);
     return grid;
+}
+
+static StackPanel CreateActionGroup(Button themeButton, Button restoreButton)
+{
+    var row = new StackPanel
+    {
+        Orientation = UiOrientation.Horizontal,
+        Spacing = 8f,
+    };
+    row.Children.Add(themeButton);
+    row.Children.Add(restoreButton);
+    return row;
+}
+
+static UiWindow CreateDiagnosticsWindow(TextBlock metricsStatus)
+{
+    var content = new StackPanel
+    {
+        Spacing = 8f,
+    };
+    content.Children.Add(new TextBlock { Text = "Live UI metrics" });
+    content.Children.Add(metricsStatus);
+    return new UiWindow
+    {
+        Title = "Diagnostics",
+        Width = 230f,
+        Height = 150f,
+        Placement = UiPlacement.AnchorTo(OverlayAnchor.BottomRight, new Thickness(24f)),
+        MinimizeBehavior = MinimizeBehavior.Dock,
+        Content = content,
+    };
 }
 
 static Menu CreateMenu(TextBlock status)

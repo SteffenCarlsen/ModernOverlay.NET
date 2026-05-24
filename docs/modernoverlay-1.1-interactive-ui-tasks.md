@@ -525,7 +525,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Support selected index/item, placeholder, dropdown open/close, max dropdown height.
   - `ComboBox` inherits `Selector`, accepts object items, and uses `DisplayTextSelector` or `ToString()`.
 - [x] Draw dropdown above normal controls.
-- [ ] Add tests for open/close, item selection, outside click close, Escape close, keyboard navigation, and z-order.
+- [x] Add tests for open/close, item selection, outside click close, Escape close, keyboard navigation, and z-order.
+  - `OverlayUiComboBoxTests` covers pointer open/selection, outside-pointer and Escape dismissal, keyboard navigation with disabled-item skipping, and popup z-order selection.
 
 ### 22.4 Menu / ContextMenu
 

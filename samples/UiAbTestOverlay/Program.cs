@@ -374,9 +374,9 @@ UiWindow CreatePopupWindow(out Button popupButton, out Button contextButton, out
 {
     TextBox target = new() { Placeholder = "Label focus target" };
     Label focusLabel = new() { Text = "Focus target label", Target = target };
-    popupButton = new Button { Text = "Popup", Width = 120f };
-    contextButton = new Button { Text = "Context", Width = 120f };
-    tooltipButton = new Button { Text = "Tooltip", Width = 120f };
+    popupButton = new Button { Text = "Popup", Width = 104f };
+    contextButton = new Button { Text = "Context", Width = 104f };
+    tooltipButton = new Button { Text = "Tooltip", Width = 104f };
     tooltipButton.Click += (_, _) => SetStatus("Tooltip button clicked");
 
     StackPanel buttons = new() { Orientation = UiOrientation.Horizontal, Spacing = 8f };

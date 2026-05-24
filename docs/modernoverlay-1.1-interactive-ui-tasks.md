@@ -205,7 +205,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Decide not to ship a built-in JSON or file layout-store helper in the core 1.1 UI package.
   - Layout persistence stays interface-only through `IUiLayoutStore`; any durable storage adapter must live outside the core package.
 - [x] Add initial placement tests for manual placement, overlay anchoring, cursor placement, clamping, persisted fallback, persisted stored bounds, and target-bound recompute.
-- [ ] Add tests for every placement kind, DPI changes, target-bound changes, clamping, and persisted fallback.
+- [x] Add tests for every placement kind, DPI changes, target-bound changes, clamping, and persisted fallback.
+  - `OverlayUiPlacementTests` covers manual, anchor, target-anchor, cursor, persisted stored/fallback placement, overlay bounds changes, DPI changes, target-bounds changes, clamping, and drag conversion from anchored to manual placement.
 
 ## 9. Rendering Foundation
 
@@ -658,7 +659,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - Covered by `OverlayUiInvalidationTests`.
 - [x] Add deferred mutation/reentrancy tests.
   - Covered by `OverlayUiDeferredOperationTests`.
-- [ ] Add placement unit tests.
+- [x] Add placement unit tests.
+  - Covered by `OverlayUiPlacementTests`.
 - [x] Add element-tree mutation tests.
   - Covered by `OverlayUiElementModelTests`.
 - [ ] Add input-region tests.

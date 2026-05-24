@@ -1,5 +1,6 @@
 using ModernOverlay.UI;
 using ModernOverlay.Win32;
+using System.Reflection;
 
 namespace ModernOverlay.Tests;
 
@@ -41,6 +42,26 @@ public sealed class OverlayUiPlacementTests
         ui.Render(new DrawContext());
 
         AssertPlacement(window, 192f, 110f);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task AnchorPlacementRecomputesWhenDpiChanges()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync(300, 200);
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        UiWindow window = CreateWindow(60f, 40f);
+        window.Placement = UiPlacement.AnchorTo(OverlayAnchor.BottomRight, new Thickness(0f, 0f, 10f, 10f));
+        ui.Root.Children.Add(window);
+
+        ui.Render(new DrawContext());
+
+        AssertPlacement(window, 230f, 150f);
+
+        DispatchDpiChanged(overlay, new Win32DpiScale(2f, 2f), new Win32WindowBounds(10, 20, 300, 200));
+        ui.Render(new DrawContext());
+
+        AssertPlacement(window, 80f, 50f);
     }
 
     [TestMethod]
@@ -147,6 +168,25 @@ public sealed class OverlayUiPlacementTests
         AssertPlacement(window, 194f, 112f);
     }
 
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task DraggingAnchoredWindowConvertsPlacementToManual()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync(300, 200);
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        UiWindow window = CreateWindow(80f, 50f);
+        window.Placement = UiPlacement.AnchorTo(OverlayAnchor.TopLeft, new Thickness(10f));
+        ui.Root.Children.Add(window);
+        ui.Render(new DrawContext());
+
+        DispatchPointer(overlay, Win32PointerEventKind.Pressed, Win32PointerButton.Left, 15, 15);
+        DispatchPointer(overlay, Win32PointerEventKind.Moved, Win32PointerButton.None, 40, 50);
+        DispatchPointer(overlay, Win32PointerEventKind.Released, Win32PointerButton.Left, 40, 50);
+
+        Assert.AreEqual(UiPlacementKind.Manual, window.Placement?.Kind);
+        AssertPlacement(window, 35f, 45f);
+    }
+
     private static async ValueTask<OverlayWindow> CreateOverlayAsync(int width, int height)
         => await OverlayWindow.CreateAsync(new OverlayWindowOptions
         {
@@ -175,6 +215,20 @@ public sealed class OverlayUiPlacementTests
             ClickThrough: false,
             TopMost: false,
             ToolWindow: true));
+
+    private static void DispatchDpiChanged(OverlayWindow overlay, Win32DpiScale dpiScale, Win32WindowBounds bounds)
+    {
+        MethodInfo method = typeof(OverlayWindow).GetMethod("HandleDpiChanged", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(nameof(OverlayWindow), "HandleDpiChanged");
+        method.Invoke(overlay, [dpiScale, bounds]);
+    }
+
+    private static void DispatchPointer(OverlayWindow overlay, Win32PointerEventKind kind, Win32PointerButton button, int x, int y)
+    {
+        MethodInfo method = typeof(OverlayWindow).GetMethod("HandlePointerEvent", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(nameof(OverlayWindow), "HandlePointerEvent");
+        method.Invoke(overlay, [new Win32PointerEvent(kind, button, x, y)]);
+    }
 
     private static void AssertPlacement(UiWindow window, float expectedLeft, float expectedTop)
     {

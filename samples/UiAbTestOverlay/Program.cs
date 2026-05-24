@@ -41,7 +41,7 @@ bool themeBActive = false;
 bool commandEnabled = true;
 int frameCounter = 0;
 float controlsWindowWidth = Math.Clamp(fullScreenBounds.Width - 220f, 520f, 760f);
-float controlsWindowHeight = Math.Clamp(fullScreenBounds.Height - 96f, 420f, 760f);
+float controlsWindowHeight = Math.Clamp(fullScreenBounds.Height - 96f, 420f, 920f);
 
 TextBlock status = new() { Text = "Ready", TextWrapping = UiTextWrapping.Wrap, MaxLines = 2 };
 TextBlock metrics = new() { Text = "Metrics pending" };
@@ -432,9 +432,9 @@ Grid CreateGridPreview()
     grid.Rows.Add(new GridDefinition(GridLength.Pixel(40f)));
     grid.Rows.Add(new GridDefinition(GridLength.Star()));
 
-    Button fixedCell = CreateLayoutBlock("108px", 0f, 0f);
-    Button starCell = CreateLayoutBlock("Star column", 0f, 0f);
-    Button fillCell = CreateLayoutBlock("Row span", 0f, 0f);
+    Button fixedCell = CreateLayoutBlock("108px", 84f, 32f);
+    Button starCell = CreateLayoutBlock("Star column", 140f, 32f);
+    Button fillCell = CreateLayoutBlock("Column span", 220f, 52f);
     Grid.SetRow(fixedCell, 0);
     Grid.SetColumn(fixedCell, 0);
     Grid.SetRow(starCell, 0);
@@ -453,6 +453,8 @@ Button CreateLayoutBlock(string text, float width, float height)
     Button block = new()
     {
         Text = text,
+        MinWidth = 72f,
+        MinHeight = 30f,
         TextHorizontalAlignment = UiHorizontalAlignment.Center,
         TextVerticalAlignment = UiVerticalAlignment.Center,
     };

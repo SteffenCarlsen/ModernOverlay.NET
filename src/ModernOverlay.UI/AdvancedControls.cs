@@ -13,6 +13,7 @@ public sealed class NumberBox : UiPanel
     private double value;
     private double step = 1d;
     private bool updatingText;
+    private string lastValidText = "0";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="NumberBox"/> class.
@@ -30,6 +31,14 @@ public sealed class NumberBox : UiPanel
         decrementButton.Click += (_, _) => Value -= Step;
         incrementButton.Click += (_, _) => Value += Step;
         textBox.TextChanged += (_, _) => CommitText();
+        textBox.KeyPressed += (_, args) =>
+        {
+            if (args.VirtualKey == UiVirtualKeys.Enter)
+            {
+                CommitOrRevertText();
+                args.Handled = true;
+            }
+        };
     }
 
     /// <summary>
@@ -131,10 +140,19 @@ public sealed class NumberBox : UiPanel
             return;
         }
 
+        if (IsPartialNumberText(textBox.Text))
+        {
+            return;
+        }
+
         if (double.TryParse(textBox.Text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double parsed))
         {
             Value = parsed;
+            lastValidText = textBox.Text;
+            return;
         }
+
+        RevertText();
     }
 
     private void UpdateText()
@@ -142,8 +160,31 @@ public sealed class NumberBox : UiPanel
         updatingText = true;
         textBox.Text = value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
         textBox.CaretIndex = textBox.Text.Length;
+        lastValidText = textBox.Text;
         updatingText = false;
     }
+
+    private void CommitOrRevertText()
+    {
+        if (IsPartialNumberText(textBox.Text))
+        {
+            RevertText();
+            return;
+        }
+
+        CommitText();
+    }
+
+    private void RevertText()
+    {
+        updatingText = true;
+        textBox.Text = lastValidText;
+        textBox.CaretIndex = textBox.Text.Length;
+        updatingText = false;
+    }
+
+    private static bool IsPartialNumberText(string text)
+        => text.Length == 0 || text is "-" or "+" or "." or "-." or "+.";
 }
 
 /// <summary>
@@ -341,6 +382,9 @@ public sealed class TabControl : UiPanel
     protected override void RenderCore(UiRenderContext context)
     {
         bool enabled = IsEffectivelyEnabled;
+        RectF content = new(Bounds.X, Bounds.Y + HeaderHeight - 1f, Bounds.Width, MathF.Max(0f, Bounds.Height - HeaderHeight + 1f));
+        context.Draw.Fill.RoundedRectangle(content, 3f, 3f, enabled ? ResolveBackground(context) : ResolveDisabledBrush(context));
+        context.Draw.Draw.RoundedRectangle(content, 3f, 3f, ResolveBorderBrush(context));
         if (IsFocused && enabled)
         {
             context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Accent);
@@ -353,8 +397,18 @@ public sealed class TabControl : UiPanel
             float width = item.Header.Length * context.Theme.Theme.FontSize * 0.62f + 24f;
             RectF tab = new(x, Bounds.Y, width, HeaderHeight);
             bool itemEnabled = enabled && item.IsEnabled;
-            context.Draw.Fill.RoundedRectangle(tab, 4f, 4f, !enabled ? context.Theme.Disabled : index == SelectedIndex ? context.Theme.SurfaceHover : context.Theme.Surface);
-            context.Draw.Draw.RoundedRectangle(tab, 4f, 4f, index == SelectedIndex && itemEnabled ? context.Theme.Accent : context.Theme.Border);
+            BrushHandle fill = !enabled
+                ? context.Theme.Disabled
+                : index == SelectedIndex
+                    ? ResolveBackground(context)
+                    : context.Theme.Surface;
+            context.Draw.Fill.Rectangle(tab, fill);
+            context.Draw.Draw.Rectangle(tab, index == SelectedIndex && itemEnabled ? context.Theme.Accent : context.Theme.Border);
+            if (index == SelectedIndex && itemEnabled)
+            {
+                context.Draw.Fill.Rectangle(new RectF(tab.X, tab.Y + tab.Height - 3f, tab.Width, 3f), context.Theme.Accent);
+            }
+
             context.Draw.Draw.Text(item.Header, context.Theme.Font, itemEnabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(tab.X + 10f, tab.Y + 7f));
             x += width + 2f;
         }
@@ -595,36 +649,43 @@ public sealed class SegmentedControl : UiControl
 }
 
 /// <summary>
-/// Provides a simple RGBA color picker backed by channel sliders and a color swatch.
+/// Provides an HSV color picker with hue, alpha, preview, and hexadecimal readout.
 /// </summary>
 public sealed class ColorPicker : UiPanel
 {
-    private readonly Slider red;
-    private readonly Slider green;
-    private readonly Slider blue;
-    private readonly Slider alpha;
+    private const int ColorFieldColumns = 14;
+    private const int ColorFieldRows = 14;
+    private const int HueSteps = 18;
+    private const int AlphaSteps = 14;
+    private const float StripWidth = 16f;
+    private const float Gap = 8f;
+    private const float AlphaHeight = 12f;
+    private const float PreviewSize = 24f;
+
     private ColorRgba value = ColorRgba.White;
-    private bool updatingSliders;
-    private SolidBrushHandle? swatchBrush;
+    private float hue;
+    private float saturation;
+    private float brightness = 1f;
+    private float alpha = 1f;
+    private DragPart dragPart;
+    private SolidBrushHandle?[]? colorFieldBrushes;
+    private SolidBrushHandle?[]? hueBrushes;
+    private SolidBrushHandle?[]? alphaBrushes;
+    private SolidBrushHandle? checkerLightBrush;
+    private SolidBrushHandle? checkerDarkBrush;
+    private SolidBrushHandle? previewBrush;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ColorPicker"/> class.
     /// </summary>
     public ColorPicker()
     {
-        red = CreateChannelSlider();
-        green = CreateChannelSlider();
-        blue = CreateChannelSlider();
-        alpha = CreateChannelSlider();
-        Children.Add(red);
-        Children.Add(green);
-        Children.Add(blue);
-        Children.Add(alpha);
-        red.ValueChanged += (_, _) => CommitSliders();
-        green.ValueChanged += (_, _) => CommitSliders();
-        blue.ValueChanged += (_, _) => CommitSliders();
-        alpha.ValueChanged += (_, _) => CommitSliders();
-        SetSliders(ColorRgba.White);
+        ReceivesInput = true;
+        Focusable = true;
+        MinWidth = 170f;
+        MinHeight = 164f;
+        Height = 174f;
+        UpdateHsvFromColor(value);
     }
 
     /// <summary>
@@ -638,100 +699,386 @@ public sealed class ColorPicker : UiPanel
     public ColorRgba Value
     {
         get => value;
-        set
-        {
-            if (this.value.Equals(value))
-            {
-                return;
-            }
-
-            this.value = value;
-            SetSliders(value);
-            RecreateSwatchBrush();
-            ColorChanged?.Invoke(this, EventArgs.Empty);
-            InvalidateRender();
-        }
+        set => SetValue(value, updateHsv: true, raiseChanged: true);
     }
 
     protected override SizeF MeasureCore(SizeF availableSize)
     {
-        SizeF sliderAvailable = new(availableSize.Width, 24f);
-        red.Measure(sliderAvailable);
-        green.Measure(sliderAvailable);
-        blue.Measure(sliderAvailable);
-        alpha.Measure(sliderAvailable);
-        return new SizeF(MathF.Min(availableSize.Width, MathF.Max(180f, red.DesiredSize.Width)), 118f);
+        return new SizeF(MathF.Min(availableSize.Width, MathF.Max(MinWidth, 190f)), MathF.Max(MinHeight, 174f));
     }
 
     protected override void ArrangeCore(RectF finalRect)
     {
-        RectF content = ContentBounds;
-        float y = content.Y + 34f;
-        red.Arrange(new RectF(content.X, y, content.Width, 22f));
-        green.Arrange(new RectF(content.X, y + 24f, content.Width, 22f));
-        blue.Arrange(new RectF(content.X, y + 48f, content.Width, 22f));
-        alpha.Arrange(new RectF(content.X, y + 72f, content.Width, 22f));
     }
 
     protected override void RenderCore(UiRenderContext context)
     {
-        RectF swatch = new(ContentBounds.X, ContentBounds.Y, ContentBounds.Width, 26f);
         bool enabled = IsEffectivelyEnabled;
-        context.Draw.Fill.RoundedRectangle(swatch, 4f, 4f, enabled ? swatchBrush ?? ResolveAccentBrush(context) : ResolveDisabledBrush(context));
-        context.Draw.Draw.RoundedRectangle(swatch, 4f, 4f, ResolveBorderBrush(context));
-        base.RenderCore(context);
+        RectF field = ColorFieldBounds;
+        RectF hueStrip = HueStripBounds;
+        RectF alphaStrip = AlphaStripBounds;
+        RectF preview = PreviewBounds;
+
+        DrawChecker(context, field);
+        DrawColorField(context, field, enabled);
+        DrawHueStrip(context, hueStrip, enabled);
+        DrawAlphaStrip(context, alphaStrip, enabled);
+
+        DrawSelectionCircle(context, new PointF(field.X + saturation * field.Width, field.Y + (1f - brightness) * field.Height), enabled);
+        float hueY = hueStrip.Y + hue / 360f * hueStrip.Height;
+        context.Draw.Draw.Rectangle(new RectF(hueStrip.X - 2f, hueY - 2f, hueStrip.Width + 4f, 4f), enabled ? ResolveForeground(context) : ResolveDisabledBrush(context));
+        float alphaX = alphaStrip.X + alpha * alphaStrip.Width;
+        context.Draw.Draw.Rectangle(new RectF(alphaX - 2f, alphaStrip.Y - 2f, 4f, alphaStrip.Height + 4f), enabled ? ResolveForeground(context) : ResolveDisabledBrush(context));
+
+        DrawChecker(context, preview);
+        context.Draw.Fill.RoundedRectangle(preview, 3f, 3f, enabled ? previewBrush ?? ResolveAccentBrush(context) : ResolveDisabledBrush(context));
+        context.Draw.Draw.RoundedRectangle(preview, 3f, 3f, ResolveBorderBrush(context));
+        context.Draw.Draw.Text(HexText(), context.Theme.Font, enabled ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(preview.X + PreviewSize + 8f, preview.Y + 4f));
+
+        if (IsFocused && enabled)
+        {
+            context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, ResolveFocusBrush(context));
+        }
     }
 
     protected override void OnAttached()
     {
-        RecreateSwatchBrush();
+        RecreateColorResources();
     }
 
     protected override void OnDetached()
     {
-        swatchBrush?.Dispose();
-        swatchBrush = null;
+        DisposeColorResources();
     }
 
-    private static Slider CreateChannelSlider() => new()
+    protected override void OnPointerPressed(UiPointerEventArgs args)
     {
-        Minimum = 0,
-        Maximum = 255,
-        Value = 255,
-        Height = 22f,
-    };
-
-    private void CommitSliders()
-    {
-        if (updatingSliders)
+        if (args.Button != OverlayPointerButton.Left)
         {
             return;
         }
 
-        value = ColorRgba.FromBytes((byte)red.Value, (byte)green.Value, (byte)blue.Value, (byte)alpha.Value);
-        RecreateSwatchBrush();
-        ColorChanged?.Invoke(this, EventArgs.Empty);
+        DragPart part = PartAt(args.Position);
+        if (part == DragPart.None)
+        {
+            return;
+        }
+
+        Focus();
+        dragPart = part;
+        CapturePointer();
+        UpdateFromPointer(args.Position);
+        args.Handled = true;
+    }
+
+    protected override void OnPointerMoved(UiPointerEventArgs args)
+    {
+        if (!IsPointerCaptured || dragPart == DragPart.None)
+        {
+            return;
+        }
+
+        UpdateFromPointer(args.Position);
+        args.Handled = true;
+    }
+
+    protected override void OnPointerReleased(UiPointerEventArgs args)
+    {
+        if (args.Button != OverlayPointerButton.Left || dragPart == DragPart.None)
+        {
+            return;
+        }
+
+        dragPart = DragPart.None;
+        ReleasePointerCapture();
+        args.Handled = true;
+    }
+
+    private RectF ColorFieldBounds
+    {
+        get
+        {
+            RectF content = ContentBounds;
+            float size = MathF.Min(MathF.Max(1f, content.Width - StripWidth - Gap), MathF.Max(1f, content.Height - AlphaHeight - PreviewSize - Gap * 3f));
+            return new RectF(content.X, content.Y, size, size);
+        }
+    }
+
+    private RectF HueStripBounds
+    {
+        get
+        {
+            RectF colorField = ColorFieldBounds;
+            return new RectF(colorField.X + colorField.Width + Gap, colorField.Y, StripWidth, colorField.Height);
+        }
+    }
+
+    private RectF AlphaStripBounds
+    {
+        get
+        {
+            RectF colorField = ColorFieldBounds;
+            return new RectF(colorField.X, colorField.Y + colorField.Height + Gap, colorField.Width, AlphaHeight);
+        }
+    }
+
+    private RectF PreviewBounds
+    {
+        get
+        {
+            RectF alphaBounds = AlphaStripBounds;
+            return new RectF(alphaBounds.X, alphaBounds.Y + alphaBounds.Height + Gap, PreviewSize, PreviewSize);
+        }
+    }
+
+    private DragPart PartAt(PointF point)
+        => UiGeometry.Contains(ColorFieldBounds, point)
+            ? DragPart.ColorField
+            : UiGeometry.Contains(HueStripBounds, point)
+                ? DragPart.Hue
+                : UiGeometry.Contains(AlphaStripBounds, point) ? DragPart.Alpha : DragPart.None;
+
+    private void UpdateFromPointer(PointF point)
+    {
+        switch (dragPart)
+        {
+            case DragPart.ColorField:
+                RectF field = ColorFieldBounds;
+                saturation = Math.Clamp((point.X - field.X) / MathF.Max(1f, field.Width), 0f, 1f);
+                brightness = 1f - Math.Clamp((point.Y - field.Y) / MathF.Max(1f, field.Height), 0f, 1f);
+                break;
+            case DragPart.Hue:
+                RectF hueBounds = HueStripBounds;
+                hue = Math.Clamp((point.Y - hueBounds.Y) / MathF.Max(1f, hueBounds.Height), 0f, 1f) * 360f;
+                break;
+            case DragPart.Alpha:
+                RectF alphaBounds = AlphaStripBounds;
+                alpha = Math.Clamp((point.X - alphaBounds.X) / MathF.Max(1f, alphaBounds.Width), 0f, 1f);
+                break;
+        }
+
+        SetValue(FromHsv(hue, saturation, brightness, alpha), updateHsv: false, raiseChanged: true);
+    }
+
+    private void SetValue(ColorRgba next, bool updateHsv, bool raiseChanged)
+    {
+        if (value.Equals(next))
+        {
+            return;
+        }
+
+        value = next;
+        if (updateHsv)
+        {
+            UpdateHsvFromColor(next);
+        }
+
+        RecreateColorResources();
+        if (raiseChanged)
+        {
+            ColorChanged?.Invoke(this, EventArgs.Empty);
+        }
+
         InvalidateRender();
     }
 
-    private void SetSliders(ColorRgba color)
+    private void UpdateHsvFromColor(ColorRgba color)
     {
-        updatingSliders = true;
-        red.Value = Math.Clamp(color.R * 255f, 0f, 255f);
-        green.Value = Math.Clamp(color.G * 255f, 0f, 255f);
-        blue.Value = Math.Clamp(color.B * 255f, 0f, 255f);
-        alpha.Value = Math.Clamp(color.A * 255f, 0f, 255f);
-        updatingSliders = false;
+        ToHsv(color, out hue, out saturation, out brightness);
+        alpha = Math.Clamp(color.A, 0f, 1f);
     }
 
-    private void RecreateSwatchBrush()
+    private void DrawColorField(UiRenderContext context, RectF field, bool enabled)
+    {
+        float cellWidth = field.Width / ColorFieldColumns;
+        float cellHeight = field.Height / ColorFieldRows;
+        for (int row = 0; row < ColorFieldRows; row++)
+        {
+            for (int column = 0; column < ColorFieldColumns; column++)
+            {
+                RectF cell = new(field.X + column * cellWidth, field.Y + row * cellHeight, cellWidth + 0.5f, cellHeight + 0.5f);
+                BrushHandle brush = enabled
+                    ? colorFieldBrushes?[row * ColorFieldColumns + column] ?? ResolveAccentBrush(context)
+                    : ResolveDisabledBrush(context);
+                context.Draw.Fill.Rectangle(cell, brush);
+            }
+        }
+
+        context.Draw.Draw.Rectangle(field, ResolveBorderBrush(context));
+    }
+
+    private void DrawHueStrip(UiRenderContext context, RectF bounds, bool enabled)
+    {
+        float stepHeight = bounds.Height / HueSteps;
+        for (int index = 0; index < HueSteps; index++)
+        {
+            RectF stepBounds = new(bounds.X, bounds.Y + index * stepHeight, bounds.Width, stepHeight + 0.5f);
+            BrushHandle brush = enabled ? hueBrushes?[index] ?? ResolveAccentBrush(context) : ResolveDisabledBrush(context);
+            context.Draw.Fill.Rectangle(stepBounds, brush);
+        }
+
+        context.Draw.Draw.Rectangle(bounds, ResolveBorderBrush(context));
+    }
+
+    private void DrawAlphaStrip(UiRenderContext context, RectF bounds, bool enabled)
+    {
+        DrawChecker(context, bounds);
+        float stepWidth = bounds.Width / AlphaSteps;
+        for (int index = 0; index < AlphaSteps; index++)
+        {
+            RectF stepBounds = new(bounds.X + index * stepWidth, bounds.Y, stepWidth + 0.5f, bounds.Height);
+            BrushHandle brush = enabled ? alphaBrushes?[index] ?? ResolveAccentBrush(context) : ResolveDisabledBrush(context);
+            context.Draw.Fill.Rectangle(stepBounds, brush);
+        }
+
+        context.Draw.Draw.Rectangle(bounds, ResolveBorderBrush(context));
+    }
+
+    private void DrawChecker(UiRenderContext context, RectF bounds)
+    {
+        const float size = 6f;
+        for (float y = bounds.Y; y < bounds.Y + bounds.Height; y += size)
+        {
+            for (float x = bounds.X; x < bounds.X + bounds.Width; x += size)
+            {
+                bool alternate = (((int)((x - bounds.X) / size) + (int)((y - bounds.Y) / size)) & 1) == 0;
+                RectF tile = new(x, y, MathF.Min(size, bounds.X + bounds.Width - x), MathF.Min(size, bounds.Y + bounds.Height - y));
+                context.Draw.Fill.Rectangle(tile, alternate ? checkerLightBrush ?? context.Theme.SurfaceHover : checkerDarkBrush ?? context.Theme.Surface);
+            }
+        }
+    }
+
+    private void DrawSelectionCircle(UiRenderContext context, PointF center, bool enabled)
+    {
+        BrushHandle brush = enabled ? ResolveForeground(context) : ResolveDisabledBrush(context);
+        context.Draw.Draw.Circle(center, 4f, brush);
+        context.Draw.Draw.Circle(center, 5f, ResolveBorderBrush(context));
+    }
+
+    private void RecreateColorResources()
     {
         if (Root is null)
         {
             return;
         }
 
-        swatchBrush?.Dispose();
-        swatchBrush = Root.ThemeResources.CreateSolidBrush(Value);
+        DisposeColorResources();
+        colorFieldBrushes = new SolidBrushHandle?[ColorFieldColumns * ColorFieldRows];
+        for (int row = 0; row < ColorFieldRows; row++)
+        {
+            float nextBrightness = 1f - (row / (float)(ColorFieldRows - 1));
+            for (int column = 0; column < ColorFieldColumns; column++)
+            {
+                float nextSaturation = column / (float)(ColorFieldColumns - 1);
+                colorFieldBrushes[row * ColorFieldColumns + column] = Root.ThemeResources.CreateSolidBrush(FromHsv(hue, nextSaturation, nextBrightness, 1f));
+            }
+        }
+
+        hueBrushes = new SolidBrushHandle?[HueSteps];
+        for (int index = 0; index < HueSteps; index++)
+        {
+            hueBrushes[index] = Root.ThemeResources.CreateSolidBrush(FromHsv(index / (float)(HueSteps - 1) * 360f, 1f, 1f, 1f));
+        }
+
+        alphaBrushes = new SolidBrushHandle?[AlphaSteps];
+        for (int index = 0; index < AlphaSteps; index++)
+        {
+            float nextAlpha = index / (float)(AlphaSteps - 1);
+            alphaBrushes[index] = Root.ThemeResources.CreateSolidBrush(new ColorRgba(value.R, value.G, value.B, nextAlpha));
+        }
+
+        checkerLightBrush = Root.ThemeResources.CreateSolidBrush(ColorRgba.FromBytes(232, 236, 240));
+        checkerDarkBrush = Root.ThemeResources.CreateSolidBrush(ColorRgba.FromBytes(155, 164, 172));
+        previewBrush = Root.ThemeResources.CreateSolidBrush(Value);
+    }
+
+    private void DisposeColorResources()
+    {
+        DisposeAll(colorFieldBrushes);
+        DisposeAll(hueBrushes);
+        DisposeAll(alphaBrushes);
+        colorFieldBrushes = null;
+        hueBrushes = null;
+        alphaBrushes = null;
+        checkerLightBrush?.Dispose();
+        checkerDarkBrush?.Dispose();
+        previewBrush?.Dispose();
+        checkerLightBrush = null;
+        checkerDarkBrush = null;
+        previewBrush = null;
+    }
+
+    private static void DisposeAll(SolidBrushHandle?[]? brushes)
+    {
+        if (brushes is null)
+        {
+            return;
+        }
+
+        foreach (SolidBrushHandle? brush in brushes)
+        {
+            brush?.Dispose();
+        }
+    }
+
+    private string HexText()
+    {
+        byte r = ToByte(Value.R);
+        byte g = ToByte(Value.G);
+        byte b = ToByte(Value.B);
+        byte a = ToByte(Value.A);
+        return string.Create(System.Globalization.CultureInfo.InvariantCulture, $"#{r:X2}{g:X2}{b:X2} ({a})");
+    }
+
+    private static byte ToByte(float value)
+        => (byte)Math.Clamp(MathF.Round(value * 255f), 0f, 255f);
+
+    private static ColorRgba FromHsv(float hue, float saturation, float value, float alpha)
+    {
+        float normalizedHue = ((hue % 360f) + 360f) % 360f;
+        float c = value * saturation;
+        float x = c * (1f - MathF.Abs((normalizedHue / 60f % 2f) - 1f));
+        float m = value - c;
+        (float r, float g, float b) = normalizedHue switch
+        {
+            < 60f => (c, x, 0f),
+            < 120f => (x, c, 0f),
+            < 180f => (0f, c, x),
+            < 240f => (0f, x, c),
+            < 300f => (x, 0f, c),
+            _ => (c, 0f, x),
+        };
+        return new ColorRgba(Math.Clamp(r + m, 0f, 1f), Math.Clamp(g + m, 0f, 1f), Math.Clamp(b + m, 0f, 1f), Math.Clamp(alpha, 0f, 1f));
+    }
+
+    private static void ToHsv(ColorRgba color, out float hue, out float saturation, out float value)
+    {
+        float max = MathF.Max(color.R, MathF.Max(color.G, color.B));
+        float min = MathF.Min(color.R, MathF.Min(color.G, color.B));
+        float delta = max - min;
+
+        hue = delta == 0f
+            ? 0f
+            : max == color.R
+                ? 60f * ((color.G - color.B) / delta % 6f)
+                : max == color.G
+                    ? 60f * (((color.B - color.R) / delta) + 2f)
+                    : 60f * (((color.R - color.G) / delta) + 4f);
+
+        if (hue < 0f)
+        {
+            hue += 360f;
+        }
+
+        saturation = max == 0f ? 0f : delta / max;
+        value = max;
+    }
+
+    private enum DragPart
+    {
+        None,
+        ColorField,
+        Hue,
+        Alpha,
     }
 }

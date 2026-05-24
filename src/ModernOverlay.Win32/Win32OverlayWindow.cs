@@ -46,8 +46,14 @@ public sealed class Win32OverlayWindow : IDisposable
         ThrowIfDisposed();
         ownerThread.Invoke(() =>
         {
-            _ = NativeMethods.ShowWindow(state.Hwnd, NativeMethods.SwShowNoActivate);
-            if (!NativeMethods.SetWindowPos(state.Hwnd, 0, 0, 0, 0, 0, NativeMethods.SwpNoMove | NativeMethods.SwpNoSize | NativeMethods.SwpNoZOrder | NativeMethods.SwpNoActivate | NativeMethods.SwpShowWindow))
+            uint flags = NativeMethods.SwpNoMove | NativeMethods.SwpNoSize | NativeMethods.SwpNoZOrder | NativeMethods.SwpShowWindow;
+            if (state.NoActivate)
+            {
+                flags |= NativeMethods.SwpNoActivate;
+            }
+
+            _ = NativeMethods.ShowWindow(state.Hwnd, state.NoActivate ? NativeMethods.SwShowNoActivate : NativeMethods.SwShow);
+            if (!NativeMethods.SetWindowPos(state.Hwnd, 0, 0, 0, 0, 0, flags))
             {
                 throw new NativeWin32Exception("SetWindowPos(show)");
             }
@@ -283,7 +289,7 @@ public sealed class Win32OverlayWindow : IDisposable
             throw new NativeWin32Exception("RegisterClassExW");
         }
 
-        uint extendedStyle = WindowStyles.BuildExtendedStyle(options.ClickThrough, options.TopMost, options.ToolWindow);
+        uint extendedStyle = WindowStyles.BuildExtendedStyle(options.ClickThrough, options.TopMost, options.ToolWindow, options.NoActivate);
         nint hwnd = NativeMethods.CreateWindowEx(
             extendedStyle,
             className,
@@ -304,7 +310,7 @@ public sealed class Win32OverlayWindow : IDisposable
             throw new NativeWin32Exception("CreateWindowExW");
         }
 
-        var state = new WindowState(className, instance, hwnd, windowProcedure, options.ExcludeFromCapture);
+        var state = new WindowState(className, instance, hwnd, windowProcedure, options.ExcludeFromCapture, options.NoActivate);
         lock (WindowsGate)
         {
             Windows.Add(hwnd, state);
@@ -354,6 +360,15 @@ public sealed class Win32OverlayWindow : IDisposable
             && TryGetWindowState(hwnd, out state)
             && state is not null)
         {
+            if (pointerEvent.Kind == Win32PointerEventKind.Pressed)
+            {
+                _ = NativeMethods.SetCapture(hwnd);
+            }
+            else if (pointerEvent.Kind == Win32PointerEventKind.Released)
+            {
+                _ = NativeMethods.ReleaseCapture();
+            }
+
             state.PointerEvent?.Invoke(pointerEvent);
             return 0;
         }
@@ -581,7 +596,7 @@ public sealed class Win32OverlayWindow : IDisposable
         ObjectDisposedException.ThrowIf(disposed, this);
     }
 
-    private sealed record WindowState(string ClassName, nint Instance, nint Hwnd, NativeMethods.WndProc WindowProcedure, bool ExcludeFromCapture)
+    private sealed record WindowState(string ClassName, nint Instance, nint Hwnd, NativeMethods.WndProc WindowProcedure, bool ExcludeFromCapture, bool NoActivate)
     {
         public Action<int>? HotkeyPressed { get; set; }
 

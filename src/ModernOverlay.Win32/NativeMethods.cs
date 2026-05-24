@@ -6,6 +6,7 @@ internal static class NativeMethods
 {
     internal const uint Infinite = 0xFFFFFFFF;
     internal const int SwHide = 0;
+    internal const int SwShow = 5;
     internal const int SwShowNoActivate = 4;
     internal const int SwShowMinNoActive = 7;
     internal const int SwRestore = 9;
@@ -247,6 +248,13 @@ internal static class NativeMethods
     [DllImport("user32.dll", EntryPoint = "SetWindowPos", ExactSpelling = true, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool SetWindowPos(nint hwnd, nint insertAfter, int x, int y, int cx, int cy, uint flags);
+
+    [DllImport("user32.dll", EntryPoint = "SetCapture", ExactSpelling = true)]
+    internal static extern nint SetCapture(nint hwnd);
+
+    [DllImport("user32.dll", EntryPoint = "ReleaseCapture", ExactSpelling = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool ReleaseCapture();
 
     [DllImport("user32.dll", EntryPoint = "TranslateMessage", ExactSpelling = true)]
     [return: MarshalAs(UnmanagedType.Bool)]

@@ -97,6 +97,28 @@ public sealed class OverlayUiButtonControlTests
 
     [TestMethod]
     [TestCategory("WindowsIntegration")]
+    public async Task ButtonTextAlignmentControlsTextOrigin()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        UiButton left = CreateButton<UiButton>("Align", 10f, 10f);
+        UiButton right = CreateButton<UiButton>("Align", 10f, 50f);
+        left.TextHorizontalAlignment = UiHorizontalAlignment.Left;
+        right.TextHorizontalAlignment = UiHorizontalAlignment.Right;
+        ui.Root.Children.Add(left);
+        ui.Root.Children.Add(right);
+        var sink = new RecordingDrawCommandSink();
+
+        ui.Render(new DrawContext(sink));
+
+        PointF leftOrigin = sink.TextOrigins["Align"][0];
+        PointF rightOrigin = sink.TextOrigins["Align"][1];
+        Assert.IsTrue(leftOrigin.X < rightOrigin.X);
+        Assert.AreEqual(left.ContentBounds.X, leftOrigin.X, 0.001f);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
     public async Task RadioButtonClearsPeersAndHonorsDisabledDynamicGroupChanges()
     {
         await using OverlayWindow overlay = await CreateOverlayAsync();
@@ -184,6 +206,8 @@ public sealed class OverlayUiButtonControlTests
 
         public List<string> TextRuns { get; } = [];
 
+        public Dictionary<string, List<PointF>> TextOrigins { get; } = [];
+
         public int CommandCount { get; private set; }
 
         public int PrimitiveCount { get; private set; }
@@ -253,6 +277,13 @@ public sealed class OverlayUiButtonControlTests
         public void DrawText(string text, FontHandle font, BrushHandle brush, PointF origin)
         {
             TextRuns.Add(text);
+            if (!TextOrigins.TryGetValue(text, out List<PointF>? origins))
+            {
+                origins = [];
+                TextOrigins[text] = origins;
+            }
+
+            origins.Add(origin);
             AddPrimitive();
         }
 

@@ -11,4 +11,5 @@ public sealed record Win32OverlayWindowOptions(
     bool TopMost,
     bool ToolWindow,
     bool PerMonitorDpiAware = true,
-    bool ExcludeFromCapture = false);
+    bool ExcludeFromCapture = false,
+    bool NoActivate = true);

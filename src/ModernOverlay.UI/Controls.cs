@@ -466,6 +466,8 @@ public class Button : ContentControl
     private string text = string.Empty;
     private UiCommand? command;
     private object? commandParameter;
+    private UiHorizontalAlignment textHorizontalAlignment = UiHorizontalAlignment.Center;
+    private UiVerticalAlignment textVerticalAlignment = UiVerticalAlignment.Center;
     private bool commandSubscribed;
 
     /// <summary>
@@ -491,6 +493,24 @@ public class Button : ContentControl
     {
         get => text;
         set => SetProperty(ref text, value ?? string.Empty, UiInvalidation.Measure | UiInvalidation.Render);
+    }
+
+    /// <summary>
+    /// Gets or sets horizontal text alignment used when <see cref="ContentControl.Content"/> is not set.
+    /// </summary>
+    public UiHorizontalAlignment TextHorizontalAlignment
+    {
+        get => textHorizontalAlignment;
+        set => SetProperty(ref textHorizontalAlignment, value, UiInvalidation.Render);
+    }
+
+    /// <summary>
+    /// Gets or sets vertical text alignment used when <see cref="ContentControl.Content"/> is not set.
+    /// </summary>
+    public UiVerticalAlignment TextVerticalAlignment
+    {
+        get => textVerticalAlignment;
+        set => SetProperty(ref textVerticalAlignment, value, UiInvalidation.Render);
     }
 
     /// <summary>
@@ -556,7 +576,20 @@ public class Button : ContentControl
         else if (Text.Length > 0)
         {
             RectF content = ContentBounds;
-            context.Draw.Draw.Text(Text, context.Theme.Font, CanExecute() ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(content.X, content.Y));
+            SizeF textSize = context.Draw.Measure.Text(Text, context.Theme.Font);
+            float x = TextHorizontalAlignment switch
+            {
+                UiHorizontalAlignment.Center => content.X + MathF.Max(0f, content.Width - textSize.Width) / 2f,
+                UiHorizontalAlignment.Right => content.X + MathF.Max(0f, content.Width - textSize.Width),
+                _ => content.X,
+            };
+            float y = TextVerticalAlignment switch
+            {
+                UiVerticalAlignment.Center => content.Y + MathF.Max(0f, content.Height - textSize.Height) / 2f,
+                UiVerticalAlignment.Bottom => content.Y + MathF.Max(0f, content.Height - textSize.Height),
+                _ => content.Y,
+            };
+            context.Draw.Draw.Text(Text, context.Theme.Font, CanExecute() ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(x, y));
         }
     }
 
@@ -1019,6 +1052,7 @@ public sealed class ProgressBar : RangeBase
 /// </summary>
 public sealed class Slider : RangeBase
 {
+    private const float ThumbRadius = 7f;
     private UiOrientation orientation = UiOrientation.Horizontal;
 
     /// <summary>
@@ -1049,9 +1083,10 @@ public sealed class Slider : RangeBase
 
     protected override void RenderCore(UiRenderContext context)
     {
+        RectF valueTrack = ValueTrackBounds;
         RectF track = Orientation == UiOrientation.Horizontal
-            ? new RectF(Bounds.X, Bounds.Y + Bounds.Height / 2f - 2f, Bounds.Width, 4f)
-            : new RectF(Bounds.X + Bounds.Width / 2f - 2f, Bounds.Y, 4f, Bounds.Height);
+            ? new RectF(valueTrack.X, Bounds.Y + Bounds.Height / 2f - 2f, valueTrack.Width, 4f)
+            : new RectF(Bounds.X + Bounds.Width / 2f - 2f, valueTrack.Y, 4f, valueTrack.Height);
         bool enabled = IsEffectivelyEnabled;
         if (IsFocused && enabled)
         {
@@ -1063,10 +1098,10 @@ public sealed class Slider : RangeBase
 
         float ratio = ValueRatio;
         PointF center = Orientation == UiOrientation.Horizontal
-            ? new PointF(Bounds.X + Bounds.Width * ratio, Bounds.Y + Bounds.Height / 2f)
-            : new PointF(Bounds.X + Bounds.Width / 2f, Bounds.Y + Bounds.Height * (1f - ratio));
-        context.Draw.Fill.Circle(center, 7f, !enabled ? ResolveDisabledBrush(context) : IsPointerCaptured ? PressedBackground ?? context.Theme.SurfacePressed : ResolveAccentBrush(context));
-        context.Draw.Draw.Circle(center, 7f, IsFocused && enabled ? ResolveForeground(context) : ResolveBorderBrush(context));
+            ? new PointF(valueTrack.X + valueTrack.Width * ratio, Bounds.Y + Bounds.Height / 2f)
+            : new PointF(Bounds.X + Bounds.Width / 2f, valueTrack.Y + valueTrack.Height * (1f - ratio));
+        context.Draw.Fill.Circle(center, ThumbRadius, !enabled ? ResolveDisabledBrush(context) : IsPointerCaptured ? PressedBackground ?? context.Theme.SurfacePressed : ResolveAccentBrush(context));
+        context.Draw.Draw.Circle(center, ThumbRadius, IsFocused && enabled ? ResolveForeground(context) : ResolveBorderBrush(context));
     }
 
     protected override void OnPointerPressed(UiPointerEventArgs args)
@@ -1142,10 +1177,26 @@ public sealed class Slider : RangeBase
 
     private void UpdateValueFromPoint(PointF point)
     {
+        RectF track = ValueTrackBounds;
         float ratio = Orientation == UiOrientation.Horizontal
-            ? (point.X - Bounds.X) / MathF.Max(1f, Bounds.Width)
-            : 1f - (point.Y - Bounds.Y) / MathF.Max(1f, Bounds.Height);
+            ? (point.X - track.X) / MathF.Max(1f, track.Width)
+            : 1f - (point.Y - track.Y) / MathF.Max(1f, track.Height);
         Value = Minimum + (Maximum - Minimum) * Math.Clamp(ratio, 0f, 1f);
+    }
+
+    private RectF ValueTrackBounds
+    {
+        get
+        {
+            if (Orientation == UiOrientation.Horizontal)
+            {
+                float inset = MathF.Min(ThumbRadius, Bounds.Width / 2f);
+                return new RectF(Bounds.X + inset, Bounds.Y, MathF.Max(1f, Bounds.Width - inset * 2f), Bounds.Height);
+            }
+
+            float verticalInset = MathF.Min(ThumbRadius, Bounds.Height / 2f);
+            return new RectF(Bounds.X, Bounds.Y + verticalInset, Bounds.Width, MathF.Max(1f, Bounds.Height - verticalInset * 2f));
+        }
     }
 }
 

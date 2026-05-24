@@ -201,7 +201,8 @@ public sealed class OverlayWindow : IAsyncDisposable
             options.ZOrder == OverlayZOrder.TopMost,
             !options.WindowClass.ShowInTaskbar,
             options.DpiMode == DpiMode.PerMonitorV2,
-            options.ExcludeFromCapture);
+            options.ExcludeFromCapture,
+            options.NoActivate);
 
         Win32OverlayWindow nativeWindow = Win32OverlayWindow.Create(nativeOptions);
         try

@@ -182,6 +182,7 @@ public sealed class OverlayUiPlacementTests
         DispatchPointer(overlay, Win32PointerEventKind.Pressed, Win32PointerButton.Left, 15, 15);
         DispatchPointer(overlay, Win32PointerEventKind.Moved, Win32PointerButton.None, 40, 50);
         DispatchPointer(overlay, Win32PointerEventKind.Released, Win32PointerButton.Left, 40, 50);
+        ui.Render(new DrawContext());
 
         Assert.AreEqual(UiPlacementKind.Manual, window.Placement?.Kind);
         AssertPlacement(window, 35f, 45f);

@@ -63,6 +63,8 @@ public sealed class OverlayUiRangeNumericTests
         ui.Render(new DrawContext(sink));
         Assert.IsTrue(sink.FilledRoundedRectangles.Count > 0);
         Assert.IsTrue(sink.FilledCircles.Count > 0);
+        PointF maxThumbCenter = sink.FilledCircles[^1];
+        Assert.IsTrue(maxThumbCenter.X <= slider.Bounds.X + slider.Bounds.Width - 7f);
 
         slider.IsEnabled = false;
         DispatchPointer(overlay, Win32PointerEventKind.Pressed, Win32PointerButton.Left, 60, 20);
@@ -105,12 +107,23 @@ public sealed class OverlayUiRangeNumericTests
 
             textBox.Text = "nope";
             Assert.AreEqual(4.5d, number.Value);
+            Assert.AreEqual("4.5", textBox.Text);
+
+            textBox.Focus();
+            textBox.CaretIndex = textBox.Text.Length;
+            textBox.Text = string.Empty;
+            DispatchText(overlay, "-");
+            Assert.AreEqual(4.5d, number.Value);
+            Assert.AreEqual("-", textBox.Text);
+            DispatchText(overlay, "6");
+            Assert.AreEqual(0d, number.Value);
+            Assert.AreEqual("0", textBox.Text);
 
             Click(overlay, 146, 20);
-            Assert.AreEqual(6.5d, number.Value);
+            Assert.AreEqual(2d, number.Value);
 
             Click(overlay, 20, 20);
-            Assert.AreEqual(4.5d, number.Value);
+            Assert.AreEqual(0d, number.Value);
 
             number.Value = 50d;
             Assert.AreEqual(10d, number.Value);
@@ -148,6 +161,13 @@ public sealed class OverlayUiRangeNumericTests
         MethodInfo method = typeof(OverlayWindow).GetMethod("HandleKeyboardEvent", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new MissingMethodException(nameof(OverlayWindow), "HandleKeyboardEvent");
         method.Invoke(overlay, [new Win32KeyboardEvent(virtualKey, true, false, 1, 0, false, false, false, Win32ModifierKeys.None)]);
+    }
+
+    private static void DispatchText(OverlayWindow overlay, string text)
+    {
+        MethodInfo method = typeof(OverlayWindow).GetMethod("HandleTextInputEvent", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(nameof(OverlayWindow), "HandleTextInputEvent");
+        method.Invoke(overlay, [new Win32TextInputEvent(text, false)]);
     }
 
     private sealed class RecordingDrawCommandSink : IDrawCommandSink

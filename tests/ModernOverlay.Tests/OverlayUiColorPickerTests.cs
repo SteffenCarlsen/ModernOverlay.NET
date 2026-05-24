@@ -1,5 +1,7 @@
 using ModernOverlay.Rendering;
 using ModernOverlay.UI;
+using ModernOverlay.Win32;
+using System.Reflection;
 
 namespace ModernOverlay.Tests;
 
@@ -8,7 +10,7 @@ public sealed class OverlayUiColorPickerTests
 {
     [TestMethod]
     [TestCategory("WindowsIntegration")]
-    public async Task ValueSetterUpdatesChannelSlidersAndSelectedSwatch()
+    public async Task ValueSetterUpdatesPreviewAndHexReadout()
     {
         await using OverlayWindow overlay = await CreateOverlayAsync();
         using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
@@ -22,12 +24,6 @@ public sealed class OverlayUiColorPickerTests
         picker.Value = selected;
         ui.Render(new DrawContext());
 
-        Slider[] sliders = picker.Children.OfType<Slider>().ToArray();
-        Assert.AreEqual(4, sliders.Length);
-        Assert.AreEqual(32f, sliders[0].Value, 0.001f);
-        Assert.AreEqual(64f, sliders[1].Value, 0.001f);
-        Assert.AreEqual(128f, sliders[2].Value, 0.001f);
-        Assert.AreEqual(192f, sliders[3].Value, 0.001f);
         Assert.AreEqual(1, changes);
 
         var sink = new RecordingDrawCommandSink();
@@ -35,35 +31,37 @@ public sealed class OverlayUiColorPickerTests
 
         Assert.IsTrue(sink.FilledRoundedRectangles.Count > 0);
         Assert.AreEqual(selected, sink.FilledRoundedRectangles[0].Brush.Color);
+        Assert.Contains("#204080 (192)", sink.TextRuns);
     }
 
     [TestMethod]
     [TestCategory("WindowsIntegration")]
-    public async Task SliderUpdatesColorValueAndRaisesCallback()
+    public async Task PointerSelectionUpdatesColorValueAndRaisesCallback()
     {
         await using OverlayWindow overlay = await CreateOverlayAsync();
         using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
         ColorPicker picker = CreateColorPicker();
         ui.Root.Children.Add(picker);
         ui.Render(new DrawContext());
-        Slider[] sliders = picker.Children.OfType<Slider>().ToArray();
         int changes = 0;
         picker.ColorChanged += (_, _) => changes++;
 
-        sliders[0].Value = 10f;
-        sliders[1].Value = 20f;
-        sliders[2].Value = 30f;
-        sliders[3].Value = 40f;
+        DispatchPointer(overlay, Win32PointerEventKind.Pressed, Win32PointerButton.Left, 60, 60);
+        DispatchPointer(overlay, Win32PointerEventKind.Released, Win32PointerButton.Left, 60, 60);
+        Assert.AreNotEqual(ColorRgba.White, picker.Value);
 
-        Assert.AreEqual(ColorRgba.FromBytes(10, 20, 30, 40), picker.Value);
-        Assert.AreEqual(4, changes);
+        DispatchPointer(overlay, Win32PointerEventKind.Pressed, Win32PointerButton.Left, 67, 138);
+        DispatchPointer(overlay, Win32PointerEventKind.Released, Win32PointerButton.Left, 67, 138);
+
+        Assert.AreEqual(0.5f, picker.Value.A, 0.02f);
+        Assert.IsTrue(changes >= 2);
     }
 
     private static async ValueTask<OverlayWindow> CreateOverlayAsync()
         => await OverlayWindow.CreateAsync(new OverlayWindowOptions
         {
             IsVisible = false,
-            Bounds = new WindowBounds(10, 20, 260, 180),
+            Bounds = new WindowBounds(10, 20, 280, 220),
         });
 
     private static ColorPicker CreateColorPicker()
@@ -71,16 +69,25 @@ public sealed class OverlayUiColorPickerTests
         ColorPicker picker = new()
         {
             Width = 180f,
-            Height = 118f,
+            Height = 174f,
         };
         Canvas.SetLeft(picker, 10f);
         Canvas.SetTop(picker, 10f);
         return picker;
     }
 
+    private static void DispatchPointer(OverlayWindow overlay, Win32PointerEventKind kind, Win32PointerButton button, int x, int y)
+    {
+        MethodInfo method = typeof(OverlayWindow).GetMethod("HandlePointerEvent", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(nameof(OverlayWindow), "HandlePointerEvent");
+        method.Invoke(overlay, [new Win32PointerEvent(kind, button, x, y)]);
+    }
+
     private sealed class RecordingDrawCommandSink : IDrawCommandSink
     {
         public List<(RectF Rect, SolidBrushHandle Brush)> FilledRoundedRectangles { get; } = [];
+
+        public List<string> TextRuns { get; } = [];
 
         public int CommandCount { get; private set; }
 
@@ -150,7 +157,10 @@ public sealed class OverlayUiColorPickerTests
             => AddPrimitive();
 
         public void DrawText(string text, FontHandle font, BrushHandle brush, PointF origin)
-            => AddPrimitive();
+        {
+            TextRuns.Add(text);
+            AddPrimitive();
+        }
 
         public void DrawTextLayout(TextLayoutHandle layout, BrushHandle brush, PointF origin)
             => AddPrimitive();

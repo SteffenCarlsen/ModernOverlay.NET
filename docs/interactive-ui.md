@@ -18,6 +18,7 @@ The UI root is disposable and should be attached explicitly:
 await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
 {
     InputMode = OverlayInputMode.SelectiveClickThrough,
+    NoActivate = false,
     Bounds = new WindowBounds(100, 100, 640, 420),
 });
 
@@ -233,6 +234,8 @@ Popup policy in 1.1:
 The UI root manages one focused element and one captured pointer element. `Tab` and `Shift+Tab` move focus through focusable controls by `TabIndex` and tree order. Controls render visible focus states.
 
 Focused text controls receive text through the overlay text-input event path. `TextBox` supports text entry, caret movement, selection, deletion, read-only mode, placeholder text, max length, password display, and horizontal scrolling for long single-line text.
+
+Set `OverlayWindowOptions.NoActivate = false` for overlays that need real keyboard focus and typed text. The default remains `true` so passive overlays can be shown without stealing focus.
 
 Text input limits in 1.1:
 

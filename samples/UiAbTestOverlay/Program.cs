@@ -29,6 +29,7 @@ await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayW
     InputMode = OverlayInputMode.SelectiveClickThrough,
     FrameRateLimit = FrameRateLimit.Fixed(60),
     TransparencyMode = TransparencyMode.DwmGlassFrame,
+    NoActivate = false,
 });
 
 using OverlayUiRoot ui = OverlayUi.Attach(overlay);
@@ -184,7 +185,7 @@ UiWindow CreateControlsWindow(
     ComboBox comboBox = new() { Placeholder = "Combo" };
     ListBox listBox = new() { Height = 116f };
     NumberBox numberBox = new() { Minimum = 0d, Maximum = 100d, Step = 5d, Value = 55d };
-    ColorPicker colorPicker = new() { Height = 118f };
+    ColorPicker colorPicker = new() { Height = 174f };
     SegmentedControl segmented = new() { Width = 260f };
     UiImage image = new()
     {
@@ -282,11 +283,17 @@ UiWindow CreateControlsWindow(
     media.Children.Add(image);
     media.Children.Add(numberBox);
 
-    TabControl tabs = new() { Height = 182f };
+    StackPanel alignmentButtons = new() { Orientation = UiOrientation.Horizontal, Spacing = 6f };
+    alignmentButtons.Children.Add(new Button { Text = "Left", Width = 82f, TextHorizontalAlignment = UiHorizontalAlignment.Left });
+    alignmentButtons.Children.Add(new Button { Text = "Center", Width = 82f });
+    alignmentButtons.Children.Add(new Button { Text = "Right", Width = 82f, TextHorizontalAlignment = UiHorizontalAlignment.Right });
+
+    TabControl tabs = new() { Height = 238f };
     StackPanel overview = new() { Spacing = 8f, Padding = new Thickness(4f) };
     overview.Children.Add(statusText);
     overview.Children.Add(boundsText);
     overview.Children.Add(segmented);
+    overview.Children.Add(alignmentButtons);
     tabs.Add("Overview", overview);
     tabs.Add("Color", colorPicker);
 
@@ -307,7 +314,7 @@ UiWindow CreateControlsWindow(
     {
         Title = "UI A/B Controls",
         Width = 860f,
-        Height = 700f,
+        Height = 760f,
         LayoutKey = "ab-main",
         LayoutStore = store,
         Placement = UiPlacement.AnchorTo(OverlayAnchor.TopLeft, new Thickness(32f, 64f, 0f, 0f)),

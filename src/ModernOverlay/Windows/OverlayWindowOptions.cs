@@ -286,6 +286,11 @@ public sealed record OverlayWindowOptions
 
     public bool ExcludeFromCapture { get; init; }
 
+    /// <summary>
+    /// Gets whether showing the overlay should avoid activating it. Set to <see langword="false"/> for overlays that need keyboard focus and text input.
+    /// </summary>
+    public bool NoActivate { get; init; } = true;
+
     public bool RejectResourceCreationDuringRender { get; init; }
 
     public int ExcessiveTextLayoutCreationThreshold { get; init; } = 64;

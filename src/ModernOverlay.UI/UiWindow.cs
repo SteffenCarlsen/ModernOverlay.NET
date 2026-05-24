@@ -373,6 +373,7 @@ public sealed class UiWindow : UiPanel
         BringToFront();
         if (CanResize && UiGeometry.Contains(ResizeGripBounds, args.Position))
         {
+            ConvertPlacementForManualMove();
             resizing = true;
             resizeOrigin = args.Position;
             resizeStartSize = new SizeF(Bounds.Width, Bounds.Height);
@@ -420,6 +421,7 @@ public sealed class UiWindow : UiPanel
             dragging = false;
             resizing = false;
             ReleasePointerCapture();
+            CaptureCurrentManualPlacement();
             SavePlacement();
             args.Handled = true;
         }
@@ -649,6 +651,17 @@ public sealed class UiWindow : UiPanel
         }
 
         placement = UiPlacement.Manual(Bounds.X, Bounds.Y, Bounds.Width, Bounds.Height);
+        layoutRestored = true;
+    }
+
+    private void CaptureCurrentManualPlacement()
+    {
+        if (Placement is null || Parent is not Canvas)
+        {
+            return;
+        }
+
+        placement = UiPlacement.Manual(Canvas.GetLeft(this), Canvas.GetTop(this), Bounds.Width, Bounds.Height);
         layoutRestored = true;
     }
 

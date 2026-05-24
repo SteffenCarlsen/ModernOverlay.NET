@@ -11,6 +11,7 @@ The source tree is split by package and responsibility. The alpha package shape 
 | `ModernOverlay.Win32` | `ModernOverlay.NET.Win32` | Low-level Win32 windowing, z-order, style, query, display-affinity, and native diagnostics helpers. |
 | `ModernOverlay.Diagnostics` | `ModernOverlay.NET.Diagnostics` | EventSource logging bridge and diagnostics helpers. |
 | `ModernOverlay.Integration` | `ModernOverlay.NET.Integration` | Optional cooperative named-pipe command protocol for owned hosts. |
+| `ModernOverlay.UI` | `ModernOverlay.UI` | Retained interactive UI controls, layout, popups, dynamic placement, and selective click-through input-region integration. |
 | `ModernOverlay.Integration.Experimental` | source-only | Contract-only experimental provider boundary. It is not packed for alpha. |
 
 ## Common Development Paths
@@ -22,5 +23,6 @@ The source tree is split by package and responsibility. The alpha package shape 
 5. Direct2D renderer behavior: start in `ModernOverlay.Direct2D`.
 6. Win32 window behavior: start in `ModernOverlay.Win32`.
 7. Cooperative IPC: start in `ModernOverlay.Integration`.
+8. Retained interactive UI: start in `ModernOverlay.UI`.
 
 Read more: [public API and package review](../docs/public-api-package-review.md), [integration boundary](../docs/integration-boundary.md), [device recreation](../docs/device-recreation.md).

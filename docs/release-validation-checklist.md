@@ -20,7 +20,7 @@ The gate verifies:
 - Full test suite passes with TRX output and a binlog.
 - Non-integration test suite passes with TRX output and a binlog.
 - Pack succeeds with a binlog.
-- Pack output contains exactly the intended alpha packages: `ModernOverlay`, `ModernOverlay.Direct2D`, `ModernOverlay.Win32`, `ModernOverlay.Diagnostics`, and `ModernOverlay.Integration`.
+- Pack output contains exactly the intended alpha packages: `ModernOverlay.NET`, `ModernOverlay.NET.Direct2D`, `ModernOverlay.NET.Win32`, `ModernOverlay.NET.Diagnostics`, `ModernOverlay.NET.Integration`, and `ModernOverlay.UI`.
 - The `ModernOverlay` package contains the bundled Direct2D backend DLL/XML for the common path.
 - Every emitted alpha package contains `README.md` and release notes with the required `net11.0-windows` and DWM/color-key fallback caveats.
 - `ModernOverlay.Integration.Experimental` remains source-only and is not packed.

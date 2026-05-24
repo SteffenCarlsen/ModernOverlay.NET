@@ -29,6 +29,16 @@ public sealed class Win32StyleTests
     }
 
     [TestMethod]
+    public void ActivatableInteractiveStyleOmitsNoActivateFlag()
+    {
+        uint style = WindowStyles.BuildExtendedStyle(clickThrough: false, topMost: false, toolWindow: false, noActivate: false);
+
+        Assert.AreEqual(0u, style & WindowStyles.WsExTransparent);
+        Assert.AreEqual(0u, style & WindowStyles.WsExNoActivate);
+        Assert.AreNotEqual(0u, style & WindowStyles.WsExLayered);
+    }
+
+    [TestMethod]
     public void NativeHResultExceptionRecordsLastNativeFailure()
     {
         _ = new NativeHResultException("UnitTestOperation", unchecked((int)0x80004005));

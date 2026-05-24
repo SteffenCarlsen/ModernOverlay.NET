@@ -76,7 +76,8 @@ function Assert-PackageBoundary {
         'ModernOverlay.NET.Diagnostics',
         'ModernOverlay.NET.Direct2D',
         'ModernOverlay.NET.Integration',
-        'ModernOverlay.NET.Win32'
+        'ModernOverlay.NET.Win32',
+        'ModernOverlay.UI'
     )
 
     if ($packageNames.Count -ne $expectedPackageIds.Count) {
@@ -198,6 +199,7 @@ function Invoke-PackageConsumerSmoke {
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <RestorePackagesPath>$(MSBuildThisFileDirectory).packages</RestorePackagesPath>
   </PropertyGroup>
 </Project>
 '@ | Set-Content -Path $directoryBuildProps -Encoding UTF8
@@ -233,6 +235,7 @@ function Invoke-PackageConsumerSmoke {
 
   <ItemGroup>
     <PackageReference Include="ModernOverlay.NET" Version="1.0.0" />
+    <PackageReference Include="ModernOverlay.UI" Version="1.0.0" />
   </ItemGroup>
 </Project>
 '@ | Set-Content -Path $projectFile -Encoding UTF8
@@ -241,6 +244,7 @@ function Invoke-PackageConsumerSmoke {
     @'
 using ModernOverlay;
 using ModernOverlay.Drawing;
+using ModernOverlay.UI;
 using ModernOverlay.Windows;
 
 static void Require(bool condition, string message)
@@ -272,11 +276,14 @@ Require(typeof(OverlayWindowOptions).Namespace == "ModernOverlay.Windows", "Over
 Require(typeof(WindowTarget).Namespace == "ModernOverlay.Windows", "WindowTarget must be in ModernOverlay.Windows.");
 Require(typeof(RectF).Namespace == "ModernOverlay.Drawing", "RectF must be in ModernOverlay.Drawing.");
 Require(typeof(ColorRgba).Namespace == "ModernOverlay.Drawing", "ColorRgba must be in ModernOverlay.Drawing.");
+Require(typeof(OverlayUiRoot).Namespace == "ModernOverlay.UI", "OverlayUiRoot must be in ModernOverlay.UI.");
+Require(typeof(UiWindow).Namespace == "ModernOverlay.UI", "UiWindow must be in ModernOverlay.UI.");
 Require(typeof(WindowTarget).GetMethod("ByWindowTitle") is null, "WindowTarget.ByWindowTitle must not return as a v1 alias.");
 Require(typeof(WindowTarget).GetMethod("Foreground", Type.EmptyTypes) is null, "WindowTarget.Foreground must not return as a v1 alias.");
 Require(!Enum.GetNames<RenderExceptionPolicy>().Contains("IgnoreAndContinue"), "RenderExceptionPolicy.IgnoreAndContinue must not return as a v1 alias.");
 Require(options.Bounds == new WindowBounds(10, 20, 320, 180), "Package consumer bounds factory failed.");
 Require(rectangle.Width == 100 && color.A == 1f, "Package consumer drawing primitives failed.");
+Require(new UiWindow { Width = 120, Height = 80 }.Width == 120, "Package consumer UI primitives failed.");
 
 Console.WriteLine("Package consumer smoke passed.");
 '@ | Set-Content -Path $programFile -Encoding UTF8

@@ -18,9 +18,14 @@ public static class WindowStyles
 
     public const uint WsExNoActivate = 0x08000000;
 
-    public static uint BuildExtendedStyle(bool clickThrough, bool topMost, bool toolWindow)
+    public static uint BuildExtendedStyle(bool clickThrough, bool topMost, bool toolWindow, bool noActivate = true)
     {
-        uint style = WsExLayered | WsExNoActivate;
+        uint style = WsExLayered;
+
+        if (noActivate)
+        {
+            style |= WsExNoActivate;
+        }
 
         if (clickThrough)
         {

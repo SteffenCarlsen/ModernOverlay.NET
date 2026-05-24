@@ -6,6 +6,7 @@ internal static class NativeMethods
 {
     internal const uint Infinite = 0xFFFFFFFF;
     internal const int SwHide = 0;
+    internal const int SwShow = 5;
     internal const int SwShowNoActivate = 4;
     internal const int SwShowMinNoActive = 7;
     internal const int SwRestore = 9;
@@ -23,6 +24,13 @@ internal static class NativeMethods
     internal const uint DefaultDpi = 96;
     internal const uint WmHotKey = 0x0312;
     internal const uint WmDpiChanged = 0x02E0;
+    internal const uint WmNcHitTest = 0x0084;
+    internal const uint WmKeyDown = 0x0100;
+    internal const uint WmKeyUp = 0x0101;
+    internal const uint WmChar = 0x0102;
+    internal const uint WmSysKeyDown = 0x0104;
+    internal const uint WmSysKeyUp = 0x0105;
+    internal const uint WmSysChar = 0x0106;
     internal const uint WmMouseMove = 0x0200;
     internal const uint WmLButtonDown = 0x0201;
     internal const uint WmLButtonUp = 0x0202;
@@ -55,6 +63,13 @@ internal static class NativeMethods
     internal const uint WdaNone = 0x00000000;
     internal const uint WdaMonitor = 0x00000001;
     internal const uint WdaExcludeFromCapture = 0x00000011;
+    internal const int HtTransparent = -1;
+    internal const int HtClient = 1;
+    internal const int VkShift = 0x10;
+    internal const int VkControl = 0x11;
+    internal const int VkMenu = 0x12;
+    internal const int VkLWin = 0x5B;
+    internal const int VkRWin = 0x5C;
 
     internal static readonly nint HwndTopMost = new(-1);
     internal static readonly nint HwndNoTopMost = new(-2);
@@ -234,9 +249,19 @@ internal static class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool SetWindowPos(nint hwnd, nint insertAfter, int x, int y, int cx, int cy, uint flags);
 
+    [DllImport("user32.dll", EntryPoint = "SetCapture", ExactSpelling = true)]
+    internal static extern nint SetCapture(nint hwnd);
+
+    [DllImport("user32.dll", EntryPoint = "ReleaseCapture", ExactSpelling = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool ReleaseCapture();
+
     [DllImport("user32.dll", EntryPoint = "TranslateMessage", ExactSpelling = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool TranslateMessage(in Msg message);
+
+    [DllImport("user32.dll", EntryPoint = "GetKeyState", ExactSpelling = true)]
+    internal static extern short GetKeyState(int virtualKey);
 
     [DllImport("user32.dll", EntryPoint = "MsgWaitForMultipleObjectsEx", ExactSpelling = true, SetLastError = true)]
     internal static extern uint MsgWaitForMultipleObjectsEx(

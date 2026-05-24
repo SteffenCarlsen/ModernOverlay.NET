@@ -23,6 +23,13 @@ Package-facing caveats for the MVP/alpha release:
 3. `TransparencyMode.UpdateLayeredWindow` and `TransparencyMode.DirectComposition` are request modes that currently fall back to the DWM/color-key Direct2D HWND path with diagnostics. True CPU-copy layered alpha and DirectComposition/DXGI per-pixel alpha remain future backend work.
 4. The release bar is a hobbyist project aiming to be useful, buildable, sample-backed, and caveated.
 
+## Changelog
+
+| Version | Highlights |
+|---|---|
+| 1.1 preview | Adds the `ModernOverlay.UI` package with retained interactive controls, layout panels, popups, floating windows, text editing, selective click-through regions, themes, and interface-only layout persistence. |
+| 1.0 | Establishes the core overlay window lifecycle, Direct2D drawing backend, target tracking, input modes, diagnostics, cooperative IPC, samples, and release validation tooling. |
+
 ## Quick Start
 
 Install the `ModernOverlay.NET` package. The package includes the Direct2D backend assembly for the common path, and the core facade auto-discovers `ModernOverlay.Direct2D` when the assembly is present.
@@ -71,7 +78,8 @@ Read more: [quick start](docs/quick-start.md), [A/B development testing](docs/ab
 | Overlay window lifecycle | Borderless Win32 popup overlays with async create/run/dispose, manual recreation, show/hide, pause/resume, and owner-thread dispatch. | [window modes](docs/window-modes.md), [device recreation](docs/device-recreation.md) |
 | Drawing | Immediate-mode clear, lines, rectangles, rounded rectangles, circles, ellipses, triangles, geometry paths, text, images, clips, transforms, and overlay helpers like boxes, corner boxes, crosshairs, and arrows. | [drawing primitives](docs/drawing-primitives.md), [resource lifetime](docs/resource-lifetime.md) |
 | Target tracking | Follow HWNDs, process ids/names, titles, class names, foreground windows, or custom providers; track whole-window, client-area, or custom bounds. | [target tracking](docs/target-tracking.md), [troubleshooting](docs/troubleshooting.md) |
-| Input modes | Click-through overlays by default, optional interactive mode with pointer move, button, and wheel events. | [window modes](docs/window-modes.md), [quick start](docs/quick-start.md) |
+| Input modes | Click-through overlays by default, optional interactive mode with pointer, keyboard, and text events, plus selective click-through input regions for mixed pass-through/interactive surfaces. | [window modes](docs/window-modes.md), [interactive UI](docs/interactive-ui.md) |
+| Retained UI | `ModernOverlay.UI` retained controls with layout panels, routed input, focus, text editing, popups, floating windows, tabs, color/range controls, theme customization, diagnostics, and interface-only layout persistence. | [interactive UI](docs/interactive-ui.md), [samples](samples/README.md) |
 | Transparency | Usable DWM/color-key transparency for the Direct2D HWND backend, with diagnostic fallback events for reserved backend modes. | [transparency validation](docs/transparency-validation.md), [DirectComposition note](docs/directcomposition-spike.md) |
 | DPI and monitors | Per Monitor V2 awareness, physical-pixel window bounds, DIP drawing coordinates, DPI conversion helpers, negative-coordinate monitor support, and display-default frame pacing. | [DPI and multi-monitor](docs/dpi-and-multi-monitor.md) |
 | Diagnostics | EventSource diagnostics, Microsoft.Extensions.Logging bridge, frame stats, target stats, native failure tracking, resource leak reports, and a diagnostics sample. | [troubleshooting](docs/troubleshooting.md), [performance guide](docs/performance-guide.md) |
@@ -183,3 +191,8 @@ Read more: [docs index](docs/README.md).
 3. [tests](tests/README.md): test areas and common commands.
 4. [benchmarks](benchmarks/README.md): BenchmarkDotNet classes and dry-run command.
 5. [tools](tools/README.md): release validation command gate.
+
+## A personal note on AI usage from myself
+The project has served as a learning experience for myself in using AI Agents "the correct way", in particular Codex. I wanted to implement some of the ideas I previously had as (bad) PoCs in other projects and try to make them feature complete; without sacrificing all of my free time completing it. All of the code has gone through numerous levels of review and quality assurance, from analysis breakdowns to task handling, milestone defintions to full implementations and the automated testing. With that being said, pretty much 99.9% of the project has been made using Codex with GPT 5.5 (high) and reviewed by Junie, Claude Sonnet 4.6 and GPT 5.4 in loop until relative agreement.
+
+I've tried to keep most of the intermediate documentation from the AI's available in the repo, not only so that others can get inspired and try to use agents in a similar way, but also for myself to look back at the state of Agentic AI from May 2025 in the future.

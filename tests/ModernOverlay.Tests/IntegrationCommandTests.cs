@@ -584,7 +584,7 @@ public sealed class IntegrationCommandTests
             PipeAccessRights.ReadWrite | PipeAccessRights.CreateNewInstance,
             AccessControlType.Allow));
 
-        NamedPipeOverlayCommandSecurity security = NamedPipeOverlayCommandSecurity.WithPipeSecurity(
+        var security = NamedPipeOverlayCommandSecurity.WithPipeSecurity(
             pipeSecurity,
             "local-token");
 

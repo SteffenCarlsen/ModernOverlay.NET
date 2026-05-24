@@ -87,4 +87,20 @@ public sealed class OverlayEventSource : EventSource
     [Event(17, Level = EventLevel.Warning)]
     public void BackendFallback(string backendName, string feature, string requestedValue, string effectiveValue, string reason)
         => WriteEvent(17, backendName, feature, requestedValue, effectiveValue, reason);
+
+    [Event(18, Level = EventLevel.Warning)]
+    public void UiLayoutLoop(int passCount, int elementCount)
+        => WriteEvent(18, passCount, elementCount);
+
+    [Event(19, Level = EventLevel.Warning)]
+    public void UiInvalidPlacement(string elementName, string placementKind, string reason)
+        => WriteEvent(19, elementName, placementKind, reason);
+
+    [Event(20, Level = EventLevel.Warning)]
+    public void UiUnhandledException(string phase, string exceptionType, string message)
+        => WriteEvent(20, phase, exceptionType, message);
+
+    [Event(21, Level = EventLevel.Warning)]
+    public void UiResourceRealizationFailure(string resourceKind, string exceptionType, string message)
+        => WriteEvent(21, resourceKind, exceptionType, message);
 }

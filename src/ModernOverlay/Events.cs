@@ -12,6 +12,10 @@ public delegate void OverlayTargetChangedHandler(OverlayWindow overlay, OverlayT
 
 public delegate void OverlayPointerHandler(OverlayWindow overlay, OverlayPointerEventArgs args);
 
+public delegate void OverlayKeyboardHandler(OverlayWindow overlay, OverlayKeyboardEventArgs args);
+
+public delegate void OverlayTextInputHandler(OverlayWindow overlay, OverlayTextInputEventArgs args);
+
 public enum OverlayPointerEventKind
 {
     Moved,
@@ -26,6 +30,16 @@ public enum OverlayPointerButton
     Left,
     Right,
     Middle,
+}
+
+[Flags]
+public enum OverlayModifierKeys
+{
+    None = 0,
+    Shift = 1 << 0,
+    Control = 1 << 1,
+    Alt = 1 << 2,
+    Windows = 1 << 3,
 }
 
 public sealed class OverlayDeviceEventArgs : EventArgs
@@ -102,4 +116,59 @@ public sealed class OverlayPointerEventArgs : EventArgs
     public int WheelDelta { get; }
 
     public bool IsHorizontalWheel { get; }
+}
+
+public sealed class OverlayKeyboardEventArgs : EventArgs
+{
+    public OverlayKeyboardEventArgs(
+        int virtualKey,
+        bool isSystemKey,
+        int repeatCount,
+        int scanCode,
+        bool isExtendedKey,
+        bool wasDown,
+        bool isTransitionState,
+        OverlayModifierKeys modifiers)
+    {
+        VirtualKey = virtualKey;
+        IsSystemKey = isSystemKey;
+        RepeatCount = repeatCount;
+        ScanCode = scanCode;
+        IsExtendedKey = isExtendedKey;
+        WasDown = wasDown;
+        IsTransitionState = isTransitionState;
+        Modifiers = modifiers;
+    }
+
+    public int VirtualKey { get; }
+
+    public bool IsSystemKey { get; }
+
+    public int RepeatCount { get; }
+
+    public int ScanCode { get; }
+
+    public bool IsExtendedKey { get; }
+
+    public bool WasDown { get; }
+
+    public bool IsTransitionState { get; }
+
+    public bool IsRepeat => WasDown || RepeatCount > 1;
+
+    public OverlayModifierKeys Modifiers { get; }
+}
+
+public sealed class OverlayTextInputEventArgs : EventArgs
+{
+    public OverlayTextInputEventArgs(string text, bool isSystemCharacter)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        Text = text;
+        IsSystemCharacter = isSystemCharacter;
+    }
+
+    public string Text { get; }
+
+    public bool IsSystemCharacter { get; }
 }

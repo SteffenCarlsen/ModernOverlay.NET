@@ -46,8 +46,14 @@ public sealed class Win32OverlayWindow : IDisposable
         ThrowIfDisposed();
         ownerThread.Invoke(() =>
         {
-            _ = NativeMethods.ShowWindow(state.Hwnd, NativeMethods.SwShowNoActivate);
-            if (!NativeMethods.SetWindowPos(state.Hwnd, 0, 0, 0, 0, 0, NativeMethods.SwpNoMove | NativeMethods.SwpNoSize | NativeMethods.SwpNoZOrder | NativeMethods.SwpNoActivate | NativeMethods.SwpShowWindow))
+            uint flags = NativeMethods.SwpNoMove | NativeMethods.SwpNoSize | NativeMethods.SwpNoZOrder | NativeMethods.SwpShowWindow;
+            if (state.NoActivate)
+            {
+                flags |= NativeMethods.SwpNoActivate;
+            }
+
+            _ = NativeMethods.ShowWindow(state.Hwnd, state.NoActivate ? NativeMethods.SwShowNoActivate : NativeMethods.SwShow);
+            if (!NativeMethods.SetWindowPos(state.Hwnd, 0, 0, 0, 0, 0, flags))
             {
                 throw new NativeWin32Exception("SetWindowPos(show)");
             }
@@ -193,6 +199,24 @@ public sealed class Win32OverlayWindow : IDisposable
         ownerThread.Invoke(() => state.PointerEvent = callback);
     }
 
+    public void SetKeyboardCallback(Action<Win32KeyboardEvent>? callback)
+    {
+        ThrowIfDisposed();
+        ownerThread.Invoke(() => state.KeyboardEvent = callback);
+    }
+
+    public void SetTextInputCallback(Action<Win32TextInputEvent>? callback)
+    {
+        ThrowIfDisposed();
+        ownerThread.Invoke(() => state.TextInputEvent = callback);
+    }
+
+    public void SetInputRegionCallback(Func<int, int, bool>? callback)
+    {
+        ThrowIfDisposed();
+        ownerThread.Invoke(() => state.InputRegion = callback);
+    }
+
     public void RegisterHotKey(int id, uint modifiers, uint virtualKey)
     {
         ThrowIfDisposed();
@@ -265,7 +289,7 @@ public sealed class Win32OverlayWindow : IDisposable
             throw new NativeWin32Exception("RegisterClassExW");
         }
 
-        uint extendedStyle = WindowStyles.BuildExtendedStyle(options.ClickThrough, options.TopMost, options.ToolWindow);
+        uint extendedStyle = WindowStyles.BuildExtendedStyle(options.ClickThrough, options.TopMost, options.ToolWindow, options.NoActivate);
         nint hwnd = NativeMethods.CreateWindowEx(
             extendedStyle,
             className,
@@ -286,7 +310,7 @@ public sealed class Win32OverlayWindow : IDisposable
             throw new NativeWin32Exception("CreateWindowExW");
         }
 
-        var state = new WindowState(className, instance, hwnd, windowProcedure, options.ExcludeFromCapture);
+        var state = new WindowState(className, instance, hwnd, windowProcedure, options.ExcludeFromCapture, options.NoActivate);
         lock (WindowsGate)
         {
             Windows.Add(hwnd, state);
@@ -303,6 +327,29 @@ public sealed class Win32OverlayWindow : IDisposable
             return 0;
         }
 
+        if (message == NativeMethods.WmNcHitTest && TryGetWindowState(hwnd, out state) && state is not null)
+        {
+            return ResolveInputRegion(hwnd, lParam, state)
+                ? NativeMethods.HtClient
+                : NativeMethods.HtTransparent;
+        }
+
+        if (TryGetKeyboardEvent(message, wParam, lParam, out Win32KeyboardEvent keyboardEvent)
+            && TryGetWindowState(hwnd, out state)
+            && state is not null)
+        {
+            state.KeyboardEvent?.Invoke(keyboardEvent);
+            return 0;
+        }
+
+        if (TryGetWindowState(hwnd, out state)
+            && state is not null
+            && state.TextInputTranslator.TryGetTextInputEvent(message, wParam, out Win32TextInputEvent textInputEvent))
+        {
+            state.TextInputEvent?.Invoke(textInputEvent);
+            return 0;
+        }
+
         if (message == NativeMethods.WmDpiChanged && TryGetWindowState(hwnd, out state) && state is not null)
         {
             HandleDpiChanged(hwnd, wParam, lParam, state);
@@ -313,6 +360,15 @@ public sealed class Win32OverlayWindow : IDisposable
             && TryGetWindowState(hwnd, out state)
             && state is not null)
         {
+            if (pointerEvent.Kind == Win32PointerEventKind.Pressed)
+            {
+                _ = NativeMethods.SetCapture(hwnd);
+            }
+            else if (pointerEvent.Kind == Win32PointerEventKind.Released)
+            {
+                _ = NativeMethods.ReleaseCapture();
+            }
+
             state.PointerEvent?.Invoke(pointerEvent);
             return 0;
         }
@@ -336,26 +392,43 @@ public sealed class Win32OverlayWindow : IDisposable
             dpiX == 0 ? 1f : dpiX / (float)NativeMethods.DefaultDpi,
             dpiY == 0 ? 1f : dpiY / (float)NativeMethods.DefaultDpi);
 
-        NativeMethods.Rect suggestedRect = System.Runtime.InteropServices.Marshal.PtrToStructure<NativeMethods.Rect>(lParam);
-        var bounds = new Win32WindowBounds(
-            suggestedRect.Left,
-            suggestedRect.Top,
-            suggestedRect.Width,
-            suggestedRect.Height);
-
-        if (!bounds.IsEmpty)
+        Win32WindowBounds bounds = default;
+        if (lParam != 0)
         {
-            _ = NativeMethods.SetWindowPos(
-                hwnd,
-                0,
-                bounds.X,
-                bounds.Y,
-                bounds.Width,
-                bounds.Height,
-                NativeMethods.SwpNoZOrder | NativeMethods.SwpNoActivate);
+            NativeMethods.Rect suggestedRect = System.Runtime.InteropServices.Marshal.PtrToStructure<NativeMethods.Rect>(lParam);
+            bounds = new Win32WindowBounds(
+                suggestedRect.Left,
+                suggestedRect.Top,
+                suggestedRect.Width,
+                suggestedRect.Height);
+
+            if (!bounds.IsEmpty)
+            {
+                _ = NativeMethods.SetWindowPos(
+                    hwnd,
+                    0,
+                    bounds.X,
+                    bounds.Y,
+                    bounds.Width,
+                    bounds.Height,
+                    NativeMethods.SwpNoZOrder | NativeMethods.SwpNoActivate);
+            }
         }
 
         state.DpiChanged?.Invoke(scale, bounds);
+    }
+
+    private static bool ResolveInputRegion(nint hwnd, nint lParam, WindowState state)
+    {
+        Func<int, int, bool>? inputRegion = state.InputRegion;
+        NativeMethods.Point point = GetPointerPoint(NativeMethods.WmNcHitTest, lParam);
+        if (!NativeMethods.ScreenToClient(hwnd, ref point))
+        {
+            Win32NativeDiagnostics.RecordWin32Failure("ScreenToClient(input region)", System.Runtime.InteropServices.Marshal.GetLastPInvokeError());
+            return false;
+        }
+
+        return inputRegion?.Invoke(point.X, point.Y) ?? true;
     }
 
     private static bool TryGetPointerEvent(nint hwnd, uint message, nuint wParam, nint lParam, out Win32PointerEvent pointerEvent)
@@ -420,6 +493,75 @@ public sealed class Win32OverlayWindow : IDisposable
         return true;
     }
 
+    private static bool TryGetKeyboardEvent(uint message, nuint wParam, nint lParam, out Win32KeyboardEvent keyboardEvent)
+    {
+        bool isPressed;
+        bool isSystem;
+        switch (message)
+        {
+            case NativeMethods.WmKeyDown:
+                isPressed = true;
+                isSystem = false;
+                break;
+            case NativeMethods.WmSysKeyDown:
+                isPressed = true;
+                isSystem = true;
+                break;
+            case NativeMethods.WmKeyUp:
+                isPressed = false;
+                isSystem = false;
+                break;
+            case NativeMethods.WmSysKeyUp:
+                isPressed = false;
+                isSystem = true;
+                break;
+            default:
+                keyboardEvent = default;
+                return false;
+        }
+
+        int data = unchecked((int)lParam.ToInt64());
+        keyboardEvent = new Win32KeyboardEvent(
+            unchecked((int)wParam),
+            isPressed,
+            isSystem,
+            data & 0xFFFF,
+            (data >> 16) & 0xFF,
+            (data & (1 << 24)) != 0,
+            (data & (1 << 30)) != 0,
+            (data & (1 << 31)) != 0,
+            GetModifierKeys());
+        return true;
+    }
+
+    private static Win32ModifierKeys GetModifierKeys()
+    {
+        Win32ModifierKeys modifiers = Win32ModifierKeys.None;
+        if (IsKeyDown(NativeMethods.VkShift))
+        {
+            modifiers |= Win32ModifierKeys.Shift;
+        }
+
+        if (IsKeyDown(NativeMethods.VkControl))
+        {
+            modifiers |= Win32ModifierKeys.Control;
+        }
+
+        if (IsKeyDown(NativeMethods.VkMenu))
+        {
+            modifiers |= Win32ModifierKeys.Alt;
+        }
+
+        if (IsKeyDown(NativeMethods.VkLWin) || IsKeyDown(NativeMethods.VkRWin))
+        {
+            modifiers |= Win32ModifierKeys.Windows;
+        }
+
+        return modifiers;
+    }
+
+    private static bool IsKeyDown(int virtualKey) => (NativeMethods.GetKeyState(virtualKey) & unchecked((short)0x8000)) != 0;
+
     private static NativeMethods.Point GetPointerPoint(uint message, nint lParam)
     {
         long value = lParam.ToInt64();
@@ -461,13 +603,100 @@ public sealed class Win32OverlayWindow : IDisposable
         ObjectDisposedException.ThrowIf(disposed, this);
     }
 
-    private sealed record WindowState(string ClassName, nint Instance, nint Hwnd, NativeMethods.WndProc WindowProcedure, bool ExcludeFromCapture)
+    private sealed record WindowState(string ClassName, nint Instance, nint Hwnd, NativeMethods.WndProc WindowProcedure, bool ExcludeFromCapture, bool NoActivate)
     {
         public Action<int>? HotkeyPressed { get; set; }
 
         public Action<Win32DpiScale, Win32WindowBounds>? DpiChanged { get; set; }
 
         public Action<Win32PointerEvent>? PointerEvent { get; set; }
+
+        public Action<Win32KeyboardEvent>? KeyboardEvent { get; set; }
+
+        public Action<Win32TextInputEvent>? TextInputEvent { get; set; }
+
+        public Func<int, int, bool>? InputRegion { get; set; }
+
+        public Win32TextInputTranslator TextInputTranslator { get; } = new();
+    }
+}
+
+internal sealed class Win32TextInputTranslator
+{
+    private const char ReplacementCharacter = '\uFFFD';
+
+    private char? pendingHighSurrogate;
+    private bool pendingHighSurrogateIsSystemCharacter;
+
+    public bool TryGetTextInputEvent(uint message, nuint wParam, out Win32TextInputEvent textInputEvent)
+    {
+        if (message is not NativeMethods.WmChar and not NativeMethods.WmSysChar)
+        {
+            textInputEvent = default;
+            return false;
+        }
+
+        bool isSystemCharacter = message == NativeMethods.WmSysChar;
+        uint value = unchecked((uint)wParam);
+        if (value > char.MaxValue)
+        {
+            pendingHighSurrogate = null;
+            pendingHighSurrogateIsSystemCharacter = false;
+            string text = value <= 0x10FFFF
+                ? char.ConvertFromUtf32(unchecked((int)value))
+                : ReplacementCharacter.ToString();
+            textInputEvent = new Win32TextInputEvent(text, isSystemCharacter);
+            return true;
+        }
+
+        char character = unchecked((char)value);
+        if (char.IsHighSurrogate(character))
+        {
+            if (pendingHighSurrogate is not null)
+            {
+                bool previousIsSystemCharacter = pendingHighSurrogateIsSystemCharacter;
+                pendingHighSurrogate = character;
+                pendingHighSurrogateIsSystemCharacter = isSystemCharacter;
+                textInputEvent = new Win32TextInputEvent(ReplacementCharacter.ToString(), previousIsSystemCharacter);
+                return true;
+            }
+
+            pendingHighSurrogate = character;
+            pendingHighSurrogateIsSystemCharacter = isSystemCharacter;
+            textInputEvent = default;
+            return false;
+        }
+
+        if (char.IsLowSurrogate(character))
+        {
+            if (pendingHighSurrogate is { } highSurrogate)
+            {
+                bool combinedIsSystemCharacter = pendingHighSurrogateIsSystemCharacter || isSystemCharacter;
+                pendingHighSurrogate = null;
+                pendingHighSurrogateIsSystemCharacter = false;
+                textInputEvent = new Win32TextInputEvent(new string([highSurrogate, character]), combinedIsSystemCharacter);
+                return true;
+            }
+
+            textInputEvent = new Win32TextInputEvent(ReplacementCharacter.ToString(), isSystemCharacter);
+            return true;
+        }
+
+        if (pendingHighSurrogate is not null)
+        {
+            bool combinedIsSystemCharacter = pendingHighSurrogateIsSystemCharacter || isSystemCharacter;
+            pendingHighSurrogate = null;
+            pendingHighSurrogateIsSystemCharacter = false;
+            textInputEvent = new Win32TextInputEvent(string.Create(2, character, static (buffer, value) =>
+            {
+                buffer[0] = ReplacementCharacter;
+                buffer[1] = value;
+            }), combinedIsSystemCharacter);
+            return true;
+        }
+
+        textInputEvent = new Win32TextInputEvent(character.ToString(), isSystemCharacter);
+        return true;
     }
 }
 
@@ -493,4 +722,27 @@ public enum Win32PointerButton
     Left,
     Right,
     Middle,
+}
+
+public readonly record struct Win32KeyboardEvent(
+    int VirtualKey,
+    bool IsPressed,
+    bool IsSystemKey,
+    int RepeatCount,
+    int ScanCode,
+    bool IsExtendedKey,
+    bool WasDown,
+    bool IsTransitionState,
+    Win32ModifierKeys Modifiers);
+
+public readonly record struct Win32TextInputEvent(string Text, bool IsSystemCharacter);
+
+[Flags]
+public enum Win32ModifierKeys
+{
+    None = 0,
+    Shift = 1 << 0,
+    Control = 1 << 1,
+    Alt = 1 << 2,
+    Windows = 1 << 3,
 }

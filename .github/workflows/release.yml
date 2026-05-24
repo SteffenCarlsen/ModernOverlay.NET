@@ -94,7 +94,8 @@ jobs:
             'src\ModernOverlay.Win32\ModernOverlay.Win32.csproj',
             'src\ModernOverlay\ModernOverlay.csproj',
             'src\ModernOverlay.Direct2D\ModernOverlay.Direct2D.csproj',
-            'src\ModernOverlay.Integration\ModernOverlay.Integration.csproj'
+            'src\ModernOverlay.Integration\ModernOverlay.Integration.csproj',
+            'src\ModernOverlay.UI\ModernOverlay.UI.csproj'
           )
 
           foreach ($project in $projects) {

@@ -477,9 +477,101 @@ public sealed class OverlayWindowThreadingTests
         Assert.IsTrue(pointer.IsHorizontalWheel);
     }
 
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task SelectiveClickThroughNcHitTestUsesInputRegionResolver()
+    {
+        var resolver = new RecordingInputRegionResolver(point => point.X < 50f);
+        var bounds = new WindowBounds(100, 120, 160, 90);
+
+        await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
+        {
+            Bounds = bounds,
+            IsVisible = false,
+            InputMode = OverlayInputMode.SelectiveClickThrough,
+        });
+        overlay.SetInputRegionResolver(resolver);
+
+        nint interactive = SendMessage(overlay.Hwnd.Value, WmNcHitTest, 0, MakeLParam(125, 150));
+        nint passThrough = SendMessage(overlay.Hwnd.Value, WmNcHitTest, 0, MakeLParam(175, 150));
+
+        Assert.AreEqual(new nint(HtClient), interactive);
+        Assert.AreEqual(new nint(HtTransparent), passThrough);
+        CollectionAssert.AreEqual(new[] { new PointF(25f, 30f), new PointF(75f, 30f) }, resolver.Points);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task InteractiveOverlayReceivesKeyboardAndTextInputEvents()
+    {
+        var keyPressed = new TaskCompletionSource<OverlayKeyboardEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var keyReleased = new TaskCompletionSource<OverlayKeyboardEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var textInput = new TaskCompletionSource<OverlayTextInputEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
+        {
+            IsVisible = false,
+            InputMode = OverlayInputMode.Interactive,
+        });
+        overlay.KeyPressed += (_, args) => keyPressed.TrySetResult(args);
+        overlay.KeyReleased += (_, args) => keyReleased.TrySetResult(args);
+        overlay.TextInput += (_, args) => textInput.TrySetResult(args);
+
+        _ = SendMessage(overlay.Hwnd.Value, WmKeyDown, (nuint)'A', MakeKeyLParam(repeatCount: 2, scanCode: 0x1E, wasDown: true, transition: false));
+        _ = SendMessage(overlay.Hwnd.Value, WmKeyUp, (nuint)'A', MakeKeyLParam(repeatCount: 1, scanCode: 0x1E, wasDown: true, transition: true));
+        _ = SendMessage(overlay.Hwnd.Value, WmChar, (nuint)'Å', 1);
+
+        OverlayKeyboardEventArgs pressed = await keyPressed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        OverlayKeyboardEventArgs released = await keyReleased.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        OverlayTextInputEventArgs text = await textInput.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.AreEqual('A', pressed.VirtualKey);
+        Assert.AreEqual(2, pressed.RepeatCount);
+        Assert.AreEqual(0x1E, pressed.ScanCode);
+        Assert.IsTrue(pressed.WasDown);
+        Assert.IsTrue(pressed.IsRepeat);
+
+        Assert.AreEqual('A', released.VirtualKey);
+        Assert.AreEqual(1, released.RepeatCount);
+        Assert.IsTrue(released.WasDown);
+        Assert.IsTrue(released.IsTransitionState);
+
+        Assert.AreEqual("Å", text.Text);
+        Assert.IsFalse(text.IsSystemCharacter);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task KeyboardLParamHighBitDoesNotOverflowOn64Bit()
+    {
+        var keyReleased = new TaskCompletionSource<OverlayKeyboardEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
+        {
+            IsVisible = false,
+            InputMode = OverlayInputMode.Interactive,
+        });
+        overlay.KeyReleased += (_, args) => keyReleased.TrySetResult(args);
+
+        _ = SendMessage(overlay.Hwnd.Value, WmKeyUp, (nuint)'A', new nint(0xC01E0001L));
+
+        OverlayKeyboardEventArgs released = await keyReleased.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.AreEqual('A', released.VirtualKey);
+        Assert.AreEqual(1, released.RepeatCount);
+        Assert.AreEqual(0x1E, released.ScanCode);
+        Assert.IsTrue(released.WasDown);
+        Assert.IsTrue(released.IsTransitionState);
+    }
+
     private const uint WmLButtonDown = 0x0201;
+    private const uint WmNcHitTest = 0x0084;
+    private const uint WmKeyDown = 0x0100;
+    private const uint WmKeyUp = 0x0101;
+    private const uint WmChar = 0x0102;
     private const uint WmMouseWheel = 0x020A;
     private const uint WmMouseHWheel = 0x020E;
+    private const int HtTransparent = -1;
+    private const int HtClient = 1;
 
     [DllImport("user32.dll", EntryPoint = "SendMessageW", ExactSpelling = true)]
     private static extern nint SendMessage(nint hwnd, uint message, nuint wParam, nint lParam);
@@ -490,9 +582,39 @@ public sealed class OverlayWindowThreadingTests
     private static nint MakeWheelWParam(int delta)
         => new((delta & 0xFFFF) << 16);
 
+    private static nint MakeKeyLParam(int repeatCount, int scanCode, bool wasDown, bool transition)
+    {
+        int value = repeatCount & 0xFFFF;
+        value |= (scanCode & 0xFF) << 16;
+        if (wasDown)
+        {
+            value |= 1 << 30;
+        }
+
+        if (transition)
+        {
+            value |= 1 << 31;
+        }
+
+        return new(value);
+    }
+
     private sealed class SingleBackendProvider(IRenderBackend backend) : IRenderBackendProvider
     {
         public IRenderBackend CreateBackend(OverlayWindowOptions options) => backend;
+    }
+
+    private sealed class RecordingInputRegionResolver(Func<PointF, bool> predicate) : IOverlayInputRegionResolver
+    {
+        public List<PointF> Points { get; } = [];
+
+        public OverlayInputRegionResult ResolveInputRegion(PointF position)
+        {
+            Points.Add(position);
+            return predicate(position)
+                ? OverlayInputRegionResult.Interactive
+                : OverlayInputRegionResult.PassThrough;
+        }
     }
 
     private sealed class RecreateRequestBackend : IRenderBackend

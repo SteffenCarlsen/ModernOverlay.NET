@@ -17,6 +17,7 @@ public sealed class OverlayWindowOptionsTests
         Assert.AreEqual(TimeSpan.FromMilliseconds(33), options.TargetTrackingInterval);
         Assert.AreEqual(RenderExceptionPolicy.StopOverlay, options.ExceptionPolicy);
         Assert.IsFalse(options.ExcludeFromCapture);
+        Assert.IsTrue(options.NoActivate);
     }
 
     [TestMethod]

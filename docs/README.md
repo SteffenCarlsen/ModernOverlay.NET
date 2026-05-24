@@ -17,6 +17,7 @@ Use this folder as the project manual. The docs are intentionally split by topic
 3. [DPI and multi-monitor](dpi-and-multi-monitor.md): physical pixels, DIPs, DPI changes, and monitor movement.
 4. [Drawing primitives](drawing-primitives.md): shapes, text, images, helpers, clips, and transforms.
 5. [Resource lifetime](resource-lifetime.md): handles, native realizations, leak diagnostics, and hot-path resource guidance.
+6. [Interactive UI](interactive-ui.md): retained UI root, controls, layout, selective click-through, popups, theming, and limitations.
 
 ## Runtime Behavior
 
@@ -31,6 +32,8 @@ Use this folder as the project manual. The docs are intentionally split by topic
 2. [Transparency validation](transparency-validation.md): current transparency implementation, caveats, and manual validation.
 3. [DirectComposition spike](directcomposition-spike.md): why DirectComposition is a future backend milestone.
 4. [Capture-backed overlay spike](capture-backed-overlay-spike.md): experimental output-duplication reconstruction idea.
+5. [ModernOverlay 1.1 interactive UI analysis](modernoverlay-1.1-interactive-ui-analysis.md): retained UI, dynamic placement, and control-system planning.
+6. [ModernOverlay 1.1 interactive UI architecture](modernoverlay-1.1-interactive-ui-architecture.md): accepted UI architecture direction, review alignment, and implementation order.
 
 ## Release State
 
@@ -39,7 +42,9 @@ Use this folder as the project manual. The docs are intentionally split by topic
 3. [Next action points](next-action-points.md): numbered milestone roadmap.
 4. [Public API and package review](public-api-package-review.md): preview API/package decisions.
 5. [Implementation history](implementation-history.md): public summary of important implementation decisions and tradeoffs.
-6. [Development notes](development-notes.md): repository maintenance and validation habits.
-7. [Release validation checklist](release-validation-checklist.md): command gate and manual validation checklist.
-8. [Release publishing](release-publishing.md): tag-driven GitHub release and NuGet publishing setup.
-9. [Definition of done audit](definition-of-done-audit.md): MVP/alpha release-bar audit.
+6. [Architecture decision records](adr): accepted high-level implementation and contingency decisions.
+7. [Development notes](development-notes.md): repository maintenance and validation habits.
+8. [Release validation checklist](release-validation-checklist.md): command gate and manual validation checklist.
+9. [Release publishing](release-publishing.md): tag-driven GitHub release and NuGet publishing setup.
+10. [Definition of done audit](definition-of-done-audit.md): MVP/alpha release-bar audit.
+11. [ModernOverlay 1.1 interactive UI tasks](modernoverlay-1.1-interactive-ui-tasks.md): separate checklist for the 1.1 UI feature track.

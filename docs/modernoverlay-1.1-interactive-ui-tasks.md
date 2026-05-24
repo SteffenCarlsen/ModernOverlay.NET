@@ -453,6 +453,7 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Define nested popup policy for menus/context menus and reject arbitrary nested popups if unsupported in 1.1.
   - Nested popups are allowed only for menu/context-menu submenu scenarios implemented by the 1.1 controls; arbitrary nested popups remain unsupported and should be rejected or flattened until a general policy exists.
 - [ ] Add tests for focus preservation, focusable popup children, capture inside popup, owner close while popup has capture, and nested popup policy.
+  - Partial coverage exists in `OverlayUiPopupPolicyTests` for focus preservation on open, focusable popup children, owner-removal dismissal, and root-owned popup child capture release when the owner becomes unavailable.
 
 ### 22.2 ListBox
 

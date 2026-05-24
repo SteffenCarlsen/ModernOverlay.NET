@@ -48,3 +48,4 @@ Use this folder as the project manual. The docs are intentionally split by topic
 9. [Release publishing](release-publishing.md): tag-driven GitHub release and NuGet publishing setup.
 10. [Definition of done audit](definition-of-done-audit.md): MVP/alpha release-bar audit.
 11. [ModernOverlay 1.1 interactive UI tasks](modernoverlay-1.1-interactive-ui-tasks.md): separate checklist for the 1.1 UI feature track.
+12. [ModernOverlay 1.1 release retrospective](modernoverlay-1.1-release-retrospective.md): lessons, follow-up rules, and skill candidates from the 1.1 release.

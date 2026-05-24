@@ -434,7 +434,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Add mouse click caret placement.
 - [x] Add drag selection if feasible.
 - [x] Add horizontal scroll for long single-line text.
-- [ ] Document IME, dead-key, Unicode, clipboard, and international input limitations before release.
+- [x] Document IME, dead-key, Unicode, clipboard, and international input limitations before release.
+  - Covered in `docs/interactive-ui.md`.
 - [ ] Add tests for text input, caret movement, deletion, selection, focus, disabled/read-only state, and rendering.
 
 ### 21.2 SearchBox
@@ -531,7 +532,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Decide whether `ScrollViewer` is required for 1.1: defer `ScrollViewer` and general virtualization.
 - [x] Document `ScrollViewer` as post-MVP due to transformed input regions, clipping, wheel-routing, popup-placement, and virtualization complexity.
 - [x] Ensure list/combo/menu controls provide local wheel or keyboard navigation without requiring a general scroll host.
-- [ ] Revisit transformed coordinate handling before implementing `ScrollViewer` after 1.1.
+- [x] Revisit transformed coordinate handling before implementing `ScrollViewer` after 1.1.
+  - `docs/interactive-ui.md` keeps `ScrollViewer` deferred and lists the required transformed-coordinate design points before adding it later.
 
 ## 25. Tabs And Segmented Controls
 
@@ -559,7 +561,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Ensure non-UI overlay regions can remain click-through while UI controls receive input.
 - [ ] Add Win32 tests for `WM_NCHITTEST` behavior.
 - [ ] Add sample validation for mixed click-through and interactive UI regions.
-- [ ] Document selective click-through behavior, input-region behavior, limitations, and fallback behavior.
+- [x] Document selective click-through behavior, input-region behavior, limitations, and fallback behavior.
+  - Covered in `docs/interactive-ui.md`.
 
 ## 28. Accessibility And Usability Baseline
 
@@ -569,11 +572,14 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - Focusable controls render an accent focus cue.
 - [x] Add disabled state for all controls.
   - Retained input routing already excludes disabled elements; common controls now render disabled text, borders, selection, range, popup, tab, segmented, color, and window states with theme disabled colors.
-- [ ] Add minimum hit-target guidance.
-- [ ] Add text contrast guidance for default theme.
+- [x] Add minimum hit-target guidance.
+  - Covered in `docs/interactive-ui.md`.
+- [x] Add text contrast guidance for default theme.
+  - Covered in `docs/interactive-ui.md` through `UiTheme.CheckReadability()`.
 - [x] Decide whether UI Automation support is out of scope for 1.1.
   - UI Automation providers, screen-reader tree exposure, and accessibility patterns are out of scope for 1.1; keyboard navigation, visible focus, disabled visuals, hit-target guidance, contrast guidance, and honest limitation docs remain in scope.
-- [ ] Document accessibility limitations honestly.
+- [x] Document accessibility limitations honestly.
+  - Covered in `docs/interactive-ui.md`.
 
 ## 29. Diagnostics
 
@@ -607,21 +613,21 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 
 ## 31. Documentation
 
-- [ ] Add `docs/interactive-ui.md`.
-- [ ] Document retained UI concepts and how they relate to immediate-mode drawing.
-- [ ] Document property-change categories and invalidation behavior.
-- [ ] Document deferred mutation and protected-phase behavior.
-- [ ] Document input mode requirements.
-- [ ] Document layout panels and dynamic placement.
-- [ ] Document popup ownership, focus, capture, dismissal, and nested popup policy.
-- [ ] Document every shipped control with short examples.
-- [ ] Document theming and resource lifetime.
-- [ ] Document focus/keyboard/text input limitations.
-- [ ] Document text editing limitations for IME, Unicode, dead keys, clipboard, and caret timing.
-- [ ] Document selective click-through and input-region status.
-- [ ] Document `ScrollViewer` and virtualization as post-MVP deferred features.
-- [ ] Document safety boundary and non-goals.
-- [ ] Update `docs/README.md` once `interactive-ui.md` exists.
+- [x] Add `docs/interactive-ui.md`.
+- [x] Document retained UI concepts and how they relate to immediate-mode drawing.
+- [x] Document property-change categories and invalidation behavior.
+- [x] Document deferred mutation and protected-phase behavior.
+- [x] Document input mode requirements.
+- [x] Document layout panels and dynamic placement.
+- [x] Document popup ownership, focus, capture, dismissal, and nested popup policy.
+- [x] Document every shipped control with short examples.
+- [x] Document theming and resource lifetime.
+- [x] Document focus/keyboard/text input limitations.
+- [x] Document text editing limitations for IME, Unicode, dead keys, clipboard, and caret timing.
+- [x] Document selective click-through and input-region status.
+- [x] Document `ScrollViewer` and virtualization as post-MVP deferred features.
+- [x] Document safety boundary and non-goals.
+- [x] Update `docs/README.md` once `interactive-ui.md` exists.
 - [ ] Update root README feature table when the feature is implemented.
 - [ ] Update package README/release notes for 1.1.
 

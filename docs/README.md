@@ -17,6 +17,7 @@ Use this folder as the project manual. The docs are intentionally split by topic
 3. [DPI and multi-monitor](dpi-and-multi-monitor.md): physical pixels, DIPs, DPI changes, and monitor movement.
 4. [Drawing primitives](drawing-primitives.md): shapes, text, images, helpers, clips, and transforms.
 5. [Resource lifetime](resource-lifetime.md): handles, native realizations, leak diagnostics, and hot-path resource guidance.
+6. [Interactive UI](interactive-ui.md): retained UI root, controls, layout, selective click-through, popups, theming, and limitations.
 
 ## Runtime Behavior
 

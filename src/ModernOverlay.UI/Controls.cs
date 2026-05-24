@@ -1813,6 +1813,7 @@ public sealed class ComboBox : Selector, IUiPopup
     private readonly float itemHeight = 24f;
     private float maxDropDownHeight = 160f;
     private bool clampDropDownToOverlay = true;
+    private RectF headerBounds;
 
     /// <summary>
     /// Initializes a combo box.
@@ -1842,7 +1843,7 @@ public sealed class ComboBox : Selector, IUiPopup
     public bool IsDropDownOpen
     {
         get => isDropDownOpen;
-        set => SetProperty(ref isDropDownOpen, value, UiInvalidation.Render | UiInvalidation.InputRegion);
+        set => SetProperty(ref isDropDownOpen, value, UiInvalidation.Arrange | UiInvalidation.Render | UiInvalidation.InputRegion);
     }
 
     /// <summary>
@@ -1885,10 +1886,24 @@ public sealed class ComboBox : Selector, IUiPopup
 
     protected override SizeF MeasureCore(SizeF availableSize) => new(MathF.Min(availableSize.Width, MathF.Max(MinWidth, 160f)), Height);
 
+    protected override void ArrangeCore(RectF finalRect)
+    {
+        headerBounds = finalRect;
+        if (IsDropDownOpen)
+        {
+            RectF dropDown = DropDownBounds;
+            float left = MathF.Min(headerBounds.X, dropDown.X);
+            float top = MathF.Min(headerBounds.Y, dropDown.Y);
+            float right = MathF.Max(headerBounds.X + headerBounds.Width, dropDown.X + dropDown.Width);
+            float bottom = MathF.Max(headerBounds.Y + headerBounds.Height, dropDown.Y + dropDown.Height);
+            SetLayoutBounds(new RectF(left, top, right - left, bottom - top));
+        }
+    }
+
     private protected override UiInvalidation SelectionInvalidation => UiInvalidation.Render | UiInvalidation.InputRegion;
 
     protected override bool HitTestCore(PointF point)
-        => UiGeometry.Contains(Bounds, point) || (IsDropDownOpen && UiGeometry.Contains(DropDownBounds, point));
+        => UiGeometry.Contains(HeaderBounds, point) || (IsDropDownOpen && UiGeometry.Contains(DropDownBounds, point));
 
     /// <summary>
     /// Determines whether a point is within the combo box or its open dropdown.
@@ -1902,18 +1917,20 @@ public sealed class ComboBox : Selector, IUiPopup
     protected override void RenderCore(UiRenderContext context)
     {
         bool enabled = IsEffectivelyEnabled;
-        context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, enabled ? ResolveBackground(context) : ResolveDisabledBrush(context));
-        context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, IsFocused && enabled ? ResolveFocusBrush(context) : ResolveBorderBrush(context));
+        RectF header = HeaderBounds;
+        RectF headerContent = UiGeometry.Deflate(header, Padding);
+        context.Draw.Fill.RoundedRectangle(header, 4f, 4f, enabled ? ResolveBackground(context) : ResolveDisabledBrush(context));
+        context.Draw.Draw.RoundedRectangle(header, 4f, 4f, IsFocused && enabled ? ResolveFocusBrush(context) : ResolveBorderBrush(context));
         string display = IsSelectedIndexValid ? SelectedText : Placeholder;
         if (display.Length > 0)
         {
             BrushHandle brush = !enabled ? ResolveDisabledBrush(context) : IsSelectedIndexValid ? ResolveForeground(context) : context.Theme.MutedForeground;
-            context.Draw.Draw.Text(display, context.Theme.Font, brush, new PointF(ContentBounds.X, ContentBounds.Y));
+            context.Draw.Draw.Text(display, context.Theme.Font, brush, new PointF(headerContent.X, headerContent.Y));
         }
 
-        PointF arrowA = new(Bounds.X + Bounds.Width - 20f, Bounds.Y + 12f);
-        PointF arrowB = new(Bounds.X + Bounds.Width - 14f, Bounds.Y + 18f);
-        PointF arrowC = new(Bounds.X + Bounds.Width - 8f, Bounds.Y + 12f);
+        PointF arrowA = new(header.X + header.Width - 20f, header.Y + 12f);
+        PointF arrowB = new(header.X + header.Width - 14f, header.Y + 18f);
+        PointF arrowC = new(header.X + header.Width - 8f, header.Y + 12f);
         BrushHandle arrowBrush = enabled ? ResolveForeground(context) : ResolveDisabledBrush(context);
         context.Draw.Draw.Line(arrowA, arrowB, arrowBrush);
         context.Draw.Draw.Line(arrowB, arrowC, arrowBrush);
@@ -1988,12 +2005,15 @@ public sealed class ComboBox : Selector, IUiPopup
         get
         {
             float height = MathF.Min(MaxDropDownHeight, Items.Count * itemHeight);
-            SizeF size = new(Bounds.Width, height);
+            RectF header = HeaderBounds;
+            SizeF size = new(header.Width, height);
             return ClampDropDownToOverlay
-                ? UiPopupPlacement.ResolveBelowOrAbove(Root, Bounds, size)
-                : new RectF(Bounds.X, Bounds.Y + Bounds.Height + 2f, size.Width, size.Height);
+                ? UiPopupPlacement.ResolveBelowOrAbove(Root, header, size)
+                : new RectF(header.X, header.Y + header.Height + 2f, size.Width, size.Height);
         }
     }
+
+    private RectF HeaderBounds => headerBounds.IsEmpty ? Bounds : headerBounds;
 
     private void RenderDropDown(UiRenderContext context)
     {

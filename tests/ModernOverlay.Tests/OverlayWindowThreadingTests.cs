@@ -540,6 +540,29 @@ public sealed class OverlayWindowThreadingTests
         Assert.IsFalse(text.IsSystemCharacter);
     }
 
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task KeyboardLParamHighBitDoesNotOverflowOn64Bit()
+    {
+        var keyReleased = new TaskCompletionSource<OverlayKeyboardEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
+        {
+            IsVisible = false,
+            InputMode = OverlayInputMode.Interactive,
+        });
+        overlay.KeyReleased += (_, args) => keyReleased.TrySetResult(args);
+
+        _ = SendMessage(overlay.Hwnd.Value, WmKeyUp, (nuint)'A', new nint(0xC01E0001L));
+
+        OverlayKeyboardEventArgs released = await keyReleased.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.AreEqual('A', released.VirtualKey);
+        Assert.AreEqual(1, released.RepeatCount);
+        Assert.AreEqual(0x1E, released.ScanCode);
+        Assert.IsTrue(released.WasDown);
+        Assert.IsTrue(released.IsTransitionState);
+    }
+
     private const uint WmLButtonDown = 0x0201;
     private const uint WmNcHitTest = 0x0084;
     private const uint WmKeyDown = 0x0100;

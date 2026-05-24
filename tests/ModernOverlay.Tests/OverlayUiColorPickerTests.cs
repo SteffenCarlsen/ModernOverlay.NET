@@ -15,6 +15,7 @@ public sealed class OverlayUiColorPickerTests
         await using OverlayWindow overlay = await CreateOverlayAsync();
         using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
         ColorPicker picker = CreateColorPicker();
+        picker.Label = "Selfmade indicator colour";
         int changes = 0;
         picker.ColorChanged += (_, _) => changes++;
         ui.Root.Children.Add(picker);
@@ -31,6 +32,7 @@ public sealed class OverlayUiColorPickerTests
 
         Assert.IsTrue(sink.FilledRoundedRectangles.Count > 0);
         Assert.AreEqual(selected, sink.FilledRoundedRectangles[0].Brush.Color);
+        Assert.Contains("Selfmade indicator colour", sink.TextRuns);
         Assert.Contains("#204080 (192)", sink.TextRuns);
     }
 
@@ -46,12 +48,19 @@ public sealed class OverlayUiColorPickerTests
         int changes = 0;
         picker.ColorChanged += (_, _) => changes++;
 
-        DispatchPointer(overlay, Win32PointerEventKind.Pressed, Win32PointerButton.Left, 60, 60);
-        DispatchPointer(overlay, Win32PointerEventKind.Released, Win32PointerButton.Left, 60, 60);
+        DispatchPointer(overlay, Win32PointerEventKind.Pressed, Win32PointerButton.Left, 20, 22);
+        DispatchPointer(overlay, Win32PointerEventKind.Released, Win32PointerButton.Left, 20, 22);
+        ui.Render(new DrawContext());
+        Assert.IsTrue(picker.IsExpanded);
+
+        RectF colorField = GetPickerBounds(picker, "ColorFieldBounds");
+        DispatchPointer(overlay, Win32PointerEventKind.Pressed, Win32PointerButton.Left, (int)(colorField.X + colorField.Width / 2f), (int)(colorField.Y + colorField.Height / 2f));
+        DispatchPointer(overlay, Win32PointerEventKind.Released, Win32PointerButton.Left, (int)(colorField.X + colorField.Width / 2f), (int)(colorField.Y + colorField.Height / 2f));
         Assert.AreNotEqual(ColorRgba.White, picker.Value);
 
-        DispatchPointer(overlay, Win32PointerEventKind.Pressed, Win32PointerButton.Left, 67, 138);
-        DispatchPointer(overlay, Win32PointerEventKind.Released, Win32PointerButton.Left, 67, 138);
+        RectF alphaStrip = GetPickerBounds(picker, "AlphaStripBounds");
+        DispatchPointer(overlay, Win32PointerEventKind.Pressed, Win32PointerButton.Left, (int)(alphaStrip.X + alphaStrip.Width / 2f), (int)(alphaStrip.Y + alphaStrip.Height / 2f));
+        DispatchPointer(overlay, Win32PointerEventKind.Released, Win32PointerButton.Left, (int)(alphaStrip.X + alphaStrip.Width / 2f), (int)(alphaStrip.Y + alphaStrip.Height / 2f));
 
         Assert.AreEqual(0.5f, picker.Value.A, 0.02f);
         Assert.IsTrue(changes >= 2);
@@ -69,7 +78,6 @@ public sealed class OverlayUiColorPickerTests
         ColorPicker picker = new()
         {
             Width = 180f,
-            Height = 174f,
         };
         Canvas.SetLeft(picker, 10f);
         Canvas.SetTop(picker, 10f);
@@ -81,6 +89,13 @@ public sealed class OverlayUiColorPickerTests
         MethodInfo method = typeof(OverlayWindow).GetMethod("HandlePointerEvent", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new MissingMethodException(nameof(OverlayWindow), "HandlePointerEvent");
         method.Invoke(overlay, [new Win32PointerEvent(kind, button, x, y)]);
+    }
+
+    private static RectF GetPickerBounds(ColorPicker picker, string propertyName)
+    {
+        PropertyInfo property = typeof(ColorPicker).GetProperty(propertyName, BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMemberException(nameof(ColorPicker), propertyName);
+        return (RectF)(property.GetValue(picker) ?? throw new InvalidOperationException("ColorPicker bounds unavailable."));
     }
 
     private sealed class RecordingDrawCommandSink : IDrawCommandSink

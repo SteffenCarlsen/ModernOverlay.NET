@@ -382,12 +382,9 @@ public sealed class TabControl : UiPanel
     protected override void RenderCore(UiRenderContext context)
     {
         bool enabled = IsEffectivelyEnabled;
-        RectF content = new(Bounds.X, Bounds.Y + HeaderHeight - 1f, Bounds.Width, MathF.Max(0f, Bounds.Height - HeaderHeight + 1f));
-        context.Draw.Fill.RoundedRectangle(content, 3f, 3f, enabled ? ResolveBackground(context) : ResolveDisabledBrush(context));
-        context.Draw.Draw.RoundedRectangle(content, 3f, 3f, ResolveBorderBrush(context));
         if (IsFocused && enabled)
         {
-            context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, context.Theme.Accent);
+            context.Draw.Draw.Line(new PointF(Bounds.X, Bounds.Y + HeaderHeight - 1f), new PointF(Bounds.X + Bounds.Width, Bounds.Y + HeaderHeight - 1f), context.Theme.Accent);
         }
 
         float x = Bounds.X;
@@ -397,16 +394,9 @@ public sealed class TabControl : UiPanel
             float width = item.Header.Length * context.Theme.Theme.FontSize * 0.62f + 24f;
             RectF tab = new(x, Bounds.Y, width, HeaderHeight);
             bool itemEnabled = enabled && item.IsEnabled;
-            BrushHandle fill = !enabled
-                ? context.Theme.Disabled
-                : index == SelectedIndex
-                    ? ResolveBackground(context)
-                    : context.Theme.Surface;
-            context.Draw.Fill.Rectangle(tab, fill);
-            context.Draw.Draw.Rectangle(tab, index == SelectedIndex && itemEnabled ? context.Theme.Accent : context.Theme.Border);
             if (index == SelectedIndex && itemEnabled)
             {
-                context.Draw.Fill.Rectangle(new RectF(tab.X, tab.Y + tab.Height - 3f, tab.Width, 3f), context.Theme.Accent);
+                context.Draw.Fill.Rectangle(new RectF(tab.X + 8f, tab.Y + tab.Height - 4f, MathF.Max(0f, tab.Width - 16f), 4f), context.Theme.Accent);
             }
 
             context.Draw.Draw.Text(item.Header, context.Theme.Font, itemEnabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(tab.X + 10f, tab.Y + 7f));
@@ -661,8 +651,11 @@ public sealed class ColorPicker : UiPanel
     private const float Gap = 8f;
     private const float AlphaHeight = 12f;
     private const float PreviewSize = 24f;
+    private const float HeaderHeight = 28f;
 
     private ColorRgba value = ColorRgba.White;
+    private string label = string.Empty;
+    private bool isExpanded;
     private float hue;
     private float saturation;
     private float brightness = 1f;
@@ -683,8 +676,7 @@ public sealed class ColorPicker : UiPanel
         ReceivesInput = true;
         Focusable = true;
         MinWidth = 170f;
-        MinHeight = 164f;
-        Height = 174f;
+        MinHeight = HeaderHeight;
         UpdateHsvFromColor(value);
     }
 
@@ -692,6 +684,24 @@ public sealed class ColorPicker : UiPanel
     /// Occurs when <see cref="Value"/> changes.
     /// </summary>
     public event EventHandler? ColorChanged;
+
+    /// <summary>
+    /// Gets or sets optional label text rendered next to the selected color preview.
+    /// </summary>
+    public string Label
+    {
+        get => label;
+        set => SetProperty(ref label, value ?? string.Empty, UiInvalidation.Measure | UiInvalidation.Render);
+    }
+
+    /// <summary>
+    /// Gets or sets whether the expanded HSV picker is visible.
+    /// </summary>
+    public bool IsExpanded
+    {
+        get => isExpanded;
+        set => SetProperty(ref isExpanded, value, UiInvalidation.Measure | UiInvalidation.Render | UiInvalidation.InputRegion);
+    }
 
     /// <summary>
     /// Gets or sets the selected color value.
@@ -704,7 +714,8 @@ public sealed class ColorPicker : UiPanel
 
     protected override SizeF MeasureCore(SizeF availableSize)
     {
-        return new SizeF(MathF.Min(availableSize.Width, MathF.Max(MinWidth, 190f)), MathF.Max(MinHeight, 174f));
+        float height = IsExpanded ? 174f : HeaderHeight;
+        return new SizeF(MathF.Min(availableSize.Width, MathF.Max(MinWidth, 190f)), MathF.Max(MinHeight, height));
     }
 
     protected override void ArrangeCore(RectF finalRect)
@@ -714,10 +725,28 @@ public sealed class ColorPicker : UiPanel
     protected override void RenderCore(UiRenderContext context)
     {
         bool enabled = IsEffectivelyEnabled;
+        RectF preview = ValuePreviewBounds;
+        if (Label.Length > 0)
+        {
+            context.Draw.Draw.Text(Label, context.Theme.Font, enabled ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(ContentBounds.X, ContentBounds.Y + 5f));
+        }
+
+        DrawPreview(context, preview, enabled);
+        context.Draw.Draw.Text(HexText(), context.Theme.Font, enabled ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(preview.X + PreviewSize + 8f, preview.Y + 4f));
+        if (!IsExpanded)
+        {
+            if (IsFocused && enabled)
+            {
+                context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, ResolveFocusBrush(context));
+            }
+
+            return;
+        }
+
         RectF field = ColorFieldBounds;
         RectF hueStrip = HueStripBounds;
         RectF alphaStrip = AlphaStripBounds;
-        RectF preview = PreviewBounds;
+        RectF expandedPreview = ExpandedPreviewBounds;
 
         DrawChecker(context, field);
         DrawColorField(context, field, enabled);
@@ -730,10 +759,8 @@ public sealed class ColorPicker : UiPanel
         float alphaX = alphaStrip.X + alpha * alphaStrip.Width;
         context.Draw.Draw.Rectangle(new RectF(alphaX - 2f, alphaStrip.Y - 2f, 4f, alphaStrip.Height + 4f), enabled ? ResolveForeground(context) : ResolveDisabledBrush(context));
 
-        DrawChecker(context, preview);
-        context.Draw.Fill.RoundedRectangle(preview, 3f, 3f, enabled ? previewBrush ?? ResolveAccentBrush(context) : ResolveDisabledBrush(context));
-        context.Draw.Draw.RoundedRectangle(preview, 3f, 3f, ResolveBorderBrush(context));
-        context.Draw.Draw.Text(HexText(), context.Theme.Font, enabled ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(preview.X + PreviewSize + 8f, preview.Y + 4f));
+        DrawPreview(context, expandedPreview, enabled);
+        context.Draw.Draw.Text(HexText(), context.Theme.Font, enabled ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(expandedPreview.X + PreviewSize + 8f, expandedPreview.Y + 4f));
 
         if (IsFocused && enabled)
         {
@@ -754,6 +781,19 @@ public sealed class ColorPicker : UiPanel
     protected override void OnPointerPressed(UiPointerEventArgs args)
     {
         if (args.Button != OverlayPointerButton.Left)
+        {
+            return;
+        }
+
+        if (UiGeometry.Contains(ValuePreviewBounds, args.Position))
+        {
+            Focus();
+            IsExpanded = !IsExpanded;
+            args.Handled = true;
+            return;
+        }
+
+        if (!IsExpanded)
         {
             return;
         }
@@ -798,9 +838,9 @@ public sealed class ColorPicker : UiPanel
     {
         get
         {
-            RectF content = ContentBounds;
-            float size = MathF.Min(MathF.Max(1f, content.Width - StripWidth - Gap), MathF.Max(1f, content.Height - AlphaHeight - PreviewSize - Gap * 3f));
-            return new RectF(content.X, content.Y, size, size);
+            RectF picker = PickerBounds;
+            float size = MathF.Min(MathF.Max(1f, picker.Width - StripWidth - Gap), MathF.Max(1f, picker.Height - AlphaHeight - PreviewSize - Gap * 3f));
+            return new RectF(picker.X, picker.Y, size, size);
         }
     }
 
@@ -822,12 +862,34 @@ public sealed class ColorPicker : UiPanel
         }
     }
 
-    private RectF PreviewBounds
+    private RectF ValuePreviewBounds
+    {
+        get
+        {
+            RectF content = ContentBounds;
+            float x = Label.Length > 0
+                ? MathF.Max(content.X, content.X + content.Width - PreviewSize - 88f)
+                : content.X;
+            return new RectF(x, content.Y + MathF.Max(0f, HeaderHeight - PreviewSize) / 2f, PreviewSize, PreviewSize);
+        }
+    }
+
+    private RectF ExpandedPreviewBounds
     {
         get
         {
             RectF alphaBounds = AlphaStripBounds;
             return new RectF(alphaBounds.X, alphaBounds.Y + alphaBounds.Height + Gap, PreviewSize, PreviewSize);
+        }
+    }
+
+    private RectF PickerBounds
+    {
+        get
+        {
+            RectF content = ContentBounds;
+            float y = content.Y + HeaderHeight + Gap;
+            return new RectF(content.X, y, content.Width, MathF.Max(0f, content.Y + content.Height - y));
         }
     }
 
@@ -953,6 +1015,13 @@ public sealed class ColorPicker : UiPanel
         BrushHandle brush = enabled ? ResolveForeground(context) : ResolveDisabledBrush(context);
         context.Draw.Draw.Circle(center, 4f, brush);
         context.Draw.Draw.Circle(center, 5f, ResolveBorderBrush(context));
+    }
+
+    private void DrawPreview(UiRenderContext context, RectF bounds, bool enabled)
+    {
+        DrawChecker(context, bounds);
+        context.Draw.Fill.RoundedRectangle(bounds, 3f, 3f, enabled ? previewBrush ?? ResolveAccentBrush(context) : ResolveDisabledBrush(context));
+        context.Draw.Draw.RoundedRectangle(bounds, 3f, 3f, ResolveBorderBrush(context));
     }
 
     private void RecreateColorResources()

@@ -201,7 +201,7 @@ var segmented = new SegmentedControl();
 segmented.Items.Add("Inspect");
 segmented.Items.Add("Edit");
 
-var colorPicker = new ColorPicker();
+var colorPicker = new ColorPicker { Label = "Indicator color" };
 ```
 
 Commands use `UiCommand`:

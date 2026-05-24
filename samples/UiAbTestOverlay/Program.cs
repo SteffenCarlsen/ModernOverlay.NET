@@ -185,7 +185,11 @@ UiWindow CreateControlsWindow(
     ComboBox comboBox = new() { Placeholder = "Combo" };
     ListBox listBox = new() { Height = 116f };
     NumberBox numberBox = new() { Minimum = 0d, Maximum = 100d, Step = 5d, Value = 55d };
-    ColorPicker colorPicker = new() { Height = 174f };
+    ColorPicker colorPicker = new()
+    {
+        Label = "Selfmade indicator colour",
+        Value = ColorRgba.FromBytes(18, 240, 52, 254),
+    };
     SegmentedControl segmented = new() { Width = 260f };
     UiImage image = new()
     {

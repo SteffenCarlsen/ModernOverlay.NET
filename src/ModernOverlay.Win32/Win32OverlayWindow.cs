@@ -513,7 +513,7 @@ public sealed class Win32OverlayWindow : IDisposable
                 return false;
         }
 
-        int data = lParam.ToInt32();
+        int data = unchecked((int)lParam.ToInt64());
         keyboardEvent = new Win32KeyboardEvent(
             unchecked((int)wParam),
             isPressed,

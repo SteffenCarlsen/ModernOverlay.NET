@@ -674,7 +674,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
 - [x] Document `ScrollViewer` and virtualization as post-MVP deferred features.
 - [x] Document safety boundary and non-goals.
 - [x] Update `docs/README.md` once `interactive-ui.md` exists.
-- [ ] Update root README feature table when the feature is implemented.
+- [x] Update root README feature table when the feature is implemented.
+  - Root README feature table now lists selective click-through input regions and the retained `ModernOverlay.UI` control stack.
 - [x] Update package README/release notes for 1.1.
 
 ## 32. Tests

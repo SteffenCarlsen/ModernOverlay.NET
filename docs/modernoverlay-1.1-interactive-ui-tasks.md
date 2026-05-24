@@ -491,7 +491,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - Popup controls clamp to root bounds by default; `ComboBox` can flip above the owner when there is not enough room below.
 - [x] Close popups on outside click, Escape, owner removal, or root disposal.
 - [x] Route input to popup before normal content.
-- [ ] Add tests for popup placement, z-order, outside click, Escape, owner removal, and nested popups if allowed.
+- [x] Add tests for popup placement, z-order, outside click, Escape, owner removal, and nested popups if allowed.
+  - `OverlayUiPopupPolicyTests` covers owner-anchor placement, overlay clamping, z-order input routing, outside-pointer dismissal, Escape dismissal, owner removal, and root z-order dismissal for nested popups.
 - [x] Define popup ownership rules.
   - Popups have an owner element and are hosted in the owning `OverlayUiRoot` popup layer; owner close, hide, disable, detach, or root disposal closes owned popups before normal input continues.
 - [x] Define whether opening a popup steals keyboard focus; default should preserve owner focus.
@@ -502,9 +503,9 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - Pointer capture from popup children is tracked by the owning `OverlayUiRoot`, not by a popup-local root, so capture release and owner cleanup share the same rules as normal controls.
 - [x] Define dismissal order for outside click, Escape, owner close, owner hide, owner disable, and root disposal.
 - [x] Define nested popup policy for menus/context menus and reject arbitrary nested popups if unsupported in 1.1.
-  - Nested popups are allowed only for menu/context-menu submenu scenarios implemented by the 1.1 controls; arbitrary nested popups remain unsupported and should be rejected or flattened until a general policy exists.
-- [ ] Add tests for focus preservation, focusable popup children, capture inside popup, owner close while popup has capture, and nested popup policy.
-  - Partial coverage exists in `OverlayUiPopupPolicyTests` for focus preservation on open, focusable popup children, owner-removal dismissal, and root-owned popup child capture release when the owner becomes unavailable.
+  - Nested popups use the owning root's normal popup z-order and dismissal policy. They do not create popup-local focus, capture, or layout roots.
+- [x] Add tests for focus preservation, focusable popup children, capture inside popup, owner close while popup has capture, and nested popup policy.
+  - `OverlayUiPopupPolicyTests` covers focus preservation on open, focusable popup children, owner-removal dismissal, root-owned popup child capture release when the owner becomes unavailable or hidden, deferred owner cleanup ordering, and nested popup Escape ordering.
 
 ### 22.2 ListBox
 
@@ -689,7 +690,8 @@ This checklist tracks the 1.1 retained interactive UI work separately from the a
   - Covered by `OverlayUiInputRoutingTests`.
 - [x] Add pointer capture tests.
   - Covered by `OverlayUiPointerCaptureTests`.
-- [ ] Add popup/focus/capture interaction tests.
+- [x] Add popup/focus/capture interaction tests.
+  - Covered by `OverlayUiPopupPolicyTests`.
 - [x] Add focus/keyboard routing tests.
   - Covered by `OverlayUiFocusKeyboardTests`.
 - [x] Add text input tests after core keyboard/text plumbing exists.

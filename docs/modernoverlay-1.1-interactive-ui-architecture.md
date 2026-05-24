@@ -191,7 +191,7 @@ Rules for 1.1:
 - clicking inside a popup preserves owner focus unless the clicked popup child is focusable;
 - pointer capture from a popup child is tracked by the owning `OverlayUiRoot`, not by a separate popup-only root;
 - if the owner closes, hides, disables, or detaches, owned popups close before capture/focus is rerouted;
-- nested popups are supported only for menus/context menus if implemented; otherwise nested arbitrary popups are rejected for 1.1;
+- nested popups use the owning root's normal popup z-order and dismissal policy; they do not get a popup-local focus, capture, or layout root;
 - outside-click and Escape dismissal run before the next normal pointer/key dispatch.
 
 These rules should be covered before implementing `ComboBox`, `Menu`, `ContextMenu`, and `ToolTip`.

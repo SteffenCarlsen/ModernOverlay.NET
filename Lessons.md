@@ -14,3 +14,4 @@
 - For tooltip, popup, combo box, or context menu rendering issues, check whether activated `UiWindow` instances have climbed into the popup Z-index band. Floating windows should stay below `UiLayer.Popup` so transient UI draws above them.
 - For tiny window chrome glyphs, prefer drawn geometry over text glyphs. Font metrics can pass origin-based tests while `-` or `x` still looks visually off-center.
 - If an anchored or draggable `UiWindow` snaps to the far left and only moves vertically, check whether content measurement inflated the placement size beyond the overlay width. Explicit window dimensions should constrain child measurement before placement clamping runs.
+- For raw `ToggleButton` visuals, do not rely on subtle inset marks. Checked state should read as a selected button, indeterminate state should have its own obvious indicator, and samples should expose the current state in the button text or adjacent status.

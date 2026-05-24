@@ -177,7 +177,7 @@ UiWindow CreateControlsWindow(
     Button canExecuteButton = new() { Text = "CanExecute", Width = 120f, TextHorizontalAlignment = UiHorizontalAlignment.Center };
     Button themeButton = new() { Text = "Theme A/B", Width = 120f, TextHorizontalAlignment = UiHorizontalAlignment.Center };
     Button persistButton = new() { Text = "Persist", Width = 100f, TextHorizontalAlignment = UiHorizontalAlignment.Center };
-    ToggleButton toggle = new() { Text = "Toggle", Width = 110f, IsThreeState = true, TextHorizontalAlignment = UiHorizontalAlignment.Center };
+    ToggleButton toggle = new() { Width = 110f, IsThreeState = true, TextHorizontalAlignment = UiHorizontalAlignment.Center };
     CheckBox checkBox = new() { Text = "Tri-state", IsThreeState = true };
     RadioButton alpha = new() { Text = "Alpha", GroupName = "ab", IsChecked = true };
     RadioButton beta = new() { Text = "Beta", GroupName = "ab" };
@@ -221,6 +221,7 @@ UiWindow CreateControlsWindow(
 
     segmented.SelectedIndex = 0;
     listBox.SelectedIndex = 0;
+    RefreshToggleText();
 
     commandButton.Click += (_, _) => SetStatus("Command button clicked");
     canExecuteButton.Click += (_, _) => toggleCommand();
@@ -230,7 +231,11 @@ UiWindow CreateControlsWindow(
         store.Save("ab-main", UiPlacement.Manual(32f, 64f, windowWidth, windowHeight));
         SetStatus("Saved layout through IUiLayoutStore");
     };
-    toggle.CheckStateChanged += (_, _) => SetStatus($"Toggle: {toggle.CheckState}");
+    toggle.CheckStateChanged += (_, _) =>
+    {
+        RefreshToggleText();
+        SetStatus($"Toggle: {toggle.CheckState}");
+    };
     checkBox.CheckStateChanged += (_, _) => SetStatus($"CheckBox: {checkBox.CheckState}");
     alpha.CheckedChanged += (_, _) =>
     {
@@ -337,6 +342,16 @@ UiWindow CreateControlsWindow(
         Placement = UiPlacement.AnchorTo(OverlayAnchor.TopLeft, new Thickness(32f, 64f, 0f, 0f)),
         Content = content,
     };
+
+    void RefreshToggleText()
+    {
+        toggle.Text = toggle.CheckState switch
+        {
+            UiToggleState.Checked => "Toggle On",
+            UiToggleState.Indeterminate => "Toggle Mixed",
+            _ => "Toggle Off",
+        };
+    }
 }
 
 UiWindow CreateLayoutWindow(out Action<string> showLayoutPreview)

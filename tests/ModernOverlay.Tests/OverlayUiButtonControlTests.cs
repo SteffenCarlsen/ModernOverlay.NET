@@ -74,6 +74,42 @@ public sealed class OverlayUiButtonControlTests
 
     [TestMethod]
     [TestCategory("WindowsIntegration")]
+    public async Task ToggleButtonCheckedStateRendersAsSelectedButton()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        ToggleButton toggle = CreateButton<ToggleButton>("Toggle", 10f, 10f);
+        toggle.IsChecked = true;
+        ui.Root.Children.Add(toggle);
+        var sink = new RecordingDrawCommandSink();
+
+        ui.Render(new DrawContext(sink));
+
+        Assert.IsTrue(sink.FilledRoundedRectangles.Count > 0);
+        Assert.AreEqual(UiTheme.Default.Accent, sink.FilledRoundedRectangles[0].Brush.Color);
+        Assert.Contains("Toggle", sink.TextRuns);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task ToggleButtonIndeterminateStateRendersAccentIndicator()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        ToggleButton toggle = CreateButton<ToggleButton>("Toggle", 10f, 10f);
+        toggle.IsThreeState = true;
+        toggle.CheckState = UiToggleState.Indeterminate;
+        ui.Root.Children.Add(toggle);
+        var sink = new RecordingDrawCommandSink();
+
+        ui.Render(new DrawContext(sink));
+
+        Assert.IsTrue(sink.FilledRectangles.Any(rect => rect.Width > 0f && rect.Height == 3f));
+        Assert.Contains("Toggle", sink.TextRuns);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
     public async Task CheckBoxLaysOutRendersGlyphAndActivatesFromKeyboard()
     {
         await using OverlayWindow overlay = await CreateOverlayAsync();
@@ -204,6 +240,8 @@ public sealed class OverlayUiButtonControlTests
 
         public List<RectF> FilledRectangles { get; } = [];
 
+        public List<(RectF Rect, SolidBrushHandle Brush)> FilledRoundedRectangles { get; } = [];
+
         public List<string> TextRuns { get; } = [];
 
         public Dictionary<string, List<PointF>> TextOrigins { get; } = [];
@@ -245,7 +283,14 @@ public sealed class OverlayUiButtonControlTests
             => AddPrimitive();
 
         public void FillRoundedRectangle(RectF rect, float radiusX, float radiusY, BrushHandle brush)
-            => AddPrimitive();
+        {
+            if (brush is SolidBrushHandle solid)
+            {
+                FilledRoundedRectangles.Add((rect, solid));
+            }
+
+            AddPrimitive();
+        }
 
         public void DrawCircle(PointF center, float radius, BrushHandle brush, float strokeWidth, StrokeStyleHandle? strokeStyle)
             => AddPrimitive();

@@ -565,10 +565,54 @@ public class Button : ContentControl
 
     protected override void RenderCore(UiRenderContext context)
     {
-        BrushHandle background = CanExecute() ? ResolveBackground(context) : ResolveDisabledBrush(context);
-        context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, background);
-        context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, IsFocused && IsEffectivelyEnabled ? ResolveFocusBrush(context) : ResolveBorderBrush(context));
+        RenderButtonChrome(context, ResolveButtonBackground(context), ResolveButtonBorder(context));
+        RenderButtonContent(context, ResolveButtonTextBrush(context));
+    }
 
+    /// <summary>
+    /// Resolves the background brush used by the button chrome.
+    /// </summary>
+    /// <param name="context">The current UI render context.</param>
+    /// <returns>The brush used to fill the button body.</returns>
+    protected BrushHandle ResolveButtonBackground(UiRenderContext context)
+        => CanExecute() ? ResolveBackground(context) : ResolveDisabledBrush(context);
+
+    /// <summary>
+    /// Resolves the border brush used by the button chrome.
+    /// </summary>
+    /// <param name="context">The current UI render context.</param>
+    /// <returns>The brush used to draw the button border.</returns>
+    protected BrushHandle ResolveButtonBorder(UiRenderContext context)
+        => IsFocused && IsEffectivelyEnabled ? ResolveFocusBrush(context) : ResolveBorderBrush(context);
+
+    /// <summary>
+    /// Resolves the text brush used when the button renders its built-in text.
+    /// </summary>
+    /// <param name="context">The current UI render context.</param>
+    /// <returns>The brush used to draw button text.</returns>
+    protected BrushHandle ResolveButtonTextBrush(UiRenderContext context)
+        => CanExecute() ? ResolveForeground(context) : ResolveDisabledBrush(context);
+
+    /// <summary>
+    /// Renders the shared rounded button background and border.
+    /// </summary>
+    /// <param name="context">The current UI render context.</param>
+    /// <param name="background">The brush used to fill the button body.</param>
+    /// <param name="border">The brush used to draw the button border.</param>
+    /// <param name="strokeWidth">The border stroke width in DIPs.</param>
+    protected void RenderButtonChrome(UiRenderContext context, BrushHandle background, BrushHandle border, float strokeWidth = 1f)
+    {
+        context.Draw.Fill.RoundedRectangle(Bounds, 4f, 4f, background);
+        context.Draw.Draw.RoundedRectangle(Bounds, 4f, 4f, border, strokeWidth);
+    }
+
+    /// <summary>
+    /// Renders either the hosted content element or the built-in text label.
+    /// </summary>
+    /// <param name="context">The current UI render context.</param>
+    /// <param name="textBrush">The brush used when drawing built-in text.</param>
+    protected void RenderButtonContent(UiRenderContext context, BrushHandle textBrush)
+    {
         if (Content is not null)
         {
             base.RenderCore(context);
@@ -589,7 +633,7 @@ public class Button : ContentControl
                 UiVerticalAlignment.Bottom => content.Y + MathF.Max(0f, content.Height - textSize.Height),
                 _ => content.Y,
             };
-            context.Draw.Draw.Text(Text, context.Theme.Font, CanExecute() ? ResolveForeground(context) : ResolveDisabledBrush(context), new PointF(x, y));
+            context.Draw.Draw.Text(Text, context.Theme.Font, textBrush, new PointF(x, y));
         }
     }
 
@@ -750,17 +794,29 @@ public class ToggleButton : Button
 
     protected override void RenderCore(UiRenderContext context)
     {
-        base.RenderCore(context);
-        if (CheckState == UiToggleState.Checked)
+        bool canExecute = CanExecute();
+        BrushHandle background = !canExecute
+            ? ResolveDisabledBrush(context)
+            : CheckState switch
+            {
+                UiToggleState.Checked => ResolveAccentBrush(context),
+                UiToggleState.Indeterminate => HoverBackground ?? context.Theme.SurfaceHover,
+                _ => ResolveBackground(context),
+            };
+        BrushHandle border = IsFocused && IsEffectivelyEnabled
+            ? ResolveFocusBrush(context)
+            : CheckState == UiToggleState.Unchecked || !canExecute
+                ? ResolveBorderBrush(context)
+                : ResolveAccentBrush(context);
+        RenderButtonChrome(context, background, border, CheckState == UiToggleState.Unchecked || !canExecute ? 1f : 2f);
+
+        if (CheckState == UiToggleState.Indeterminate && canExecute)
         {
-            RectF mark = UiGeometry.Deflate(Bounds, new Thickness(4f));
-            context.Draw.Draw.RoundedRectangle(mark, 3f, 3f, ResolveAccentBrush(context), 2f);
-        }
-        else if (CheckState == UiToggleState.Indeterminate)
-        {
-            RectF mark = UiGeometry.Deflate(Bounds, new Thickness(5f, Bounds.Height / 2f - 1f));
+            RectF mark = new(Bounds.X + 6f, Bounds.Y + Bounds.Height - 5f, MathF.Max(0f, Bounds.Width - 12f), 3f);
             context.Draw.Fill.Rectangle(mark, ResolveAccentBrush(context));
         }
+
+        RenderButtonContent(context, canExecute ? ResolveForeground(context) : ResolveDisabledBrush(context));
     }
 
     private void SetCheckState(UiToggleState value)

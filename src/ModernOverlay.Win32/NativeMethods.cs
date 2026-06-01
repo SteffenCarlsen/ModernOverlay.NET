@@ -72,6 +72,7 @@ internal static class NativeMethods
     internal const int VkRWin = 0x5C;
 
     internal static readonly nint HwndTopMost = new(-1);
+    internal static readonly nint HwndTop = new(0);
     internal static readonly nint HwndNoTopMost = new(-2);
     internal static readonly nint DpiAwarenessContextPerMonitorAwareV2 = new(-4);
 

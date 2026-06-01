@@ -100,6 +100,40 @@ public sealed class Win32StyleTests
 
     [TestMethod]
     [TestCategory("WindowsIntegration")]
+    public void PlaceAbovePositionsWindowImmediatelyAboveRelativeWindow()
+    {
+        using Win32OverlayWindow target = Win32OverlayWindow.Create(new Win32OverlayWindowOptions(
+            ClassName: null,
+            Title: "ModernOverlay z-order target",
+            X: 20,
+            Y: 20,
+            Width: 160,
+            Height: 90,
+            ClickThrough: false,
+            TopMost: false,
+            ToolWindow: true));
+        using Win32OverlayWindow overlay = Win32OverlayWindow.Create(new Win32OverlayWindowOptions(
+            ClassName: null,
+            Title: "ModernOverlay z-order overlay",
+            X: 20,
+            Y: 20,
+            Width: 160,
+            Height: 90,
+            ClickThrough: true,
+            TopMost: false,
+            ToolWindow: true));
+
+        target.Show();
+        overlay.Show();
+
+        Win32WindowZOrder.PlaceAbove(overlay.Hwnd, target.Hwnd);
+
+        Assert.IsTrue(Win32WindowQuery.TryGetPreviousWindow(target.Hwnd, out nint previous));
+        Assert.AreEqual(overlay.Hwnd, previous);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
     public async Task OverlayOptionAppliesCaptureExclusionBeforeUse()
     {
         await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions

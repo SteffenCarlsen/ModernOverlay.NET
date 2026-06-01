@@ -19,7 +19,13 @@ public static class Win32WindowZOrder
             throw new ArgumentException("The relative z-order HWND must be a valid window.", nameof(hwndInsertAfter));
         }
 
-        SetZOrder(hwnd, hwndInsertAfter, "SetWindowPos(place above)");
+        nint previousWindow = NativeMethods.GetWindow(hwndInsertAfter, NativeMethods.GwHwndPrev);
+        if (previousWindow == hwnd)
+        {
+            return;
+        }
+
+        SetZOrder(hwnd, previousWindow == 0 ? NativeMethods.HwndTop : previousWindow, "SetWindowPos(place above)");
     }
 
     private static void SetZOrder(nint hwnd, nint insertAfter, string operation)

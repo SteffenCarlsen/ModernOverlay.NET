@@ -134,6 +134,24 @@ public sealed class Win32StyleTests
 
     [TestMethod]
     [TestCategory("WindowsIntegration")]
+    public void PlaceAboveRejectsInvalidMovedWindowHandle()
+    {
+        using Win32OverlayWindow target = Win32OverlayWindow.Create(new Win32OverlayWindowOptions(
+            ClassName: null,
+            Title: "ModernOverlay invalid z-order target",
+            X: 20,
+            Y: 20,
+            Width: 160,
+            Height: 90,
+            ClickThrough: false,
+            TopMost: false,
+            ToolWindow: true));
+
+        Assert.ThrowsExactly<ArgumentException>(() => Win32WindowZOrder.PlaceAbove(0, target.Hwnd));
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
     public async Task OverlayOptionAppliesCaptureExclusionBeforeUse()
     {
         await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions

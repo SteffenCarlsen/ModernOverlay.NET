@@ -14,6 +14,11 @@ public static class Win32WindowZOrder
 
     public static void PlaceAbove(nint hwnd, nint hwndInsertAfter)
     {
+        if (!Win32WindowQuery.IsWindow(hwnd))
+        {
+            throw new ArgumentException("The HWND must be a valid window.", nameof(hwnd));
+        }
+
         if (!Win32WindowQuery.IsWindow(hwndInsertAfter))
         {
             throw new ArgumentException("The relative z-order HWND must be a valid window.", nameof(hwndInsertAfter));

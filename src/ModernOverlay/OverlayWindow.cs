@@ -882,7 +882,12 @@ public sealed class OverlayWindow : IAsyncDisposable
 
     private bool ResolveInputRegion(int pixelX, int pixelY)
     {
-        if (inputMode != OverlayInputMode.SelectiveClickThrough)
+        if (inputMode == OverlayInputMode.ClickThrough)
+        {
+            return false;
+        }
+
+        if (inputMode == OverlayInputMode.Interactive)
         {
             return true;
         }

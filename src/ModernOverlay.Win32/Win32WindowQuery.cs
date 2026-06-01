@@ -299,11 +299,6 @@ public static class Win32WindowQuery
             score += 10;
         }
 
-        if (!string.IsNullOrWhiteSpace(GetWindowTitle(hwnd)))
-        {
-            score += 1;
-        }
-
         return score;
     }
 

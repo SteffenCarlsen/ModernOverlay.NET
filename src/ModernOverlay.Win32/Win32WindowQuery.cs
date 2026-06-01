@@ -50,7 +50,7 @@ public static class Win32WindowQuery
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(processName);
         string normalizedProcessName = NormalizeProcessName(processName);
-        return TryFindTopLevelWindow(window =>
+        return TryFindBestTopLevelWindow(window =>
         {
             _ = NativeMethods.GetWindowThreadProcessId(window, out uint processId);
             if (processId == 0)
@@ -77,7 +77,7 @@ public static class Win32WindowQuery
     public static bool TryFindWindowByProcessId(int processId, out nint hwnd)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(processId);
-        return TryFindTopLevelWindow(window =>
+        return TryFindBestTopLevelWindow(window =>
         {
             _ = NativeMethods.GetWindowThreadProcessId(window, out uint nativeProcessId);
             return nativeProcessId == processId;
@@ -252,6 +252,54 @@ public static class Win32WindowQuery
 
         hwnd = found;
         return hwnd != 0;
+    }
+
+    private static bool TryFindBestTopLevelWindow(Func<nint, bool> predicate, out nint hwnd)
+    {
+        nint best = 0;
+        int bestScore = int.MinValue;
+        _ = NativeMethods.EnumWindows((window, _) =>
+        {
+            if (!NativeMethods.IsWindow(window) || !predicate(window))
+            {
+                return true;
+            }
+
+            int score = ScoreTopLevelWindow(window);
+            if (score > bestScore)
+            {
+                best = window;
+                bestScore = score;
+            }
+
+            return true;
+        }, 0);
+
+        hwnd = best;
+        return hwnd != 0;
+    }
+
+    private static int ScoreTopLevelWindow(nint hwnd)
+    {
+        int score = 0;
+        if (NativeMethods.IsWindowVisible(hwnd))
+        {
+            score += 100;
+        }
+
+        nint owner = NativeMethods.GetWindow(hwnd, NativeMethods.GwOwner);
+        if (owner == 0 || !NativeMethods.IsWindow(owner))
+        {
+            score += 20;
+        }
+
+        nint extendedStyle = NativeMethods.GetWindowLongPtr(hwnd, WindowStyles.GwlExStyle);
+        if ((extendedStyle.ToInt64() & WindowStyles.WsExToolWindow) == 0)
+        {
+            score += 10;
+        }
+
+        return score;
     }
 
     private static bool TryFindChildWindow(nint parentHwnd, Func<nint, bool> predicate, out nint hwnd)

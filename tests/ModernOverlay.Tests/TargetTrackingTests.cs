@@ -197,6 +197,48 @@ public sealed class TargetTrackingTests
 
     [TestMethod]
     [TestCategory("WindowsIntegration")]
+    public async Task ProcessIdTargetDiscoveryPrefersVisibleMainWindow()
+    {
+        using Win32OverlayWindow hiddenHelper = CreateHiddenTarget(10, 20, 100, 80, title: "ModernOverlay hidden process helper");
+        using Win32OverlayWindow visibleMain = CreateHiddenTarget(160, 180, 260, 140, title: "ModernOverlay visible process main");
+        visibleMain.Show();
+
+        await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
+        {
+            IsVisible = false,
+            Target = WindowTarget.ByProcessId(Environment.ProcessId),
+        });
+
+        Assert.IsTrue(Win32WindowQuery.TryGetWindowBounds(overlay.Hwnd.Value, clientArea: false, out Win32WindowBounds bounds));
+        Assert.AreEqual(160, bounds.X);
+        Assert.AreEqual(180, bounds.Y);
+        Assert.AreEqual(260, bounds.Width);
+        Assert.AreEqual(140, bounds.Height);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task ProcessNameTargetDiscoveryPrefersVisibleMainWindow()
+    {
+        using Win32OverlayWindow hiddenHelper = CreateHiddenTarget(10, 20, 100, 80, title: "ModernOverlay hidden process helper");
+        using Win32OverlayWindow visibleMain = CreateHiddenTarget(160, 180, 260, 140, title: "ModernOverlay visible process main");
+        visibleMain.Show();
+
+        await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
+        {
+            IsVisible = false,
+            Target = WindowTarget.ByProcessName(Process.GetCurrentProcess().ProcessName),
+        });
+
+        Assert.IsTrue(Win32WindowQuery.TryGetWindowBounds(overlay.Hwnd.Value, clientArea: false, out Win32WindowBounds bounds));
+        Assert.AreEqual(160, bounds.X);
+        Assert.AreEqual(180, bounds.Y);
+        Assert.AreEqual(260, bounds.Width);
+        Assert.AreEqual(140, bounds.Height);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
     public async Task OverlayCanDiscoverTargetFromProvider()
     {
         using Win32OverlayWindow target = CreateHiddenTarget(56, 66, 312, 152);

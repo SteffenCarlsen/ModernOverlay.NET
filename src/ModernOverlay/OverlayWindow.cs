@@ -406,22 +406,22 @@ public sealed class OverlayWindow : IAsyncDisposable
         return ValueTask.CompletedTask;
     }
 
-    private void RenderOneFrame()
+    private bool RenderOneFrame()
     {
         if (paused)
         {
-            return;
+            return false;
         }
 
         if (!desiredVisible && Options.HiddenRenderPolicy == HiddenRenderPolicy.Pause)
         {
-            return;
+            return false;
         }
 
         SyncTargetBoundsIfDue(start: DateTimeOffset.UtcNow);
         if (targetRenderPaused)
         {
-            return;
+            return false;
         }
 
         DateTimeOffset start = DateTimeOffset.UtcNow;
@@ -430,10 +430,11 @@ public sealed class OverlayWindow : IAsyncDisposable
         try
         {
             nativeWindow.InvokeOnOwnerThread(() => RenderOneFrameOnOwnerThread(start));
+            return true;
         }
         catch when (Options.ExceptionPolicy == RenderExceptionPolicy.Continue)
         {
-            return;
+            return false;
         }
         catch when (Options.ExceptionPolicy == RenderExceptionPolicy.PauseOverlay)
         {

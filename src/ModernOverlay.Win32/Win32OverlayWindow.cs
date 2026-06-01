@@ -253,6 +253,12 @@ public sealed class Win32OverlayWindow : IDisposable
         ownerThread.RunFrameLoop(resolveInterval, renderFrame, cancellationToken);
     }
 
+    public void RunFrameLoop(Func<TimeSpan> resolveInterval, Func<bool> renderFrame, CancellationToken cancellationToken)
+    {
+        ThrowIfDisposed();
+        ownerThread.RunFrameLoop(resolveInterval, renderFrame, cancellationToken);
+    }
+
     public void Dispose()
     {
         if (disposed)

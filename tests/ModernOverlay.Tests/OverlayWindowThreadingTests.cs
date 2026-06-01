@@ -305,6 +305,27 @@ public sealed class OverlayWindowThreadingTests
 
     [TestMethod]
     [TestCategory("WindowsIntegration")]
+    public async Task HiddenUnlimitedOverlayPausesWithoutRendering()
+    {
+        using var runCancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(250));
+        int renderAttempts = 0;
+
+        await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
+        {
+            IsVisible = false,
+            FrameRateLimit = FrameRateLimit.Unlimited,
+        });
+
+        overlay.Render += _ => renderAttempts++;
+
+        await overlay.RunAsync(runCancellation.Token);
+
+        Assert.AreEqual(0, renderAttempts);
+        Assert.AreEqual(0, overlay.FrameStats.FrameCount);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
     public async Task PauseSuppressesRenderingEvenWhenHiddenRenderingContinues()
     {
         using var runCancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(250));

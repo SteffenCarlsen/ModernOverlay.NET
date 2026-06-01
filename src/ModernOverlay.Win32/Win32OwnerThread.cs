@@ -57,6 +57,16 @@ internal sealed class Win32OwnerThread : IDisposable
 
     public void RunFrameLoop(Func<TimeSpan> resolveInterval, Action renderFrame, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(renderFrame);
+        RunFrameLoop(resolveInterval, () =>
+        {
+            renderFrame();
+            return true;
+        }, cancellationToken);
+    }
+
+    public void RunFrameLoop(Func<TimeSpan> resolveInterval, Func<bool> renderFrame, CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(resolveInterval);
         ArgumentNullException.ThrowIfNull(renderFrame);
         ThrowIfDisposed();
@@ -169,7 +179,7 @@ internal sealed class Win32OwnerThread : IDisposable
         DrainMessages();
     }
 
-    private void RunFrameLoopCore(Func<TimeSpan> resolveInterval, Action renderFrame, CancellationToken cancellationToken)
+    private void RunFrameLoopCore(Func<TimeSpan> resolveInterval, Func<bool> renderFrame, CancellationToken cancellationToken)
     {
         TimeSpan interval = NormalizeFrameInterval(resolveInterval());
         if (interval == TimeSpan.Zero)
@@ -226,7 +236,7 @@ internal sealed class Win32OwnerThread : IDisposable
                         SetFrameTimer(timer, interval);
                     }
 
-                    renderFrame();
+                    _ = renderFrame();
                 }
             }
         }
@@ -254,8 +264,14 @@ internal sealed class Win32OwnerThread : IDisposable
             : throw new ArgumentOutOfRangeException(nameof(interval), "Frame interval cannot be negative.");
     }
 
-    private void RunUnlimitedFrameLoop(Action renderFrame, CancellationToken cancellationToken)
+    private void RunUnlimitedFrameLoop(Func<bool> renderFrame, CancellationToken cancellationToken)
     {
+        nint[] handles =
+        [
+            workAvailable.SafeWaitHandle.DangerousGetHandle(),
+            cancellationToken.WaitHandle.SafeWaitHandle.DangerousGetHandle(),
+        ];
+
         while (!stopRequested && !cancellationToken.IsCancellationRequested)
         {
             DrainWorkItems();
@@ -266,7 +282,15 @@ internal sealed class Win32OwnerThread : IDisposable
                 break;
             }
 
-            renderFrame();
+            if (!renderFrame())
+            {
+                _ = NativeMethods.MsgWaitForMultipleObjectsEx(
+                    (uint)handles.Length,
+                    handles,
+                    1,
+                    NativeMethods.QsAllInput,
+                    NativeMethods.MwmoInputAvailable);
+            }
         }
     }
 

@@ -502,6 +502,22 @@ public sealed class OverlayWindowThreadingTests
 
     [TestMethod]
     [TestCategory("WindowsIntegration")]
+    public async Task ClickThroughNcHitTestReturnsTransparent()
+    {
+        await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
+        {
+            Bounds = new WindowBounds(100, 120, 160, 90),
+            IsVisible = false,
+            InputMode = OverlayInputMode.ClickThrough,
+        });
+
+        nint passThrough = SendMessage(overlay.Hwnd.Value, WmNcHitTest, 0, MakeLParam(125, 150));
+
+        Assert.AreEqual(new nint(HtTransparent), passThrough);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
     public async Task InteractiveOverlayReceivesKeyboardAndTextInputEvents()
     {
         var keyPressed = new TaskCompletionSource<OverlayKeyboardEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);

@@ -155,6 +155,29 @@ public sealed class OverlayUiButtonControlTests
 
     [TestMethod]
     [TestCategory("WindowsIntegration")]
+    public async Task ButtonAutoSizeUsesMeasuredTextWidth()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        UiButton button = new()
+        {
+            Text = "WWW",
+            Height = 28f,
+            HorizontalAlignment = UiHorizontalAlignment.Left,
+            VerticalAlignment = UiVerticalAlignment.Top,
+        };
+        Canvas.SetLeft(button, 10f);
+        Canvas.SetTop(button, 10f);
+        ui.Root.Children.Add(button);
+
+        ui.Render(new DrawContext(new RecordingDrawCommandSink()));
+
+        Assert.AreEqual(140f, button.DesiredSize.Width, 0.001f);
+        Assert.AreEqual(140f, button.Bounds.Width, 0.001f);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
     public async Task RadioButtonClearsPeersAndHonorsDisabledDynamicGroupChanges()
     {
         await using OverlayWindow overlay = await CreateOverlayAsync();
@@ -336,7 +359,9 @@ public sealed class OverlayUiButtonControlTests
             => AddPrimitive();
 
         public SizeF MeasureText(string text, FontHandle font)
-            => new(text.Length, font.Options.Size);
+            => text == "WWW"
+                ? new SizeF(120f, font.Options.Size)
+                : new SizeF(text.Length, font.Options.Size);
 
         public SizeF MeasureTextLayout(TextLayoutHandle layout)
             => new(layout.Text.Length, layout.Font.Options.Size);

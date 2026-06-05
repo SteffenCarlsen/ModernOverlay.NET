@@ -22,6 +22,7 @@
 - Treat screenshot-reported UI precision bugs as shared geometry suspects first. Hit testing, caret placement, slider bounds, and popup placement usually belong in shared measurement, transform, bounds, or z-layer code rather than one-off component fixes.
 - Keep the UI A/B sample useful as a validation tool, not just a showcase. Add visible state, labels, and layout previews when controls otherwise look inert or ambiguous.
 - For retained text input, caret, selection, and scrolling should share measured text advances. Any fallback heuristic must be treated as a temporary approximation and tested against proportional text.
+- For retained UI controls that render text with measured glyph widths, auto-size measurement should use the same measured text path. Character-count heuristics are only safe as fallbacks when no render measurement context is available.
 
 ## PR Review And Triage
 

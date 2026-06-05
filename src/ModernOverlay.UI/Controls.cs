@@ -988,6 +988,7 @@ public abstract class RangeBase : UiControl
         get => minimum;
         set
         {
+            ValidateFinite(value, nameof(value));
             SetProperty(ref minimum, value, UiInvalidation.Render);
             if (maximum < minimum)
             {
@@ -1006,6 +1007,7 @@ public abstract class RangeBase : UiControl
         get => maximum;
         set
         {
+            ValidateFinite(value, nameof(value));
             SetProperty(ref maximum, MathF.Max(value, minimum), UiInvalidation.Render);
             Value = this.value;
         }
@@ -1019,6 +1021,7 @@ public abstract class RangeBase : UiControl
         get => value;
         set
         {
+            ValidateFinite(value, nameof(value));
             if (SetProperty(ref this.value, Math.Clamp(value, Minimum, Maximum), UiInvalidation.Render))
             {
                 ValueChanged?.Invoke(this, EventArgs.Empty);
@@ -1070,6 +1073,14 @@ public abstract class RangeBase : UiControl
     }
 
     protected void ChangeValueBy(float delta) => Value += delta;
+
+    private static void ValidateFinite(float value, string parameterName)
+    {
+        if (!float.IsFinite(value))
+        {
+            throw new ArgumentOutOfRangeException(parameterName, "Range values must be finite.");
+        }
+    }
 }
 
 /// <summary>

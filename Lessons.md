@@ -22,6 +22,7 @@
 - Treat screenshot-reported UI precision bugs as shared geometry suspects first. Hit testing, caret placement, slider bounds, and popup placement usually belong in shared measurement, transform, bounds, or z-layer code rather than one-off component fixes.
 - Keep the UI A/B sample useful as a validation tool, not just a showcase. Add visible state, labels, and layout previews when controls otherwise look inert or ambiguous.
 - For retained text input, caret, selection, and scrolling should share measured text advances. Any fallback heuristic must be treated as a temporary approximation and tested against proportional text.
+- Numeric UI controls should reject non-finite `Minimum`, `Maximum`, `Value`, and step values before clamping or render math runs. Letting `NaN` or infinities enter range state can poison slider/progress geometry.
 
 ## PR Review And Triage
 

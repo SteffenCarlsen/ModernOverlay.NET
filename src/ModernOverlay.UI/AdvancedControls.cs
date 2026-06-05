@@ -305,6 +305,8 @@ public sealed class TabControl : UiPanel
 {
     private const float HeaderHeight = 30f;
     private int selectedIndex = -1;
+    private float[] renderedHeaderWidths = [];
+    private string[] renderedHeaderTexts = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TabControl"/> class.
@@ -388,10 +390,15 @@ public sealed class TabControl : UiPanel
         }
 
         float x = Bounds.X;
+        float[] headerWidths = Items.Count == 0 ? [] : new float[Items.Count];
+        string[] headerTexts = Items.Count == 0 ? [] : new string[Items.Count];
         for (int index = 0; index < Items.Count; index++)
         {
             TabItem item = Items[index];
-            float width = item.Header.Length * context.Theme.Theme.FontSize * 0.62f + 24f;
+            SizeF textSize = context.Draw.Measure.Text(item.Header, context.Theme.Font);
+            float width = textSize.Width + 24f;
+            headerWidths[index] = width;
+            headerTexts[index] = item.Header;
             RectF tab = new(x, Bounds.Y, width, HeaderHeight);
             bool itemEnabled = enabled && item.IsEnabled;
             if (index == SelectedIndex && itemEnabled)
@@ -399,12 +406,13 @@ public sealed class TabControl : UiPanel
                 context.Draw.Fill.Rectangle(new RectF(tab.X + 8f, tab.Y + tab.Height - 4f, MathF.Max(0f, tab.Width - 16f), 4f), context.Theme.Accent);
             }
 
-            SizeF textSize = context.Draw.Measure.Text(item.Header, context.Theme.Font);
             float textX = tab.X + MathF.Max(0f, tab.Width - textSize.Width) / 2f;
             context.Draw.Draw.Text(item.Header, context.Theme.Font, itemEnabled ? context.Theme.Foreground : context.Theme.Disabled, new PointF(textX, tab.Y + 7f));
             x += width + 2f;
         }
 
+        renderedHeaderWidths = headerWidths;
+        renderedHeaderTexts = headerTexts;
         ActiveContent?.Render(context);
     }
 
@@ -467,7 +475,7 @@ public sealed class TabControl : UiPanel
         float x = Bounds.X;
         for (int index = 0; index < Items.Count; index++)
         {
-            float width = Items[index].Header.Length * (Root?.ThemeResources.Theme.FontSize ?? UiTheme.Default.FontSize) * 0.62f + 24f;
+            float width = HeaderWidth(index);
             RectF header = new(x, Bounds.Y, width, HeaderHeight);
             if (UiGeometry.ContainsInputBand(header, point))
             {
@@ -478,6 +486,26 @@ public sealed class TabControl : UiPanel
         }
 
         return -1;
+    }
+
+    private float HeaderWidth(int index)
+    {
+        string header = Items[index].Header;
+        return TryGetRenderedHeaderWidth(index, header, out float width)
+            ? width
+            : header.Length * (Root?.ThemeResources.Theme.FontSize ?? UiTheme.Default.FontSize) * 0.62f + 24f;
+    }
+
+    private bool TryGetRenderedHeaderWidth(int index, string header, out float width)
+    {
+        bool hasWidth = renderedHeaderWidths.Length == Items.Count
+            && renderedHeaderTexts.Length == Items.Count
+            && index >= 0
+            && index < renderedHeaderWidths.Length
+            && string.Equals(renderedHeaderTexts[index], header, StringComparison.Ordinal);
+
+        width = hasWidth ? renderedHeaderWidths[index] : 0f;
+        return hasWidth;
     }
 
     private void MoveSelection(int direction)

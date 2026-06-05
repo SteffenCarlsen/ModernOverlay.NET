@@ -25,11 +25,22 @@ public sealed class OverlayUiInputRoutingTests
         };
         ProbeElement child = CreateInputElement(20f, 20f, 30f, 30f);
         List<string> route = [];
-        child.PointerPressed += (_, args) => route.Add($"child:{args.RoutePhase}");
+        child.PointerPressed += (_, args) =>
+        {
+            Assert.AreSame(child, args.OriginalSource);
+            Assert.AreSame(child, args.Source);
+            Assert.AreEqual(OverlayPointerEventKind.Pressed, args.Kind);
+            Assert.AreEqual(OverlayPointerButton.Left, args.Button);
+            Assert.AreEqual(new PointF(25f, 25f), args.Position);
+            route.Add($"child:{args.RoutePhase}");
+        };
         parent.PointerPressed += (_, args) =>
         {
             Assert.AreSame(child, args.OriginalSource);
             Assert.AreSame(parent, args.Source);
+            Assert.AreEqual(OverlayPointerEventKind.Pressed, args.Kind);
+            Assert.AreEqual(OverlayPointerButton.Left, args.Button);
+            Assert.AreEqual(new PointF(25f, 25f), args.Position);
             route.Add($"parent:{args.RoutePhase}");
         };
         parent.Children.Add(child);
@@ -81,17 +92,31 @@ public sealed class OverlayUiInputRoutingTests
         Canvas.SetTop(button, 10f);
         int enterCount = 0;
         int exitCount = 0;
-        int wheelDelta = 0;
-        bool horizontalWheel = false;
-        List<int> clickCounts = [];
-        button.PointerEntered += (_, _) => enterCount++;
-        button.PointerExited += (_, _) => exitCount++;
+        UiPointerEventArgs? entered = null;
+        UiPointerEventArgs? exited = null;
+        UiPointerEventArgs? wheel = null;
+        UiElement? wheelOriginalSource = null;
+        UiElement? wheelSource = null;
+        UiRoutedEventPhase? wheelRoutePhase = null;
+        List<UiClickEventArgs> clicks = [];
+        button.PointerEntered += (_, args) =>
+        {
+            enterCount++;
+            entered = args;
+        };
+        button.PointerExited += (_, args) =>
+        {
+            exitCount++;
+            exited = args;
+        };
         button.PointerWheel += (_, args) =>
         {
-            wheelDelta = args.WheelDelta;
-            horizontalWheel = args.IsHorizontalWheel;
+            wheel = args;
+            wheelOriginalSource = args.OriginalSource;
+            wheelSource = args.Source;
+            wheelRoutePhase = args.RoutePhase;
         };
-        button.Click += (_, args) => clickCounts.Add(args.ClickCount);
+        button.Click += (_, args) => clicks.Add(args);
         ui.Root.Children.Add(button);
         ui.Render(new DrawContext());
 
@@ -103,9 +128,30 @@ public sealed class OverlayUiInputRoutingTests
 
         Assert.AreEqual(1, enterCount);
         Assert.AreEqual(1, exitCount);
-        CollectionAssert.AreEqual(ExpectedClickCounts, clickCounts);
-        Assert.AreEqual(120, wheelDelta);
-        Assert.IsTrue(horizontalWheel);
+        Assert.IsNotNull(entered);
+        Assert.AreEqual(OverlayPointerEventKind.Moved, entered!.Kind);
+        Assert.AreEqual(OverlayPointerButton.None, entered.Button);
+        Assert.AreEqual(new PointF(20f, 20f), entered.Position);
+        Assert.IsNotNull(exited);
+        Assert.AreEqual(OverlayPointerEventKind.Moved, exited!.Kind);
+        Assert.AreEqual(OverlayPointerButton.None, exited.Button);
+        Assert.AreEqual(new PointF(150f, 100f), exited.Position);
+        CollectionAssert.AreEqual(ExpectedClickCounts, clicks.Select(click => click.ClickCount).ToArray());
+        Assert.AreEqual(new PointF(20f, 20f), clicks[0].Position);
+        Assert.AreEqual(OverlayPointerButton.Left, clicks[0].Button);
+        Assert.IsFalse(clicks[0].IsDoubleClick);
+        Assert.AreEqual(new PointF(20f, 20f), clicks[1].Position);
+        Assert.AreEqual(OverlayPointerButton.Left, clicks[1].Button);
+        Assert.IsTrue(clicks[1].IsDoubleClick);
+        Assert.IsNotNull(wheel);
+        Assert.AreEqual(OverlayPointerEventKind.Wheel, wheel!.Kind);
+        Assert.AreEqual(OverlayPointerButton.None, wheel.Button);
+        Assert.AreEqual(new PointF(20f, 20f), wheel.Position);
+        Assert.AreSame(button, wheelOriginalSource);
+        Assert.AreSame(button, wheelSource);
+        Assert.AreEqual(UiRoutedEventPhase.Direct, wheelRoutePhase);
+        Assert.AreEqual(120, wheel.WheelDelta);
+        Assert.IsTrue(wheel.IsHorizontalWheel);
     }
 
     [TestMethod]

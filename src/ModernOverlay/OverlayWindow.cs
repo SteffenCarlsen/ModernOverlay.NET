@@ -865,7 +865,8 @@ public sealed class OverlayWindow : IAsyncDisposable
             keyboardEvent.IsExtendedKey,
             keyboardEvent.WasDown,
             keyboardEvent.IsTransitionState,
-            modifiers);
+            modifiers,
+            keyboardEvent.IsPressed && (keyboardEvent.WasDown || keyboardEvent.RepeatCount > 1));
 
         if (keyboardEvent.IsPressed)
         {

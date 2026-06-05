@@ -17,13 +17,29 @@ public sealed class OverlayUiElementModelTests
         await using OverlayWindow overlay = await CreateOverlayAsync();
         using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
         var child = new LifecycleElement();
+        int attachedEvents = 0;
+        int detachedEvents = 0;
+        child.Attached += (sender, args) =>
+        {
+            Assert.AreSame(child, sender);
+            Assert.AreSame(EventArgs.Empty, args);
+            attachedEvents++;
+        };
+        child.Detached += (sender, args) =>
+        {
+            Assert.AreSame(child, sender);
+            Assert.AreSame(EventArgs.Empty, args);
+            detachedEvents++;
+        };
 
         ui.Root.Children.Add(child);
 
         Assert.AreSame(ui.Root, child.Parent);
         Assert.AreSame(ui, child.Root);
         Assert.AreEqual(1, child.AttachedCount);
+        Assert.AreEqual(1, attachedEvents);
         Assert.AreEqual(0, child.DetachedCount);
+        Assert.AreEqual(0, detachedEvents);
         Assert.AreEqual(2, ui.Metrics.ElementCount);
 
         Assert.IsTrue(ui.Root.Children.Remove(child));
@@ -31,7 +47,9 @@ public sealed class OverlayUiElementModelTests
         Assert.IsNull(child.Parent);
         Assert.IsNull(child.Root);
         Assert.AreEqual(1, child.AttachedCount);
+        Assert.AreEqual(1, attachedEvents);
         Assert.AreEqual(1, child.DetachedCount);
+        Assert.AreEqual(1, detachedEvents);
         Assert.AreEqual(1, ui.Metrics.ElementCount);
     }
 

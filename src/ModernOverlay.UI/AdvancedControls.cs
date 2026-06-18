@@ -389,16 +389,15 @@ public sealed class TabControl : UiPanel
             context.Draw.Draw.Line(new PointF(Bounds.X, Bounds.Y + HeaderHeight - 1f), new PointF(Bounds.X + Bounds.Width, Bounds.Y + HeaderHeight - 1f), context.Theme.Accent);
         }
 
+        EnsureRenderedHeaderCache();
         float x = Bounds.X;
-        float[] headerWidths = Items.Count == 0 ? [] : new float[Items.Count];
-        string[] headerTexts = Items.Count == 0 ? [] : new string[Items.Count];
         for (int index = 0; index < Items.Count; index++)
         {
             TabItem item = Items[index];
             SizeF textSize = context.Draw.Measure.Text(item.Header, context.Theme.Font);
             float width = textSize.Width + 24f;
-            headerWidths[index] = width;
-            headerTexts[index] = item.Header;
+            renderedHeaderWidths[index] = width;
+            renderedHeaderTexts[index] = item.Header;
             RectF tab = new(x, Bounds.Y, width, HeaderHeight);
             bool itemEnabled = enabled && item.IsEnabled;
             if (index == SelectedIndex && itemEnabled)
@@ -411,8 +410,6 @@ public sealed class TabControl : UiPanel
             x += width + 2f;
         }
 
-        renderedHeaderWidths = headerWidths;
-        renderedHeaderTexts = headerTexts;
         ActiveContent?.Render(context);
     }
 
@@ -506,6 +503,19 @@ public sealed class TabControl : UiPanel
 
         width = hasWidth ? renderedHeaderWidths[index] : 0f;
         return hasWidth;
+    }
+
+    private void EnsureRenderedHeaderCache()
+    {
+        if (renderedHeaderWidths.Length != Items.Count)
+        {
+            renderedHeaderWidths = Items.Count == 0 ? [] : new float[Items.Count];
+        }
+
+        if (renderedHeaderTexts.Length != Items.Count)
+        {
+            renderedHeaderTexts = Items.Count == 0 ? [] : new string[Items.Count];
+        }
     }
 
     private void MoveSelection(int direction)

@@ -553,10 +553,16 @@ public class Button : ContentControl
         }
 
         float fontSize = Root?.ThemeResources.Theme.FontSize ?? UiTheme.Default.FontSize;
-        float width = MathF.Min(availableSize.Width, Text.Length * fontSize * 0.6f + Padding.Horizontal);
-        float height = fontSize * 1.35f + Padding.Vertical;
+        SizeF textSize = MeasureButtonText(Text, fontSize);
+        float width = MathF.Min(availableSize.Width, textSize.Width + Padding.Horizontal);
+        float height = textSize.Height * 1.35f + Padding.Vertical;
         return new SizeF(MathF.Max(MinWidth, width), MathF.Max(MinHeight, height));
     }
+
+    private SizeF MeasureButtonText(string value, float fontSize)
+        => Root is { } root && root.TryMeasureText(value, root.ThemeResources.Font, out SizeF measured)
+            ? measured
+            : new SizeF(value.Length * fontSize * 0.6f, fontSize);
 
     protected override void ArrangeCore(RectF finalRect)
     {

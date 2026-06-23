@@ -23,6 +23,8 @@
 - Keep the UI A/B sample useful as a validation tool, not just a showcase. Add visible state, labels, and layout previews when controls otherwise look inert or ambiguous.
 - For retained text input, caret, selection, and scrolling should share measured text advances. Any fallback heuristic must be treated as a temporary approximation and tested against proportional text.
 - For keyboard event contracts, treat Win32 `WasDown` as an auto-repeat signal only on key-down events. Key-up messages normally report the key was previously down and should not make `IsRepeat` true.
+- Numeric UI controls should reject non-finite `Minimum`, `Maximum`, `Value`, and step values before clamping or render math runs. Letting `NaN` or infinities enter range state can poison slider/progress geometry.
+- For retained UI controls that render text with measured glyph widths, auto-size measurement should use the same measured text path. Character-count heuristics are only safe as fallbacks when no render measurement context is available.
 
 ## PR Review And Triage
 

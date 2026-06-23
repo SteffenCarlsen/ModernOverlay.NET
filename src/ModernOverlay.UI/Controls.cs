@@ -553,10 +553,16 @@ public class Button : ContentControl
         }
 
         float fontSize = Root?.ThemeResources.Theme.FontSize ?? UiTheme.Default.FontSize;
-        float width = MathF.Min(availableSize.Width, Text.Length * fontSize * 0.6f + Padding.Horizontal);
-        float height = fontSize * 1.35f + Padding.Vertical;
+        SizeF textSize = MeasureButtonText(Text, fontSize);
+        float width = MathF.Min(availableSize.Width, textSize.Width + Padding.Horizontal);
+        float height = textSize.Height * 1.35f + Padding.Vertical;
         return new SizeF(MathF.Max(MinWidth, width), MathF.Max(MinHeight, height));
     }
+
+    private SizeF MeasureButtonText(string value, float fontSize)
+        => Root is { } root && root.TryMeasureText(value, root.ThemeResources.Font, out SizeF measured)
+            ? measured
+            : new SizeF(value.Length * fontSize * 0.6f, fontSize);
 
     protected override void ArrangeCore(RectF finalRect)
     {
@@ -988,6 +994,7 @@ public abstract class RangeBase : UiControl
         get => minimum;
         set
         {
+            ValidateFinite(value, nameof(value));
             SetProperty(ref minimum, value, UiInvalidation.Render);
             if (maximum < minimum)
             {
@@ -1006,6 +1013,7 @@ public abstract class RangeBase : UiControl
         get => maximum;
         set
         {
+            ValidateFinite(value, nameof(value));
             SetProperty(ref maximum, MathF.Max(value, minimum), UiInvalidation.Render);
             Value = this.value;
         }
@@ -1019,6 +1027,7 @@ public abstract class RangeBase : UiControl
         get => value;
         set
         {
+            ValidateFinite(value, nameof(value));
             if (SetProperty(ref this.value, Math.Clamp(value, Minimum, Maximum), UiInvalidation.Render))
             {
                 ValueChanged?.Invoke(this, EventArgs.Empty);
@@ -1070,6 +1079,14 @@ public abstract class RangeBase : UiControl
     }
 
     protected void ChangeValueBy(float delta) => Value += delta;
+
+    private static void ValidateFinite(float value, string parameterName)
+    {
+        if (!float.IsFinite(value))
+        {
+            throw new ArgumentOutOfRangeException(parameterName, "Range values must be finite.");
+        }
+    }
 }
 
 /// <summary>

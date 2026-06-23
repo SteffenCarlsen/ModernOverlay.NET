@@ -49,7 +49,7 @@ public sealed class OverlayUiTabSegmentedTests
         using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
         UiTabControl tabs = CreateTabs(out _, out _, out _);
         ui.Root.Children.Add(tabs);
-        ui.Render(new DrawContext());
+        ui.Render(new DrawContext(new RecordingDrawCommandSink()));
 
         float boundaryX = 10f + TabHeaderWidth("One");
         ClickUi(ui, new PointF(boundaryX, 20f));
@@ -116,6 +116,32 @@ public sealed class OverlayUiTabSegmentedTests
         float oneHeaderWidth = TabHeaderWidth("One");
         float expectedX = tabs.Bounds.X + MathF.Max(0f, oneHeaderWidth - RecordingDrawCommandSink.MeasureTextWidth("One")) / 2f;
         Assert.AreEqual(expectedX, oneOrigin.X, 0.001f);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task TabHeaderHitTestingUsesMeasuredTextWidth()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        UiTabControl tabs = new()
+        {
+            Width = 220f,
+            Height = 120f,
+            MinWidth = 0f,
+            MinHeight = 0f,
+        };
+        Canvas.SetLeft(tabs, 10f);
+        Canvas.SetTop(tabs, 10f);
+        tabs.Add("WWW", new ProbeElement());
+        tabs.Add("Two", new ProbeElement());
+        tabs.SelectedIndex = 1;
+        ui.Root.Children.Add(tabs);
+        ui.Render(new DrawContext(new RecordingDrawCommandSink()));
+
+        ClickUi(ui, new PointF(130f, 20f));
+
+        Assert.AreEqual(0, tabs.SelectedIndex);
     }
 
     [TestMethod]
@@ -353,7 +379,9 @@ public sealed class OverlayUiTabSegmentedTests
             => new(MeasureTextWidth(layout.Text), layout.Font.Options.Size);
 
         public static float MeasureTextWidth(string text)
-            => text.Length * UiTheme.Default.FontSize * 0.62f;
+            => text == "WWW"
+                ? 120f
+                : text.Length * UiTheme.Default.FontSize * 0.62f;
 
         private void AddPrimitive()
         {

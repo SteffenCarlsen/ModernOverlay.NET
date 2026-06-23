@@ -136,6 +136,22 @@ public sealed class OverlayUiRangeNumericTests
         }
     }
 
+    [TestMethod]
+    public void RangeControlsRejectNonFiniteNumericValues()
+    {
+        Slider slider = new();
+
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => slider.Minimum = float.NaN);
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => slider.Maximum = float.PositiveInfinity);
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => slider.Value = float.NegativeInfinity);
+
+        NumberBox number = new();
+
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => number.Minimum = double.NaN);
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => number.Maximum = double.PositiveInfinity);
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => number.Value = double.NegativeInfinity);
+    }
+
     private static async ValueTask<OverlayWindow> CreateOverlayAsync()
         => await OverlayWindow.CreateAsync(new OverlayWindowOptions
         {

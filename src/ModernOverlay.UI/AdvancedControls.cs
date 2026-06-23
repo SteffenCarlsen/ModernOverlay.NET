@@ -54,6 +54,7 @@ public sealed class NumberBox : UiPanel
         get => minimum;
         set
         {
+            ValidateFinite(value, nameof(value));
             minimum = value;
             if (maximum < minimum)
             {
@@ -72,6 +73,7 @@ public sealed class NumberBox : UiPanel
         get => maximum;
         set
         {
+            ValidateFinite(value, nameof(value));
             maximum = Math.Max(value, Minimum);
             Value = this.value;
         }
@@ -102,6 +104,7 @@ public sealed class NumberBox : UiPanel
         get => value;
         set
         {
+            ValidateFinite(value, nameof(value));
             double next = Math.Clamp(value, Minimum, Maximum);
             if (this.value.Equals(next))
             {
@@ -185,6 +188,14 @@ public sealed class NumberBox : UiPanel
 
     private static bool IsPartialNumberText(string text)
         => text.Length == 0 || text is "-" or "+" or "." or "-." or "+.";
+
+    private static void ValidateFinite(double value, string parameterName)
+    {
+        if (!double.IsFinite(value))
+        {
+            throw new ArgumentOutOfRangeException(parameterName, "Numeric values must be finite.");
+        }
+    }
 }
 
 /// <summary>

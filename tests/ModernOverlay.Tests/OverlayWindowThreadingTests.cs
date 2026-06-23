@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Runtime.InteropServices;
 using ModernOverlay.Rendering;
 using ModernOverlay.Win32;
@@ -386,16 +387,16 @@ public sealed class OverlayWindowThreadingTests
     {
         var initialBounds = new WindowBounds(30, 40, 180, 100);
         var movedBounds = new WindowBounds(70, 90, 240, 140);
-        int visibilityChanges = 0;
-        int boundsChanges = 0;
+        List<WindowBounds> visibilityBounds = [];
+        List<WindowBounds> boundsEvents = [];
 
         await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
         {
             Bounds = initialBounds,
             IsVisible = false,
         });
-        overlay.VisibilityChanged += (_, _) => visibilityChanges++;
-        overlay.BoundsChanged += (_, _) => boundsChanges++;
+        overlay.VisibilityChanged += (_, args) => visibilityBounds.Add(args.Bounds);
+        overlay.BoundsChanged += (_, args) => boundsEvents.Add(args.Bounds);
 
         Assert.IsFalse(Win32WindowQuery.IsVisible(overlay.Hwnd.Value));
 
@@ -413,8 +414,36 @@ public sealed class OverlayWindowThreadingTests
         Assert.AreEqual(movedBounds.Y, nativeBounds.Y);
         Assert.AreEqual(movedBounds.Width, nativeBounds.Width);
         Assert.AreEqual(movedBounds.Height, nativeBounds.Height);
-        Assert.AreEqual(2, visibilityChanges);
-        Assert.AreEqual(2, boundsChanges);
+        CollectionAssert.AreEqual(new[] { initialBounds, initialBounds }, visibilityBounds);
+        CollectionAssert.AreEqual(new[] { initialBounds with { X = movedBounds.X, Y = movedBounds.Y }, movedBounds }, boundsEvents);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task DisposeAsyncRaisesDisposedEventOnce()
+    {
+        OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
+        {
+            IsVisible = false,
+        });
+        int disposed = 0;
+        overlay.Disposed += sender =>
+        {
+            Assert.AreSame(overlay, sender);
+            disposed++;
+        };
+
+        try
+        {
+            await overlay.DisposeAsync();
+            await overlay.DisposeAsync();
+
+            Assert.AreEqual(1, disposed);
+        }
+        finally
+        {
+            await overlay.DisposeAsync();
+        }
     }
 
     [TestMethod]
@@ -439,6 +468,43 @@ public sealed class OverlayWindowThreadingTests
         Assert.AreEqual(24, pointer.PixelY);
         Assert.AreEqual(12f, pointer.Position.X);
         Assert.AreEqual(24f, pointer.Position.Y);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task InteractiveOverlayReceivesPointerMoveAndReleaseEvents()
+    {
+        var pointerMoved = new TaskCompletionSource<OverlayPointerEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var pointerReleased = new TaskCompletionSource<OverlayPointerEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
+        {
+            IsVisible = false,
+            InputMode = OverlayInputMode.Interactive,
+        });
+        overlay.PointerMoved += (_, args) => pointerMoved.TrySetResult(args);
+        overlay.PointerReleased += (_, args) => pointerReleased.TrySetResult(args);
+
+        _ = SendMessage(overlay.Hwnd.Value, WmMouseMove, 0, MakeLParam(15, 25));
+        _ = SendMessage(overlay.Hwnd.Value, WmLButtonUp, 0, MakeLParam(16, 26));
+
+        OverlayPointerEventArgs moved = await pointerMoved.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        OverlayPointerEventArgs released = await pointerReleased.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        DpiScale dpi = overlay.DpiScale;
+
+        Assert.AreEqual(OverlayPointerEventKind.Moved, moved.Kind);
+        Assert.AreEqual(OverlayPointerButton.None, moved.Button);
+        Assert.AreEqual(15, moved.PixelX);
+        Assert.AreEqual(25, moved.PixelY);
+        Assert.AreEqual(15f / dpi.X, moved.Position.X, 0.001f);
+        Assert.AreEqual(25f / dpi.Y, moved.Position.Y, 0.001f);
+
+        Assert.AreEqual(OverlayPointerEventKind.Released, released.Kind);
+        Assert.AreEqual(OverlayPointerButton.Left, released.Button);
+        Assert.AreEqual(16, released.PixelX);
+        Assert.AreEqual(26, released.PixelY);
+        Assert.AreEqual(16f / dpi.X, released.Position.X, 0.001f);
+        Assert.AreEqual(26f / dpi.Y, released.Position.Y, 0.001f);
     }
 
     [TestMethod]
@@ -492,10 +558,80 @@ public sealed class OverlayWindowThreadingTests
 
         OverlayPointerEventArgs pointer = await pointerWheel.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.AreEqual(OverlayPointerEventKind.Wheel, pointer.Kind);
+        Assert.AreEqual(OverlayPointerButton.None, pointer.Button);
         Assert.AreEqual(14, pointer.PixelX);
         Assert.AreEqual(28, pointer.PixelY);
+        Assert.AreEqual(14f, pointer.Position.X);
+        Assert.AreEqual(28f, pointer.Position.Y);
         Assert.AreEqual(wheelDelta, pointer.WheelDelta);
         Assert.IsTrue(pointer.IsHorizontalWheel);
+    }
+
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task OverlayKeyboardAndTextEventsCopyNativePayloadValues()
+    {
+        List<OverlayKeyboardEventArgs> keyPressed = [];
+        List<OverlayKeyboardEventArgs> keyReleased = [];
+        List<OverlayTextInputEventArgs> textInput = [];
+
+        await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
+        {
+            IsVisible = false,
+        });
+        overlay.KeyPressed += (_, args) => keyPressed.Add(args);
+        overlay.KeyReleased += (_, args) => keyReleased.Add(args);
+        overlay.TextInput += (_, args) => textInput.Add(args);
+
+        DispatchKeyboard(overlay, new Win32KeyboardEvent(
+            VirtualKey: 0x70,
+            IsPressed: true,
+            IsSystemKey: true,
+            RepeatCount: 3,
+            ScanCode: 0x3B,
+            IsExtendedKey: true,
+            WasDown: true,
+            IsTransitionState: false,
+            Modifiers: Win32ModifierKeys.Control | Win32ModifierKeys.Shift));
+        DispatchKeyboard(overlay, new Win32KeyboardEvent(
+            VirtualKey: 0x70,
+            IsPressed: false,
+            IsSystemKey: true,
+            RepeatCount: 1,
+            ScanCode: 0x3B,
+            IsExtendedKey: true,
+            WasDown: true,
+            IsTransitionState: true,
+            Modifiers: Win32ModifierKeys.Alt));
+        DispatchTextInput(overlay, new Win32TextInputEvent("ø", true));
+
+        Assert.AreEqual(1, keyPressed.Count);
+        OverlayKeyboardEventArgs pressed = keyPressed[0];
+        Assert.AreEqual(0x70, pressed.VirtualKey);
+        Assert.IsTrue(pressed.IsSystemKey);
+        Assert.AreEqual(3, pressed.RepeatCount);
+        Assert.AreEqual(0x3B, pressed.ScanCode);
+        Assert.IsTrue(pressed.IsExtendedKey);
+        Assert.IsTrue(pressed.WasDown);
+        Assert.IsFalse(pressed.IsTransitionState);
+        Assert.IsTrue(pressed.IsRepeat);
+        Assert.AreEqual(OverlayModifierKeys.Control | OverlayModifierKeys.Shift, pressed.Modifiers);
+
+        Assert.AreEqual(1, keyReleased.Count);
+        OverlayKeyboardEventArgs released = keyReleased[0];
+        Assert.AreEqual(0x70, released.VirtualKey);
+        Assert.IsTrue(released.IsSystemKey);
+        Assert.AreEqual(1, released.RepeatCount);
+        Assert.AreEqual(0x3B, released.ScanCode);
+        Assert.IsTrue(released.IsExtendedKey);
+        Assert.IsTrue(released.WasDown);
+        Assert.IsTrue(released.IsTransitionState);
+        Assert.IsFalse(released.IsRepeat);
+        Assert.AreEqual(OverlayModifierKeys.Alt, released.Modifiers);
+
+        Assert.AreEqual(1, textInput.Count);
+        Assert.AreEqual("ø", textInput[0].Text);
+        Assert.IsTrue(textInput[0].IsSystemCharacter);
     }
 
     [TestMethod]
@@ -601,6 +737,8 @@ public sealed class OverlayWindowThreadingTests
     }
 
     private const uint WmLButtonDown = 0x0201;
+    private const uint WmLButtonUp = 0x0202;
+    private const uint WmMouseMove = 0x0200;
     private const uint WmNcHitTest = 0x0084;
     private const uint WmKeyDown = 0x0100;
     private const uint WmKeyUp = 0x0101;
@@ -634,6 +772,20 @@ public sealed class OverlayWindowThreadingTests
         }
 
         return new(value);
+    }
+
+    private static void DispatchKeyboard(OverlayWindow overlay, Win32KeyboardEvent keyboard)
+    {
+        MethodInfo method = typeof(OverlayWindow).GetMethod("HandleKeyboardEvent", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(nameof(OverlayWindow), "HandleKeyboardEvent");
+        method.Invoke(overlay, [keyboard]);
+    }
+
+    private static void DispatchTextInput(OverlayWindow overlay, Win32TextInputEvent textInput)
+    {
+        MethodInfo method = typeof(OverlayWindow).GetMethod("HandleTextInputEvent", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(nameof(OverlayWindow), "HandleTextInputEvent");
+        method.Invoke(overlay, [textInput]);
     }
 
     private sealed class SingleBackendProvider(IRenderBackend backend) : IRenderBackendProvider

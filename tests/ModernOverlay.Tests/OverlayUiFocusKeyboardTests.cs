@@ -17,6 +17,7 @@ public sealed class OverlayUiFocusKeyboardTests
         "parent-down:Bubble:True:Control",
         "child-up:Direct",
     ];
+    private static readonly string[] ExpectedTextInputRoute = ["child:Direct:Å"];
 
     [TestMethod]
     [TestCategory("WindowsIntegration")]
@@ -140,6 +141,37 @@ public sealed class OverlayUiFocusKeyboardTests
         CollectionAssert.AreEqual(ExpectedKeyboardRoute, route);
     }
 
+    [TestMethod]
+    [TestCategory("WindowsIntegration")]
+    public async Task TextInputEventsRouteFromFocusedElementAndRespectHandled()
+    {
+        await using OverlayWindow overlay = await CreateOverlayAsync();
+        using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
+        Canvas parent = new()
+        {
+            Width = 120f,
+            Height = 80f,
+        };
+        ProbeElement child = CreateFocusableElement(10f, 10f, 40f, 20f);
+        List<string> route = [];
+        child.TextInput += (_, args) =>
+        {
+            Assert.AreSame(child, args.OriginalSource);
+            Assert.AreSame(child, args.Source);
+            Assert.AreEqual("Å", args.Text);
+            route.Add($"child:{args.RoutePhase}:{args.Text}");
+            args.Handled = true;
+        };
+        parent.TextInput += (_, _) => route.Add("parent");
+        parent.Children.Add(child);
+        ui.Root.Children.Add(parent);
+
+        child.Focus();
+        DispatchText(overlay, "Å");
+
+        CollectionAssert.AreEqual(ExpectedTextInputRoute, route);
+    }
+
     private static async ValueTask<OverlayWindow> CreateOverlayAsync()
         => await OverlayWindow.CreateAsync(new OverlayWindowOptions
         {
@@ -182,6 +214,13 @@ public sealed class OverlayUiFocusKeyboardTests
         MethodInfo method = typeof(OverlayWindow).GetMethod("HandleKeyboardEvent", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new MissingMethodException(nameof(OverlayWindow), "HandleKeyboardEvent");
         method.Invoke(overlay, [new Win32KeyboardEvent(virtualKey, pressed, false, repeatCount, 0, false, wasDown, !pressed, modifiers)]);
+    }
+
+    private static void DispatchText(OverlayWindow overlay, string text)
+    {
+        MethodInfo method = typeof(OverlayWindow).GetMethod("HandleTextInputEvent", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(nameof(OverlayWindow), "HandleTextInputEvent");
+        method.Invoke(overlay, [new Win32TextInputEvent(text, false)]);
     }
 
     private sealed class ProbeElement : UiElement

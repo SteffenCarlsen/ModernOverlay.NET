@@ -129,6 +129,29 @@ public sealed class OverlayKeyboardEventArgs : EventArgs
         bool wasDown,
         bool isTransitionState,
         OverlayModifierKeys modifiers)
+        : this(
+            virtualKey,
+            isSystemKey,
+            repeatCount,
+            scanCode,
+            isExtendedKey,
+            wasDown,
+            isTransitionState,
+            modifiers,
+            wasDown || repeatCount > 1)
+    {
+    }
+
+    internal OverlayKeyboardEventArgs(
+        int virtualKey,
+        bool isSystemKey,
+        int repeatCount,
+        int scanCode,
+        bool isExtendedKey,
+        bool wasDown,
+        bool isTransitionState,
+        OverlayModifierKeys modifiers,
+        bool isRepeat)
     {
         VirtualKey = virtualKey;
         IsSystemKey = isSystemKey;
@@ -138,6 +161,7 @@ public sealed class OverlayKeyboardEventArgs : EventArgs
         WasDown = wasDown;
         IsTransitionState = isTransitionState;
         Modifiers = modifiers;
+        IsRepeat = isRepeat;
     }
 
     public int VirtualKey { get; }
@@ -154,7 +178,7 @@ public sealed class OverlayKeyboardEventArgs : EventArgs
 
     public bool IsTransitionState { get; }
 
-    public bool IsRepeat => WasDown || RepeatCount > 1;
+    public bool IsRepeat { get; }
 
     public OverlayModifierKeys Modifiers { get; }
 }

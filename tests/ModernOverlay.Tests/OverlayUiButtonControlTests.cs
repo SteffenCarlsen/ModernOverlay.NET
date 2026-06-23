@@ -50,8 +50,10 @@ public sealed class OverlayUiButtonControlTests
         using OverlayUiRoot ui = OverlayUi.Attach(overlay, new OverlayUiOptions { RegisterInputRegions = false });
         ToggleButton toggle = CreateButton<ToggleButton>("Toggle", 10f, 10f);
         int checkedChanges = 0;
+        int checkStateChanges = 0;
         int commandCalls = 0;
         toggle.CheckedChanged += (_, _) => checkedChanges++;
+        toggle.CheckStateChanged += (_, _) => checkStateChanges++;
         toggle.Command = new UiCommand(_ => commandCalls++);
         ui.Root.Children.Add(toggle);
         ui.Render(new DrawContext());
@@ -69,6 +71,7 @@ public sealed class OverlayUiButtonControlTests
 
         Assert.IsFalse(toggle.IsChecked);
         Assert.AreEqual(2, checkedChanges);
+        Assert.AreEqual(2, checkStateChanges);
         Assert.AreEqual(2, commandCalls);
     }
 

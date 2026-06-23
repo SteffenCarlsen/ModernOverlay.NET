@@ -51,6 +51,9 @@ public sealed class TargetTrackingTests
     {
         using Win32OverlayWindow target = CreateHiddenTarget(10, 20, 200, 120);
         using var runCancellation = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var movedBounds = new WindowBounds(40, 50, 240, 160);
+        List<WindowBounds> boundsEvents = [];
+        List<OverlayTargetChangedEventArgs> targetEvents = [];
 
         await using OverlayWindow overlay = await OverlayWindow.CreateAsync(new OverlayWindowOptions
         {
@@ -59,19 +62,28 @@ public sealed class TargetTrackingTests
             FrameRateLimit = FrameRateLimit.Fixed(120),
             Target = WindowTarget.FromHwnd(new WindowHandle(target.Hwnd)),
         });
+        overlay.BoundsChanged += (_, args) => boundsEvents.Add(args.Bounds);
+        overlay.TargetChanged += (_, args) => targetEvents.Add(args);
 
-        target.SetBounds(40, 50, 240, 160);
+        target.SetBounds(movedBounds.X, movedBounds.Y, movedBounds.Width, movedBounds.Height);
         overlay.Render += _ => runCancellation.Cancel();
 
         await overlay.RunAsync(runCancellation.Token);
 
         Assert.IsTrue(Win32WindowQuery.TryGetWindowBounds(overlay.Hwnd.Value, clientArea: false, out Win32WindowBounds bounds));
-        Assert.AreEqual(40, bounds.X);
-        Assert.AreEqual(50, bounds.Y);
-        Assert.AreEqual(240, bounds.Width);
-        Assert.AreEqual(160, bounds.Height);
+        Assert.AreEqual(movedBounds.X, bounds.X);
+        Assert.AreEqual(movedBounds.Y, bounds.Y);
+        Assert.AreEqual(movedBounds.Width, bounds.Width);
+        Assert.AreEqual(movedBounds.Height, bounds.Height);
         Assert.AreEqual(new WindowHandle(target.Hwnd), overlay.FrameStats.TargetHwnd);
-        Assert.AreEqual(new WindowBounds(40, 50, 240, 160), overlay.FrameStats.TargetBounds);
+        Assert.AreEqual(movedBounds, overlay.FrameStats.TargetBounds);
+        CollectionAssert.AreEqual(new[] { movedBounds }, boundsEvents);
+        Assert.AreEqual(1, targetEvents.Count);
+        Assert.AreEqual(overlay.Options.Target, targetEvents[0].Target);
+        Assert.IsNotNull(targetEvents[0].TargetHwnd);
+        Assert.AreEqual(new WindowHandle(target.Hwnd), targetEvents[0].TargetHwnd!.Value);
+        Assert.IsNotNull(targetEvents[0].Bounds);
+        Assert.AreEqual(movedBounds, targetEvents[0].Bounds!.Value);
     }
 
     [TestMethod]
@@ -327,6 +339,10 @@ public sealed class TargetTrackingTests
         string title = $"ModernOverlay reacquire target {Guid.NewGuid():N}";
         Win32OverlayWindow? target = CreateHiddenTarget(105, 115, 240, 120, title: title);
         using var runCancellation = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var originalHwnd = new WindowHandle(target.Hwnd);
+        var originalBounds = new WindowBounds(105, 115, 240, 120);
+        WindowHandle reacquiredHwnd = default;
+        var reacquiredBounds = new WindowBounds(125, 135, 250, 130);
         bool disposedOriginal = false;
         bool lost = false;
         bool reacquired = false;
@@ -344,14 +360,23 @@ public sealed class TargetTrackingTests
             overlay.TargetLost += (_, args) =>
             {
                 lost = true;
+                Assert.AreEqual(overlay.Options.Target, args.Target);
                 Assert.IsNotNull(args.TargetHwnd);
-                target = CreateHiddenTarget(125, 135, 250, 130, title: title);
+                Assert.AreEqual(originalHwnd, args.TargetHwnd!.Value);
+                Assert.IsNotNull(args.Bounds);
+                Assert.AreEqual(originalBounds, args.Bounds!.Value);
+                target = CreateHiddenTarget(reacquiredBounds.X, reacquiredBounds.Y, reacquiredBounds.Width, reacquiredBounds.Height, title: title);
+                reacquiredHwnd = new WindowHandle(target.Hwnd);
             };
             overlay.TargetReacquired += (_, args) =>
             {
                 reacquired = true;
                 Assert.IsTrue(lost);
-                Assert.AreEqual(new WindowBounds(125, 135, 250, 130), args.Bounds);
+                Assert.AreEqual(overlay.Options.Target, args.Target);
+                Assert.IsNotNull(args.TargetHwnd);
+                Assert.AreEqual(reacquiredHwnd, args.TargetHwnd!.Value);
+                Assert.IsNotNull(args.Bounds);
+                Assert.AreEqual(reacquiredBounds, args.Bounds!.Value);
                 runCancellation.Cancel();
             };
             overlay.Render += _ =>

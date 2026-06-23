@@ -35,6 +35,8 @@ public sealed class OverlayUiRangeNumericTests
         };
         Canvas.SetLeft(slider, 10f);
         Canvas.SetTop(slider, 10f);
+        int valueChanges = 0;
+        slider.ValueChanged += (_, _) => valueChanges++;
         ui.Root.Children.Add(slider);
         ui.Render(new DrawContext());
 
@@ -70,6 +72,7 @@ public sealed class OverlayUiRangeNumericTests
         DispatchPointer(overlay, Win32PointerEventKind.Pressed, Win32PointerButton.Left, 60, 20);
         DispatchKey(overlay, VirtualKeyLeft);
         Assert.AreEqual(30f, slider.Value);
+        Assert.AreEqual(6, valueChanges);
     }
 
     [TestMethod]

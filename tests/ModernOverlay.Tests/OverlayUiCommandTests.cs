@@ -16,15 +16,24 @@ public sealed class OverlayUiCommandTests
         object? executedParameter = null;
         bool canExecute = false;
         UiCommand command = new(parameter => executedParameter = parameter, _ => canExecute);
+        int canExecuteChanges = 0;
+        command.CanExecuteChanged += (sender, args) =>
+        {
+            Assert.AreSame(command, sender);
+            Assert.AreSame(EventArgs.Empty, args);
+            canExecuteChanges++;
+        };
 
         command.Execute("blocked");
         Assert.IsNull(executedParameter);
 
         canExecute = true;
+        command.RaiseCanExecuteChanged();
         command.Execute("allowed");
 
         Assert.AreEqual("allowed", executedParameter);
         Assert.IsTrue(command.CanExecute("allowed"));
+        Assert.AreEqual(1, canExecuteChanges);
     }
 
     [TestMethod]

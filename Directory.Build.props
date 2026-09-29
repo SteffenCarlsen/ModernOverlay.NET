@@ -18,7 +18,7 @@
     <PackageProjectUrl>https://github.com/SteffenCarlsen/ModernOverlay.NET</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>windows;overlay;direct2d;win32;vortice;net11-preview</PackageTags>
-    <PackageReleaseNotes>Initial 1.0 release. Targets net11.0-windows on a .NET 11 preview SDK. DirectComposition and UpdateLayeredWindow request modes currently use the documented DWM/color-key fallback path. Capture exclusion and cooperative named-pipe ACL support are explicit cooperative features, not bypass or privacy guarantees.</PackageReleaseNotes>
+    <PackageReleaseNotes>Release history: https://github.com/SteffenCarlsen/ModernOverlay.NET/releases. Targets net11.0-windows on a prerelease .NET 11 SDK. DirectComposition and UpdateLayeredWindow request modes currently use the documented DWM/color-key fallback path. Capture exclusion and cooperative named-pipe ACL support are explicit cooperative features, not bypass or privacy guarantees.</PackageReleaseNotes>
     <Authors>Steffen Carlsen</Authors>
     <Company>Steffen Carlsen</Company>
     <IncludeSymbols>true</IncludeSymbols>

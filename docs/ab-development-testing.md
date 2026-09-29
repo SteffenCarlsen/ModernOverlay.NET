@@ -7,7 +7,7 @@ Use this page when you want to play with ModernOverlay locally and compare small
 1. Latest local command-gate evidence: `docs/release-validation-results-20260523-local.md`.
 2. Latest package manifest: `docs/release-artifacts-20260523-alpha.md`.
 3. Latest non-dry benchmark baseline: `docs/performance-baseline-20260522-local.md`.
-4. The release gate now includes a package-consumer smoke app that restores the emitted `ModernOverlay` package, compiles the intended `ModernOverlay`, `ModernOverlay.Drawing`, and `ModernOverlay.Windows` imports, checks that removed v1 aliases stay absent, and verifies the bundled Direct2D backend reaches the consumer output.
+4. The release gate now includes a package-consumer smoke app that restores the emitted `ModernOverlay.NET` package, compiles the intended `ModernOverlay`, `ModernOverlay.Drawing`, and `ModernOverlay.Windows` imports, checks that removed v1 aliases stay absent, and verifies the bundled Direct2D backend reaches the consumer output.
 
 ## Fastest Way To Play
 
@@ -66,7 +66,7 @@ using ModernOverlay.Drawing;
 using ModernOverlay.Windows;
 ```
 
-This is the intended common path. `ModernOverlay` should bring the Direct2D backend assembly along for the current preview package.
+This is the intended common path. `ModernOverlay.NET` brings the Direct2D backend assembly along. `1.0.0` above is the default local pack version; published package versions are listed in [installation](installation.md).
 
 ## Useful A/B Knobs
 

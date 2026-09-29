@@ -1,12 +1,12 @@
 # Quick Start
 
-ModernOverlay is a Windows-only, Vortice-backed overlay library. It currently targets `net11.0-windows`, which is a preview runtime in this repository, so consumers should expect preview SDK/tooling churn until the target reaches GA. `main` does not carry a checked-in `net10.0-windows` fallback.
+ModernOverlay.NET is a Windows-only, Vortice-backed overlay library. It targets `net11.0-windows`; repository development uses the .NET 11 RC1 SDK selected by [global.json](../global.json). Consumers should expect prerelease SDK/tooling changes until .NET 11 reaches GA. `main` does not carry a checked-in `net10.0-windows` fallback.
 
 This is not a drop-in GameOverlay.NET package. The API keeps the useful model of transparent immediate-mode overlays, but uses new names, explicit lifetimes, and safer target-tracking/diagnostic surfaces.
 
 ## Minimal Overlay
 
-Applications can reference the preview `ModernOverlay` package directly. It includes the current Direct2D backend assembly for the common path, and the facade auto-discovers the backend before creating the first overlay:
+Applications can reference the `ModernOverlay.NET` NuGet package directly. It includes the current Direct2D backend assembly for the common path, and the facade auto-discovers the backend before creating the first overlay:
 
 ```csharp
 using ModernOverlay;

@@ -9,6 +9,7 @@
 - Release preflight should prove external version availability before publishing: check local/remote tags, GitHub releases, NuGet package versions, and the release workflow package list.
 - When package-consumer smoke tests use local packages with reused or preview versions, isolate restore output with an artifact-local `RestorePackagesPath`; otherwise the global NuGet cache can hide stale package contents.
 - Adding a new published package requires both repo pipeline coverage and NuGet trusted publishing coverage. Verify the workflow packs the project and that nuget.org has a policy matching package owner, repository owner, repository, workflow file, and environment.
+- When updating the .NET SDK, check both `global.json` and `dotnet --version`: `latestFeature` can select a newer installed prerelease locally while CI installs the older pinned SDK. Keep the analyzer package aligned and preserve the original SDK in dated benchmark evidence.
 
 ## ModernOverlay UI Samples
 

@@ -4,21 +4,23 @@
 
 [![CI](https://img.shields.io/github/actions/workflow/status/SteffenCarlsen/ModernOverlay.NET/ci.yml?branch=main&label=CI&logo=github)](https://github.com/SteffenCarlsen/ModernOverlay.NET/actions/workflows/ci.yml "CI workflow") [![Release](https://img.shields.io/github/actions/workflow/status/SteffenCarlsen/ModernOverlay.NET/release.yml?label=release&logo=github)](https://github.com/SteffenCarlsen/ModernOverlay.NET/actions/workflows/release.yml "Release workflow") [![NuGet](https://img.shields.io/nuget/v/ModernOverlay.NET.svg?logo=nuget&label=NuGet)](https://www.nuget.org/packages/ModernOverlay.NET/ "ModernOverlay.NET on NuGet") [![Downloads](https://img.shields.io/nuget/dt/ModernOverlay.NET.svg)](https://www.nuget.org/packages/ModernOverlay.NET/ "Downloads on NuGet") [![Open issues](https://img.shields.io/github/issues-raw/SteffenCarlsen/ModernOverlay.NET.svg?logo=github)](https://github.com/SteffenCarlsen/ModernOverlay.NET/issues "Open issues on GitHub") [![Closed issues](https://img.shields.io/github/issues-closed-raw/SteffenCarlsen/ModernOverlay.NET.svg)](https://github.com/SteffenCarlsen/ModernOverlay.NET/issues?q=is%3Aissue+is%3Aclosed "Closed issues on GitHub") [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/SteffenCarlsen/ModernOverlay.NET/blob/main/LICENSE "ModernOverlay.NET license")
 
-![Windows](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows) ![.NET 11 Preview](https://img.shields.io/badge/.NET-11_preview-512BD4?logo=dotnet)
+![Windows](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows) ![.NET 11 RC1](https://img.shields.io/badge/.NET-11_RC1-512BD4?logo=dotnet)
 
 </div>
 
-ModernOverlay is a Windows-only overlay library for modern .NET. It replaces the useful parts of the [GameOverlay.NET](https://github.com/michel-pi/GameOverlay.Net) library stack with a new Vortice + Direct2D/DirectWrite/WIC + Win32 implementation.
+ModernOverlay.NET is a Windows-only overlay library for modern .NET. It replaces the useful parts of the [GameOverlay.NET](https://github.com/michel-pi/GameOverlay.Net) library stack with a new Vortice + Direct2D/DirectWrite/WIC + Win32 implementation.
 
 This package is not a drop-in [GameOverlay.NET](https://github.com/michel-pi/GameOverlay.Net) replacement, but feature-wise is heavily inspired by the library from Michel. The API intentionally uses new names, explicit lifetimes, safer target tracking, and first-class diagnostics.
 
 ## Preview Status
 
-This repository currently targets `net11.0-windows` on a .NET 11 preview SDK. APIs, package layout, backend registration, and packaging metadata may change before .NET 11 GA.
+This repository targets `net11.0-windows`. Development uses the [.NET 11 RC1 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/11.0), `11.0.100-rc.1.26425.128`, selected through [global.json](global.json). .NET 11 is still prerelease; APIs, package layout, backend registration, and packaging metadata may change before .NET 11 GA.
+
+The latest published package release is [v1.1.3](https://github.com/SteffenCarlsen/ModernOverlay.NET/releases/tag/v1.1.3) (29 September 2026), built with the .NET 11 RC1 SDK.
 
 Package-facing caveats for the MVP/alpha release:
 
-1. The common `ModernOverlay` package bundles the Direct2D backend assembly for the preview one-package path. `ModernOverlay.Direct2D` is still also emitted as a separate backend package.
+1. The common `ModernOverlay.NET` package bundles the `ModernOverlay.Direct2D` assembly for the one-package path. `ModernOverlay.NET.Direct2D` is also published as a separate backend package.
 2. `ModernOverlay.Integration.Experimental` is source-only for alpha and should not be published until there is a real authorized experimental provider.
 3. `TransparencyMode.UpdateLayeredWindow` and `TransparencyMode.DirectComposition` are request modes that currently fall back to the DWM/color-key Direct2D HWND path with diagnostics. True CPU-copy layered alpha and DirectComposition/DXGI per-pixel alpha remain future backend work.
 4. The release bar is a hobbyist project aiming to be useful, buildable, sample-backed, and caveated.
@@ -27,8 +29,13 @@ Package-facing caveats for the MVP/alpha release:
 
 | Version | Highlights |
 |---|---|
-| 1.1 preview | Adds the `ModernOverlay.UI` package with retained interactive controls, layout panels, popups, floating windows, text editing, selective click-through regions, themes, and interface-only layout persistence. |
-| 1.0 | Establishes the core overlay window lifecycle, Direct2D drawing backend, target tracking, input modes, diagnostics, cooperative IPC, samples, and release validation tooling. |
+| [1.1.3](https://github.com/SteffenCarlsen/ModernOverlay.NET/releases/tag/v1.1.3) | Updates the SDK and analyzers to .NET 11 RC1 and refreshes package names, release documentation, and UI sample links. |
+| [1.1.2](https://github.com/SteffenCarlsen/ModernOverlay.NET/releases/tag/v1.1.2) | Fixes button auto-size measurement, tab header hit testing, non-finite numeric range values, and the key-release repeat flag; adds event contract tests. |
+| [1.1.1](https://github.com/SteffenCarlsen/ModernOverlay.NET/releases/tag/v1.1.1) | Fixes relative z-order placement, process target selection, click-through hit testing, and unlimited-loop spinning when rendering is skipped. |
+| [1.1.0](https://github.com/SteffenCarlsen/ModernOverlay.NET/releases/tag/v1.1.0) | Adds the `ModernOverlay.UI` package with retained interactive controls, layout panels, popups, floating windows, text editing, selective click-through regions, themes, and interface-only layout persistence. |
+| 1.0.x | Establishes the core overlay window lifecycle, Direct2D drawing backend, target tracking, input modes, diagnostics, cooperative IPC, samples, and release validation tooling. |
+
+See [GitHub releases](https://github.com/SteffenCarlsen/ModernOverlay.NET/releases) for the full release history.
 
 ## Quick Start
 
@@ -71,6 +78,19 @@ Drawing coordinates are DIPs. `WindowBounds` represents physical pixels unless c
 
 Read more: [quick start](docs/quick-start.md), [A/B development testing](docs/ab-development-testing.md), [installation](docs/installation.md), [DPI and multi-monitor](docs/dpi-and-multi-monitor.md).
 
+## Packages
+
+Use these published NuGet IDs. C# namespaces and assembly names use `ModernOverlay` and `ModernOverlay.*`.
+
+| NuGet package | Purpose |
+|---|---|
+| `ModernOverlay.NET` | Core overlay API with the bundled Direct2D backend; the common install path. |
+| `ModernOverlay.NET.Direct2D` | Direct2D backend for hosts that want an explicit backend package reference. |
+| `ModernOverlay.NET.Win32` | Low-level Win32 window helpers. |
+| `ModernOverlay.NET.Diagnostics` | EventSource and logging integration. |
+| `ModernOverlay.NET.Integration` | Cooperative named-pipe IPC for owned applications. |
+| `ModernOverlay.UI` | Retained interactive controls, layout, themes, and popups. |
+
 ## Features
 
 | Feature | What is available now | Read more |
@@ -88,7 +108,7 @@ Read more: [quick start](docs/quick-start.md), [A/B development testing](docs/ab
 
 ## Performance Snapshot
 
-The current local baseline was captured on Windows 10 IoT Enterprise LTSC `10.0.19044`, AMD Ryzen 9 9950X3D, NVIDIA RTX 3080, .NET SDK `11.0.100-preview.4.26230.115`, and BenchmarkDotNet `0.15.8` with the in-process emit toolchain. Treat these as same-machine comparison numbers, not cross-hardware guarantees.
+The historical local baseline from 22 May 2026 was captured on Windows 10 IoT Enterprise LTSC `10.0.19044`, AMD Ryzen 9 9950X3D, NVIDIA RTX 3080, .NET SDK `11.0.100-preview.4.26230.115`, and BenchmarkDotNet `0.15.8` with the in-process emit toolchain. These measurements predate the RC1 SDK update. Treat them as same-machine comparison numbers, not cross-hardware guarantees.
 
 | Area | Benchmark | Mean | Allocation |
 |---|---|---:|---:|
@@ -165,6 +185,8 @@ tools\New-ModernOverlayPlayground.ps1 -From Basic -Name Basic-A
 | `samples/BasicOverlay` | Minimal render loop and drawing setup. |
 | `samples/StickyTargetOverlay` / `samples/StickyWindowOverlay` | Target tracking against an owned test window. |
 | `samples/InputModeOverlay` / `samples/InteractiveOverlay` | Click-through versus interactive input behavior. |
+| `samples/InteractiveUiOverlay` | Retained UI controls, popups, themes, and selective click-through. |
+| `samples/UiAbTestOverlay` | Full-screen UI component, layout, focus, and floating-window validation. |
 | `samples/ShapesOverlay` / `samples/GeometryOverlay` | Shape, helper, and geometry drawing. |
 | `samples/ImageOverlay` / `samples/ImageAndTextOverlay` | Image and text rendering. |
 | `samples/TextLayoutOverlay` | Reusable text layouts. |
@@ -179,7 +201,7 @@ tools\New-ModernOverlayPlayground.ps1 -From Basic -Name Basic-A
 Read more: [docs index](docs/README.md).
 
 1. Start here: [quick start](docs/quick-start.md), [A/B development testing](docs/ab-development-testing.md), [installation](docs/installation.md), [GameOverlay.NET mapping](docs/gameoverlay-migration.md).
-2. Core usage: [window modes](docs/window-modes.md), [target tracking](docs/target-tracking.md), [DPI and multi-monitor](docs/dpi-and-multi-monitor.md), [drawing primitives](docs/drawing-primitives.md), [resource lifetime](docs/resource-lifetime.md).
+2. Core usage: [window modes](docs/window-modes.md), [target tracking](docs/target-tracking.md), [DPI and multi-monitor](docs/dpi-and-multi-monitor.md), [drawing primitives](docs/drawing-primitives.md), [resource lifetime](docs/resource-lifetime.md), [interactive UI](docs/interactive-ui.md).
 3. Runtime behavior: [device recreation](docs/device-recreation.md), [troubleshooting](docs/troubleshooting.md), [performance guide](docs/performance-guide.md).
 4. Integration and boundaries: [integration boundary](docs/integration-boundary.md), [transparency validation](docs/transparency-validation.md), [capture-backed overlay spike](docs/capture-backed-overlay-spike.md), [DirectComposition decision note](docs/directcomposition-spike.md).
 5. Release/project status: [task list](Tasks.md), [modernization spec](docs/modernization-spec.md), [feature completeness](docs/feature-completeness.md), [next action points](docs/next-action-points.md), [implementation history](docs/implementation-history.md), [development notes](docs/development-notes.md), [public API and package review](docs/public-api-package-review.md), [release validation checklist](docs/release-validation-checklist.md), [release publishing](docs/release-publishing.md).

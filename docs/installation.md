@@ -1,13 +1,13 @@
 # Installation
 
-ModernOverlay is currently a preview Windows-only library targeting `net11.0-windows`.
+ModernOverlay.NET is a Windows-only library targeting `net11.0-windows` on prerelease .NET 11.
 
-Package publishing is prepared through the repository release workflow, but the first NuGet publish will happen only after NuGet trusted publishing is configured. See [release publishing](release-publishing.md).
+The latest published version is [1.1.3](https://github.com/SteffenCarlsen/ModernOverlay.NET/releases/tag/v1.1.3), available on [NuGet](https://www.nuget.org/packages/ModernOverlay.NET/1.1.3). See [release publishing](release-publishing.md) for the publishing workflow.
 
 ## Requirements
 
 - Windows desktop.
-- .NET 11 preview SDK matching `global.json`.
+- A .NET 11 SDK. Repository development uses .NET 11 RC1, `11.0.100-rc.1.26425.128`, as selected by [global.json](../global.json).
 - A Windows-capable IDE or command line environment.
 
 ## Project References
@@ -24,20 +24,20 @@ The solution includes the spec-named samples `StickyWindowOverlay`, `Interactive
 For package-based consumption, the common path is one package:
 
 ```xml
-<PackageReference Include="ModernOverlay.NET" Version="1.0.0" />
+<PackageReference Include="ModernOverlay.NET" Version="1.1.3" />
 ```
 
-The `ModernOverlay` package includes the Direct2D backend assembly for the preview common path. The facade auto-discovers and registers that backend before creating the first overlay. `Direct2DOverlayBackend.Register()` remains available for tests, custom startup flows, and hosts that want explicit registration.
+The `ModernOverlay.NET` package includes the `ModernOverlay.Direct2D` backend assembly for the common path. The facade auto-discovers and registers that backend before creating the first overlay. `Direct2DOverlayBackend.Register()` remains available for tests, custom startup flows, and hosts that want explicit registration.
 
 Advanced hosts can still reference the backend package directly:
 
 ```xml
-<PackageReference Include="ModernOverlay.NET" Version="1.0.0" />
-<PackageReference Include="ModernOverlay.NET.Direct2D" Version="1.0.0" />
+<PackageReference Include="ModernOverlay.NET" Version="1.1.3" />
+<PackageReference Include="ModernOverlay.NET.Direct2D" Version="1.1.3" />
 ```
 
-See [public API and package review](public-api-package-review.md) for the package split review and the options for a future all-in-one package.
+For retained interactive controls, add `ModernOverlay.UI` at the same version. See the [package list](../README.md#packages) for all published IDs. These NuGet IDs differ from the `ModernOverlay` and `ModernOverlay.*` C# namespaces and assembly names.
 
 ## Target Framework
 
-Applications should target `net11.0-windows` while this repository uses the .NET 11 preview path. `main` intentionally does not carry a checked-in `net10.0-windows` fallback.
+Applications should target `net11.0-windows` while this repository uses the .NET 11 prerelease path. `main` intentionally does not carry a checked-in `net10.0-windows` fallback.

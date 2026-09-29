@@ -139,7 +139,7 @@ public sealed class SpecExampleCompileTests
         Assert.AreEqual("settings", window.Placement?.PersistenceKey);
         Assert.AreEqual("Manual", comboBox.SelectedItem);
         Assert.AreEqual("profile", ((UiButton)stack.Children[10]).CommandParameter);
-        Assert.IsFalse(readability.Failures.Any());
+        Assert.IsEmpty(readability.Failures);
     }
 
     private sealed class MemoryUiLayoutStore : IUiLayoutStore
